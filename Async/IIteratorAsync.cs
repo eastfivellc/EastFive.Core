@@ -6,9 +6,8 @@ using System.Threading.Tasks;
 
 namespace BlackBarLabs.Collections.Async
 {
-    public interface IEnumeratorAsync<TDelegate> : IDisposable
+    public interface IIteratorAsync<TDelegate>
     {
-        Task<bool> MoveNextAsync(TDelegate callback);
-        Task ResetAsync();
+        Task IterateAsync(TDelegate callback);
     }
 }

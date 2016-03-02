@@ -6,8 +6,12 @@ using System.Threading.Tasks;
 
 namespace BlackBarLabs.Collections.Async
 {
-    public interface IEnumerableAsync<T>
+    public interface IEnumerableAsync<TDelegate>
     {
-        IEnumeratorAsync<T> GetEnumerator();
+        IEnumerable<TResult> GetEnumerable<TResult, TConvertDelegate>(TConvertDelegate convertDelegate);
+
+        IEnumeratorAsync<TDelegate> GetEnumerator();
+
+        IIteratorAsync<TDelegate> GetIterator();
     }
 }

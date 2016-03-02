@@ -41,7 +41,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Async\EnumerableAsync.cs" />
-    <Compile Include="Async\EnumeratorAsync.cs" />
+    <Compile Include="Async\EnumerableNonAsync.cs" />
+    <Compile Include="Async\EnumeratorNonAsync.cs" />
+    <Compile Include="Async\Extensions\DynamicDelegateExtensions.cs" />
+    <Compile Include="Async\Extensions\DynamicDelegateResultSwapExtension.cs" />
+    <Compile Include="Async\IIteratorAsync.cs" />
+    <Compile Include="Async\IteratorSimpleAsync.cs" />
+    <Compile Include="Async\EnumeratorBlockingAsync.cs" />
     <Compile Include="Async\IEnumerableAsync.cs" />
     <Compile Include="Async\IEnumeratorAsync.cs" />
     <Compile Include="Async\LinqExtensions.cs" />
