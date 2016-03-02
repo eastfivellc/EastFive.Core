@@ -28,6 +28,7 @@ namespace BlackBarLabs.Collections.Async
             {
                 try
                 {
+                    // TODO: Get cancellation token on this thread as well.
                     await yieldAsync.SandwichInvoke(
                         () =>
                         {
