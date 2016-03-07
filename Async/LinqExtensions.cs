@@ -23,7 +23,7 @@ namespace BlackBarLabs.Collections.Async
             return await enumerator.MoveNextAsync(action);
         }
 
-        public static IEnumerableAsync<T> TaskAsync<T>(this IEnumerableAsync<T> items, int limit)
+        public static IEnumerableAsync<T> TakeAsync<T>(this IEnumerableAsync<T> items, int limit)
         {
             YieldCallbackAsync<T> yieldAsync = async yield =>
             {
@@ -36,6 +36,14 @@ namespace BlackBarLabs.Collections.Async
                 }
             };
             return new EnumerableAsync<T>(yieldAsync);
+        }
+
+        public static void ForYield<T>(this IEnumerable<T> items, Func<T, Task> yieldAsync)
+        {
+            foreach(var item in items)
+            {
+                yieldAsync.Invoke(item);
+            }
         }
 
         #region ToEnumerable
