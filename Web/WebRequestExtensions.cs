@@ -38,5 +38,29 @@ namespace BlackBarLabs.Core.Web
                 return onFailure(httpResponse.StatusCode, responseText);
             }
         }
+
+        public static async Task<TResult> GetAsync<TResource, TResult>(this WebRequest webRequest,
+            Func<TResource, TResult> onSuccess, Func<HttpStatusCode, string, TResult> onFailure)
+        {
+            if (!(webRequest is HttpWebRequest))
+                throw new ArgumentException("webRequest must be of type HttpWebRequest");
+            var httpWebRequest = (HttpWebRequest)webRequest;
+            
+            httpWebRequest.ContentType = "text/json";
+            httpWebRequest.Method = "GET";
+            try
+            {
+                var response = ((HttpWebResponse)(await httpWebRequest.GetResponseAsync()));
+                var responseJson = new StreamReader(response.GetResponseStream()).ReadToEnd();
+                var resource = Newtonsoft.Json.JsonConvert.DeserializeObject<TResource>(responseJson);
+                return onSuccess(resource);
+            }
+            catch (WebException ex)
+            {
+                var httpResponse = (HttpWebResponse)ex.Response;
+                var responseText = new System.IO.StreamReader(httpResponse.GetResponseStream()).ReadToEnd();
+                return onFailure(httpResponse.StatusCode, responseText);
+            }
+        }
     }
 }
