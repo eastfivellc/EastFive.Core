@@ -25,5 +25,15 @@ namespace BlackBarLabs.Collections.Generic
             });
             return items.Concat(appendItems);
         }
+
+        public static async Task<IEnumerable<T>> AppendYieldAsync<T>(this IEnumerable<T> items, Func<Action<T>, Task> callback)
+        {
+            var appendItems = new List<T>();
+            await callback((item) =>
+            {
+                appendItems.Add(item);
+            });
+            return items.Concat(appendItems);
+        }
     }
 }
