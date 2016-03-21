@@ -61,6 +61,10 @@ namespace BlackBarLabs.Core.Web
                 var responseText = new System.IO.StreamReader(httpResponse.GetResponseStream()).ReadToEnd();
                 return onFailure(httpResponse.StatusCode, responseText);
             }
+            catch (Exception ex)
+            {
+                return onFailure(HttpStatusCode.InternalServerError, ex.Message);
+            }
         }
     }
 }
