@@ -38,12 +38,21 @@ namespace BlackBarLabs.Collections.Async
             return new EnumerableAsync<T>(yieldAsync);
         }
 
-        public static void ForYield<T>(this IEnumerable<T> items, Func<T, Task> yieldAsync)
+        public async static Task ForYield<T>(this IEnumerable<T> items, Func<T, Task> yieldAsync)
         {
             foreach(var item in items)
             {
-                yieldAsync.Invoke(item);
+                await yieldAsync.Invoke(item);
             }
+        }
+
+        public static IEnumerableAsync<Func<T, Task>> AsEnumerableAsync<T>(this IEnumerable<T> items)
+        {
+            return EnumerableAsync.YieldAsync<Func<T, Task>>(
+                async (yieldAsync) =>
+                {
+                    await items.ForYield(yieldAsync);
+                });
         }
 
         #region ToEnumerable
