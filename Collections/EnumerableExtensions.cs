@@ -25,5 +25,10 @@ namespace BlackBarLabs.Collections.Generic
             });
             return items.Concat(appendItems);
         }
+
+        public static IEnumerable<T> SelectMany<T>(this IEnumerable<IEnumerable<T>> itemss)
+        {
+            return itemss.SelectMany(items => items);
+        }
     }
 }
