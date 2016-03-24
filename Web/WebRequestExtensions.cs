@@ -66,5 +66,41 @@ namespace BlackBarLabs.Core.Web
                 return onFailure(HttpStatusCode.InternalServerError, ex.Message);
             }
         }
+
+        private static void Serialize<TResource>(this HttpWebRequest httpWebRequest, TResource resource)
+        {
+            var resourceJson = Newtonsoft.Json.JsonConvert.SerializeObject(resource);
+
+            httpWebRequest.ContentType = "text/json";
+            using (var streamWriter = new StreamWriter(httpWebRequest.GetRequestStream()))
+            {
+                streamWriter.Write(resourceJson);
+                streamWriter.Flush();
+            }
+        }
+
+        public static async Task<TResult> DeleteAsync<TResource, TResult>(this WebRequest webRequest,
+            TResource resource,
+            Func<HttpWebResponse, TResult> onSuccess,
+            Func<HttpStatusCode, string, TResult> onFailure)
+        {
+            if (!(webRequest is HttpWebRequest))
+                throw new ArgumentException("webRequest must be of type HttpWebRequest");
+            var httpWebRequest = (HttpWebRequest)webRequest;
+
+            httpWebRequest.Method = "DELETE";
+            httpWebRequest.Serialize(resource);
+            try
+            {
+                var response = ((HttpWebResponse)(await httpWebRequest.GetResponseAsync()));
+                return onSuccess(response);
+            }
+            catch (WebException ex)
+            {
+                var httpResponse = (HttpWebResponse)ex.Response;
+                var responseText = new System.IO.StreamReader(httpResponse.GetResponseStream()).ReadToEnd();
+                return onFailure(httpResponse.StatusCode, responseText);
+            }
+        }
     }
 }
