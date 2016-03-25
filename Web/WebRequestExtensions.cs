@@ -16,18 +16,11 @@ namespace BlackBarLabs.Core.Web
             if (!(webRequest is HttpWebRequest))
                 throw new ArgumentException("webRequest must be of type HttpWebRequest");
             var httpWebRequest = (HttpWebRequest)webRequest;
-
-            var resourceJson = Newtonsoft.Json.JsonConvert.SerializeObject(resource);
-
-            httpWebRequest.ContentType = "text/json";
+            
             httpWebRequest.Method = "POST";
-            using (var streamWriter = new StreamWriter(httpWebRequest.GetRequestStream()))
-            {
-                streamWriter.Write(resourceJson);
-                streamWriter.Flush();
-            }
             try
             {
+                httpWebRequest.Serialize(resource);
                 var createAuthResponse = ((HttpWebResponse)(await httpWebRequest.GetResponseAsync()));
                 return onSuccess(createAuthResponse);
             }
@@ -89,9 +82,9 @@ namespace BlackBarLabs.Core.Web
             var httpWebRequest = (HttpWebRequest)webRequest;
 
             httpWebRequest.Method = "DELETE";
-            httpWebRequest.Serialize(resource);
             try
             {
+                httpWebRequest.Serialize(resource);
                 var response = ((HttpWebResponse)(await httpWebRequest.GetResponseAsync()));
                 return onSuccess(response);
             }
