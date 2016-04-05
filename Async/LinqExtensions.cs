@@ -55,6 +55,34 @@ namespace BlackBarLabs.Collections.Async
                 });
         }
 
+        #region ToDictionary
+
+        //public delegate void ToDictionaryDelegate<TKey, TValue>(TKey key, TValue value);
+        //public static IDictionary<TKey, TValue> ToEnumerable<TDelegateItems, T1, T2, T3, TKey, TValue>(
+        //    this IEnumerableAsync<TDelegateItems> items,
+        //    Action<T1, T2, T3, ToDictionaryDelegate<TKey, TValue>> convert)
+        //{
+        //    var iterator = items.GetEnumerable<KeyValuePair<TKey, TValue>, Func<T1, T2, T3, KeyValuePair<TKey, TValue>>>(
+        //        (t1, t2, t3) =>
+        //        {
+        //            var key = default(TKey);
+        //            var value = default(TValue);
+        //            convert(t1, t2, t3, (k, v) => { key = k; value = v; });
+        //            return new KeyValuePair<TKey, TValue>(key, value);
+        //        });
+        //    return iterator.ToDictionary(;
+        //}
+
+        //public static IDictionary<TKey, TValue> ToDictionary<TDelegateItems, T1, TKey, TValue>(
+        //    this IEnumerableAsync<TDelegateItems> items,
+        //    Action<T1, ToDictionaryDelegate<TKey, TValue>> convert)
+        //{
+        //    var iterator = items.GetEnumerable<TResult, Func<T1, TResult>>(convert);
+        //    return iterator;
+        //}
+
+        #endregion
+
         #region ToEnumerable
 
         public static IEnumerable<TResult> ToEnumerable<TDelegateItems, TDelegateConvert, TResult>(
@@ -94,6 +122,14 @@ namespace BlackBarLabs.Collections.Async
             Func<T1, T2, T3, T4, TResult> convert)
         {
             var iterator = items.GetEnumerable<TResult, Func<T1, T2, T3, T4, TResult>>(convert);
+            return iterator;
+        }
+
+        public static IEnumerable<TResult> ToEnumerable<TDelegateItems, T1, T2, T3, T4, T5, T6, T7, TResult>(
+            this IEnumerableAsync<TDelegateItems> items,
+            Func<T1, T2, T3, T4, T5, T6, T7, TResult> convert)
+        {
+            var iterator = items.GetEnumerable<TResult, Func<T1, T2, T3, T4, T5, T6, T7, TResult>>(convert);
             return iterator;
         }
 
