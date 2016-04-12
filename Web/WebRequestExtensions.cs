@@ -151,6 +151,19 @@ namespace BlackBarLabs.Core.Web
                     (whyFailed) => Task.FromResult(onFailure(whyFailed)));
         }
 
+        public static Task<TResult> PutAsync<TResource, TResult>(this WebRequest webRequest, TResource resource,
+            Func<HttpWebResponse, TResult> onSuccess,
+            Func<HttpStatusCode, string, TResult> onWebFailure,
+            Func<string, TResult> onFailure)
+        {
+            var httpWebRequest = webRequest.AsHttpWebRequest("PUT");
+            return httpWebRequest
+                .GetRequestJson(resource,
+                    () => httpWebRequest.GetResponseAsync(onSuccess, onWebFailure, onFailure),
+                    (code, message) => Task.FromResult(onWebFailure(code, message)),
+                    (whyFailed) => Task.FromResult(onFailure(whyFailed)));
+        }
+
         public static Task<TResult> DeleteAsync<TResource, TResult>(this WebRequest webRequest,
             TResource resource,
             Func<HttpWebResponse, TResult> onSuccess,
