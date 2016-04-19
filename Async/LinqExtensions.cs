@@ -17,6 +17,121 @@ namespace BlackBarLabs.Collections.Async
             // while (await enumerator.MoveNextAsync(action)) { };
         }
 
+        
+        private static Func<ConcurrentQueue<Func<TDelegate, Task>>, TDelegate> GetTotalExpression<TDelegate>()
+        {
+            var queueExpression = Expression.Parameter(typeof(ConcurrentQueue<Func<TDelegate, Task>>), "queue");
+            var delegateExpression = GetInvokedExpression<TDelegate>(queueExpression);
+
+            var returnTarget = Expression.Label(typeof(TDelegate));
+            var returnTaskExpression = Expression.Return(returnTarget, delegateExpression);
+            var returnValue = default(TDelegate);
+            var returnLabelExpression = Expression.Label(returnTarget, Expression.Constant(returnValue, typeof(TDelegate)));
+
+            // Func<TDelegate, Task> invoked = (method) =>
+            var bodyExpression = new Expression[]
+            {
+                returnTaskExpression,
+                returnLabelExpression,
+            };
+            var blockWithReturnExpression = Expression.Block(bodyExpression);
+            var invokedExpression = Expression.Lambda<Func<ConcurrentQueue<Func<TDelegate, Task>>, TDelegate>>(
+                blockWithReturnExpression, queueExpression);
+            return invokedExpression.Compile();
+        }
+
+        // (a, b, c) =>
+        // {
+        //     Func<T, Task> callback = async (method) =>
+        //     {
+        //         await method(a, b, c);
+        //     };
+        //     queue.Enqueue(callback);
+        // }
+        private static Expression<TDelegate> GetInvokedExpression<TDelegate>(ParameterExpression queueExpression)
+        {
+            var delegateInvokeMethod = typeof(TDelegate).GetMethod("Invoke");
+            if (typeof(Task) != delegateInvokeMethod.ReturnType)
+                throw new ArgumentException(
+                    "Async Enumeration requires method that returns Task",
+                    typeof(TDelegate).FullName);
+            
+            var delegateParameters = delegateInvokeMethod.GetParameters()
+                .Select(param => Expression.Parameter(param.ParameterType))
+                .ToArray();
+
+            var callbackExpression = GetCallback<TDelegate>(delegateInvokeMethod, delegateParameters);
+            var enqueueMethod = typeof(ConcurrentQueue<Func<TDelegate, Task>>).GetMethod("Enqueue");
+
+            var queueEnqueueExpression = Expression.Call(queueExpression, enqueueMethod, callbackExpression);
+            
+            var trueExpression = Expression.Constant(true, typeof(bool));
+            var defaultTaskExpression = Expression.Call(typeof(Task), "FromResult", new Type[] { typeof(bool) }, trueExpression);
+
+            // return delegateTask;
+            var returnTarget = Expression.Label(typeof(Task));
+            var returnTaskExpression = Expression.Return(returnTarget, defaultTaskExpression);
+            var returnValue = default(Task);
+            var returnLabelExpression = Expression.Label(returnTarget, Expression.Constant(returnValue, typeof(Task)));
+
+            // Func<TDelegate, Task> invoked = (method) =>
+            var bodyExpression = new Expression[]
+            {
+                queueEnqueueExpression,
+                returnTaskExpression,
+                returnLabelExpression,
+            };
+            var blockWithReturnExpression = Expression.Block(bodyExpression);
+            var invokedExpression = Expression.Lambda<TDelegate>(blockWithReturnExpression, delegateParameters);
+            return invokedExpression;
+        }
+
+        private static Expression GetCallback<TDelegate>(
+            System.Reflection.MethodInfo delegateInvokeMethod,
+            ParameterExpression [] delegateParameters)
+        {
+            var methodExpression = Expression.Parameter(typeof(TDelegate), "method");
+            
+            var methodTaskExpression = Expression.Call(methodExpression, delegateInvokeMethod, delegateParameters);
+
+            // return delegateTask;
+            var returnTarget = Expression.Label(typeof(Task));
+            var returnTaskExpression = Expression.Return(returnTarget, methodTaskExpression);
+            var returnValue = default(Task);
+            var returnLabelExpression = Expression.Label(returnTarget, Expression.Constant(returnValue, typeof(Task)));
+
+            // Func<T, Task> callback = async (method) =>
+            var callbackExpression = new Expression[]
+            {
+                returnTaskExpression,
+                returnLabelExpression,
+            };
+
+            var blockWithReturnExpression = Expression.Block(callbackExpression);
+            var invokedExpression = Expression.Lambda<Func<TDelegate, Task>>(blockWithReturnExpression, methodExpression);
+            return invokedExpression;
+        }
+
+        public static IEnumerableAsync<T> PrespoolAsync<T>(this IEnumerableAsync<T> items)
+        {
+            var iterator = items.GetIterator();
+            var queue = new ConcurrentQueue<Func<T, Task>>();
+            var totalExpression = GetTotalExpression<T>();
+            var basicExpression = totalExpression(queue);
+            var iterationTask = iterator.IterateAsync(basicExpression);
+            return EnumerableAsync.YieldAsync<T>(
+                async (yieldAsync) =>
+                {
+                    while(!iterationTask.IsCompleted ||
+                        queue.Count() > 0)
+                    {
+                        Func<T, Task> callback;
+                        if (queue.TryDequeue(out callback))
+                            await callback(yieldAsync);
+                    }
+                });
+        }
+
         public static async Task<bool> FirstAsync<T>(this IEnumerableAsync<T> items, T action)
         {
             var enumerator = items.GetEnumerator();
