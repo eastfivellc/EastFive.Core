@@ -240,6 +240,14 @@ namespace BlackBarLabs.Collections.Async
             return iterator;
         }
 
+        public static IEnumerable<TResult> ToEnumerable<TDelegateItems, T1, T2, T3, T4, T5, TResult>(
+            this IEnumerableAsync<TDelegateItems> items,
+            Func<T1, T2, T3, T4, T5, TResult> convert)
+        {
+            var iterator = items.GetEnumerable<TResult, Func<T1, T2, T3, T4, T5, TResult>>(convert);
+            return iterator;
+        }
+
         public static IEnumerable<TResult> ToEnumerable<TDelegateItems, T1, T2, T3, T4, T5, T6, T7, TResult>(
             this IEnumerableAsync<TDelegateItems> items,
             Func<T1, T2, T3, T4, T5, T6, T7, TResult> convert)
