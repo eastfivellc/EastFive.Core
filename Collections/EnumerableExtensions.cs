@@ -26,6 +26,17 @@ namespace BlackBarLabs.Collections.Generic
             return items.Concat(appendItems);
         }
 
+        public static IEnumerable<T> RemoveItemAtIndex<T>(this IEnumerable<T> items, int index)
+        {
+            int indexOfItem = 0;
+            foreach(var item in items)
+            {
+                if (index != indexOfItem)
+                    yield return item;
+                indexOfItem++;
+            }
+        }
+
         public static IEnumerable<T> SelectMany<T>(this IEnumerable<IEnumerable<T>> itemss)
         {
             return itemss.SelectMany(items => items);
@@ -39,6 +50,74 @@ namespace BlackBarLabs.Collections.Generic
                 appendItems.Add(item);
             });
             return items.Concat(appendItems);
+        }
+
+        public static TResult Min<TItem, TComparable, TResult>(this IEnumerable<TItem> items,
+            Func<TItem, TComparable> sortCriteria,
+            Func<TComparable, TComparable, int> comparer,
+            Func<TItem, TResult> success,
+            Func<TResult> emptyItems)
+        {
+            var enumerator = items.GetEnumerator();
+            if (!enumerator.MoveNext())
+                return emptyItems();
+            var min = sortCriteria(enumerator.Current);
+            var current = enumerator.Current;
+            while (enumerator.MoveNext())
+            {
+                var minCandidate = sortCriteria(enumerator.Current);
+                if (comparer(minCandidate, min) < 0)
+                {
+                    min = minCandidate;
+                    current = enumerator.Current;
+                }
+            }
+            return success(current);
+        }
+
+        public static TResult Min<TItem, TResult>(this IEnumerable<TItem> items,
+            Func<TItem, long> sortCriteria,
+            Func<TItem, TResult> success,
+            Func<TResult> emptyItems)
+        {
+            return items.Min(sortCriteria,
+                (long a, long b) => a < b ? -1 : (a == b ? 0 : 1),
+                success, emptyItems);
+        }
+        
+        public static TResult Max<TItem, TResult>(this IEnumerable<TItem> items,
+            Func<TItem, long> sortCriteria,
+            Func<TItem, TResult> success,
+            Func<TResult> emptyItems)
+        {
+            return items.Min(sortCriteria,
+                (long a, long b) => a > b ? -1 : (a == b ? 0 : 1),
+                success, emptyItems);
+        }
+
+        public static TResult IndexOf<TItem, TResult>(this IEnumerable<TItem> items,
+            TItem item,
+            Func<TItem, TItem, bool> areEqual,
+            Func<int, TResult> success,
+            Func<TResult> notFound)
+        {
+            int index = 0;
+            var enumerator = items.GetEnumerator();
+            while (enumerator.MoveNext())
+            {
+                if (areEqual(enumerator.Current, item))
+                    return success(index);
+                index++;
+            }
+            return notFound();
+        }
+
+        public static TResult IndexOf<TResult>(this IEnumerable<Guid> items,
+            Guid item,
+            Func<int, TResult> success,
+            Func<TResult> notFound)
+        {
+            return items.IndexOf(item, (item1, item2) => item1 == item2, success, notFound);
         }
     }
 }
