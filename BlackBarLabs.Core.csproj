@@ -60,6 +60,8 @@
     <Compile Include="Collections\EnumerableExtensions.cs" />
     <Compile Include="Extensions\DateTimeExtensions.cs" />
     <Compile Include="Extensions\ObjectExtensions.cs" />
+    <Compile Include="Extensions\StringExtensions.cs" />
+    <Compile Include="Extensions\UrnExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Web\UriExtensions.cs" />
     <Compile Include="Web\WebRequestExtensions.cs" />

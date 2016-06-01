@@ -11,9 +11,39 @@ namespace BlackBarLabs.Core.Extensions // Make user force extensions because thi
         public static T OrIfDefault<T>(this T value, T alternative)
             where T : IComparable
         {
-            if (EqualityComparer<T>.Default.Equals(value, default(T)))
+            if (value.IsDefault())
                 return alternative;
             return value;
+        }
+
+        public static T OrIfDefaultOrNull<T>(this T value, T alternative)
+            where T : class
+        {
+            if (value.IsDefaultOrNull())
+                return alternative;
+            return value;
+        }
+
+        public static bool IsDefault<T>(this T value)
+            where T : IComparable
+        {
+            return EqualityComparer<T>.Default.Equals(value, default(T));
+        }
+
+        public static bool IsDefaultOrNull<T>(this T value)
+           where T : class
+        {
+            return EqualityComparer<T>.Default.Equals(value, default(T));
+        }
+
+        public static bool IsDefaultOrEmpty(this Guid value)
+        {
+            return value.IsDefault() || value == Guid.Empty;
+        }
+
+        public static bool IsDefault(this Uri value)
+        {
+            return value.IsDefaultOrNull();
         }
     }
 }
