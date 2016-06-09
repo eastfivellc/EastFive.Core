@@ -119,5 +119,25 @@ namespace BlackBarLabs.Collections.Generic
         {
             return items.IndexOf(item, (item1, item2) => item1 == item2, success, notFound);
         }
+
+        public static IEnumerable<T> ToEndlessLoop<T>(this IEnumerable<T> items)
+        {
+            while(true)
+            {
+                foreach (var item in items)
+                    yield return item;
+            }
+        }
+
+        public static IEnumerable<TReturn> Times<T, TReturn>(this IEnumerable<T> items, decimal total, decimal increments, Func<T, TReturn> action)
+        {
+            var itemsEnumerator = items.GetEnumerator();
+            while (total > 0.0m)
+            {
+                itemsEnumerator.MoveNext();
+                yield return action(itemsEnumerator.Current);
+                total -= increments;
+            }
+        }
     }
 }
