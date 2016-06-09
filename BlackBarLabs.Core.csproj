@@ -58,6 +58,7 @@
     <Compile Include="Async\LinqExtensions.cs" />
     <Compile Include="Collections\DictionaryExtensions.cs" />
     <Compile Include="Collections\EnumerableExtensions.cs" />
+    <Compile Include="Collections\ListExtensions.cs" />
     <Compile Include="Extensions\DateTimeExtensions.cs" />
     <Compile Include="Extensions\ObjectExtensions.cs" />
     <Compile Include="Extensions\StringExtensions.cs" />
