@@ -41,6 +41,13 @@ namespace BlackBarLabs.Core.Extensions // Make user force extensions because thi
             return value.IsDefault() || value == Guid.Empty;
         }
 
+        public static TResult HasValue<TResult>(this Guid value, Func<Guid, TResult> hasValue, Func<TResult> nullOrEmptyValue)
+        {
+            if (value.IsDefaultOrEmpty())
+                return nullOrEmptyValue();
+            return hasValue(value);
+        }
+
         public static bool IsDefault(this Uri value)
         {
             return value.IsDefaultOrNull();

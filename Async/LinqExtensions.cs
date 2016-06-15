@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Linq.Expressions;
+using System.Security.Cryptography;
 
 namespace BlackBarLabs.Collections.Async
 {
@@ -245,6 +246,14 @@ namespace BlackBarLabs.Collections.Async
             Func<T1, T2, T3, T4, T5, TResult> convert)
         {
             var iterator = items.GetEnumerable<TResult, Func<T1, T2, T3, T4, T5, TResult>>(convert);
+            return iterator;
+        }
+
+        public static IEnumerable<TResult> ToEnumerable<TDelegateItems, T1, T2, T3, T4, T5, T6, TResult>(
+            this IEnumerableAsync<TDelegateItems> items,
+            Func<T1, T2, T3, T4, T5, T6, TResult> convert)
+        {
+            var iterator = items.GetEnumerable<TResult, Func<T1, T2, T3, T4, T5, T6, TResult>>(convert);
             return iterator;
         }
 
