@@ -122,10 +122,16 @@ namespace BlackBarLabs.Collections.Generic
 
         public static IEnumerable<T> ToEndlessLoop<T>(this IEnumerable<T> items)
         {
+            bool operated = false;
             while(true)
             {
                 foreach (var item in items)
+                {
+                    operated = true;
                     yield return item;
+                }
+                if (!operated)
+                    break;
             }
         }
 
