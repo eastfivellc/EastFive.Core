@@ -48,6 +48,13 @@ namespace BlackBarLabs.Core.Extensions // Make user force extensions because thi
             return hasValue(value);
         }
 
+        public static TResult HasValue<TResult>(this DateTime value, Func<DateTime, TResult> hasValue, Func<TResult> nullOrEmptyValue)
+        {
+            if (value.IsDefault())
+                return nullOrEmptyValue();
+            return hasValue(value);
+        }
+
         public static bool IsDefault(this Uri value)
         {
             return value.IsDefaultOrNull();
