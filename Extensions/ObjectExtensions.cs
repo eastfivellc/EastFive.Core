@@ -36,6 +36,14 @@ namespace BlackBarLabs.Core.Extensions // Make user force extensions because thi
             return EqualityComparer<T>.Default.Equals(value, default(T));
         }
 
+        public static TResult HasValue<T, TResult>(this T value, Func<T, TResult> hasValue, Func<TResult> nullOrEmptyValue)
+           where T : class
+        {
+            if (value.IsDefaultOrNull())
+                return nullOrEmptyValue();
+            return hasValue(value);
+        }
+
         public static bool IsDefaultOrEmpty(this Guid value)
         {
             return value.IsDefault() || value == Guid.Empty;
