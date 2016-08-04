@@ -145,5 +145,15 @@ namespace BlackBarLabs.Collections.Generic
                 total -= increments;
             }
         }
+
+        public static bool Contains<T>(this IEnumerable<T> items, Func<T, bool> doesContain)
+        {
+            foreach(var item in items)
+            {
+                if (doesContain(item))
+                    return true;
+            }
+            return false;
+        }
     }
 }
