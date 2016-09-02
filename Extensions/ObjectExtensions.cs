@@ -49,6 +49,26 @@ namespace BlackBarLabs.Core.Extensions // Make user force extensions because thi
             return value.IsDefault() || value == Guid.Empty;
         }
 
+        public static TResult HasValue<T, TResult>(this Nullable<T> value, Func<T, TResult> hasValue, Func<TResult> nullOrEmptyValue)
+            where T : struct
+        {
+            if (!value.HasValue)
+                return nullOrEmptyValue();
+            return hasValue(value.Value);
+        }
+
+        public static bool Equals<T>(this Nullable<T> value1, Nullable<T> value2)
+           where T : struct
+        {
+            if(value1.HasValue)
+            {
+                if (value2.HasValue)
+                    return ValueType.Equals(value1.Value, value2.Value);
+                return false;
+            }
+            return !value2.HasValue;
+        }
+
         public static TResult HasValue<TResult>(this Guid value, Func<Guid, TResult> hasValue, Func<TResult> nullOrEmptyValue)
         {
             if (value.IsDefaultOrEmpty())
@@ -67,5 +87,6 @@ namespace BlackBarLabs.Core.Extensions // Make user force extensions because thi
         {
             return value.IsDefaultOrNull();
         }
+        
     }
 }
