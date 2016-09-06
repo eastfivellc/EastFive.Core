@@ -10,6 +10,8 @@ namespace BlackBarLabs.Core
     {
         #region Equality
 
+        #region Seconds
+
         #region EqualToSecond
 
         public static bool EqualToSecond(this DateTime time1, DateTime time2)
@@ -39,6 +41,18 @@ namespace BlackBarLabs.Core
         {
             return time2.EqualToSecond(time1);
         }
+
+        #endregion
+
+        #region GreaterThanEqualToSecond
+
+        public static bool GreaterThanEqualToSecond(this DateTime time1, DateTime time2)
+        {
+            var delta = time1 - time2;
+            return (delta.TotalSeconds > -1.0);
+        }
+
+        #endregion
 
         #endregion
 
