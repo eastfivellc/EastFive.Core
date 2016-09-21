@@ -88,5 +88,10 @@ namespace BlackBarLabs.Core.Extensions // Make user force extensions because thi
             return value.IsDefaultOrNull();
         }
         
+        public static Task<T> ToTask<T>(this T value)
+        {
+            return Task.FromResult(value);
+        }
+
     }
 }

@@ -16,5 +16,10 @@ namespace BlackBarLabs
             var trimmed = str.Substring(0, str.Length - trim.Length);
             return success(trimmed);
         }
+
+        public static string Format(this string str, params object [] args)
+        {
+            return String.Format(str, args);
+        }
     }
 }
