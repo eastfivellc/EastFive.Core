@@ -14,5 +14,12 @@ namespace BlackBarLabs.Core
             var attributes = type.GetCustomAttributes(typeof(T), inherit);
             return attributes.Select(attrib => attrib as T).ToArray();
         }
+
+        public static bool ContainsCustomAttribute<T>(this Type type, bool inherit = false)
+            where T : class
+        {
+            var attributes = type.GetCustomAttributes<T>(inherit);
+            return attributes.Count() > 0;
+        }
     }
 }
