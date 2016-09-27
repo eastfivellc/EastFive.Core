@@ -30,9 +30,7 @@ namespace BlackBarLabs.Core.Reflection
                 .ToArray();
 
             #endregion
-
-            #region instantiate type
-
+            
             Type objectType = tb.CreateType();
             return objectType;
         }
