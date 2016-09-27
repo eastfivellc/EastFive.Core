@@ -23,7 +23,7 @@ namespace BlackBarLabs.Core.Reflection
                     kvp =>
                     {
                         var fieldName = kvp.Key;
-                        var fieldType = kvp.Value.GetType();
+                        var fieldType = kvp.Value;
                         var setMethod = CreateProperty(tb, fieldName, fieldType);
                         return new KeyValuePair<string, MethodBuilder>(fieldName, setMethod);
                     })
