@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,6 +21,21 @@ namespace BlackBarLabs
         public static string Format(this string str, params object [] args)
         {
             return String.Format(str, args);
+        }
+
+        public static Type GetClrType(this string type)
+        {
+            if (type.ToLower() == "string")
+                return typeof(string);
+            if (type.ToLower() == "int")
+                return typeof(Int32);
+            if (type.ToLower() == "decimal")
+                return typeof(decimal);
+            if (type.ToLower() == "double")
+                return typeof(double);
+            if (type.ToLower() == "long")
+                return typeof(long);
+            throw new InvalidDataException($"Type {type} not supported");
         }
     }
 }
