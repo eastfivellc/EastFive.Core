@@ -28,7 +28,7 @@ namespace BlackBarLabs
             if (type.ToLower() == "string")
                 return typeof(string);
             if (type.ToLower() == "int")
-                return typeof(Int32);
+                return typeof(int);
             if (type.ToLower() == "decimal")
                 return typeof(decimal);
             if (type.ToLower() == "double")
