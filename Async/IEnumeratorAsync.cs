@@ -11,4 +11,11 @@ namespace BlackBarLabs.Collections.Async
         Task<bool> MoveNextAsync(TDelegate callback);
         Task ResetAsync();
     }
+
+    public interface IEnumeratorStructAsync<TStruct> : IDisposable
+    {
+        TStruct Current { get; }
+        Task<bool> MoveNextAsync();
+        Task ResetAsync();
+    }
 }

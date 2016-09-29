@@ -14,4 +14,11 @@ namespace BlackBarLabs.Collections.Async
 
         IIteratorAsync<TDelegate> GetIterator();
     }
+
+    public interface IEnumerableStructAsync<TStruct>
+    {
+        IEnumerable<TStruct> GetEnumerable();
+
+        IEnumeratorStructAsync<TStruct> GetEnumerator();
+    }
 }
