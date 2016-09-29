@@ -35,6 +35,10 @@ namespace BlackBarLabs
                 return typeof(double);
             if (type.ToLower() == "long")
                 return typeof(long);
+            if (type.ToLower() == "single")
+                return typeof(float);
+            if (type.ToLower() == "int32")
+                return typeof(int);
             throw new InvalidDataException($"Type {type} not supported");
         }
     }
