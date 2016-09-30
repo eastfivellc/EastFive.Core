@@ -155,5 +155,18 @@ namespace BlackBarLabs.Collections.Generic
             }
             return false;
         }
+
+        public static IEnumerable<IEnumerable<T>> Split<T>(this IEnumerable<T> items, Func<int, int> batchSizeCallback)
+        {
+            var itemsCopy = items;
+            var index = 0;
+            while (itemsCopy.Any())
+            {
+                var batchsize = batchSizeCallback(index);
+                yield return itemsCopy.Take(batchsize);
+                itemsCopy = itemsCopy.Skip(batchsize);
+                index += batchsize;
+            }
+        }
     }
 }
