@@ -168,5 +168,17 @@ namespace BlackBarLabs.Collections.Generic
                 index += batchsize;
             }
         }
+        
+        public static IEnumerable<TResult> Select<TSource, TResult>(
+            this IEnumerable<TSource> source,
+            Func<TSource, int, TResult> selector)
+        {
+            int index = 0;
+            return source.Select<TSource, TResult>((item) => {
+                var selected = selector.Invoke(item, index);
+                index++;
+                return selected;
+            });
+        }
     }
 }

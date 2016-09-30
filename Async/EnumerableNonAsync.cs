@@ -28,4 +28,25 @@ namespace BlackBarLabs.Collections.Async
             return new EnumeratorNonAsync<TResult, TDelegateItems, TDelegateConvert>(this.yieldAsync, this.convertDelegate);
         }
     }
+
+    public class EnumerableStructNonAsync<TStruct> : IEnumerable<TStruct>
+    {
+        private YieldStructDelegateAsync<TStruct> yieldAsync;
+
+        public EnumerableStructNonAsync(YieldStructDelegateAsync<TStruct> yieldAsync)
+        {
+            this.yieldAsync = yieldAsync;
+        }
+
+        public IEnumerator<TStruct> GetEnumerator()
+        {
+            return new EnumeratorStructNonAsync<TStruct>(this.yieldAsync);
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return new EnumeratorStructNonAsync<TStruct>(this.yieldAsync);
+        }
+    }
+    
 }
