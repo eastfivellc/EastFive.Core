@@ -168,18 +168,6 @@ namespace BlackBarLabs.Collections.Generic
                 index += batchsize;
             }
         }
-        
-        public static IEnumerable<TResult> Select<TSource, TResult>(
-            this IEnumerable<TSource> source,
-            Func<TSource, int, TResult> selector)
-        {
-            int index = 0;
-            foreach (var item in source.NullToEmpty())
-            {
-                yield return selector(item, index);
-                index++;
-            }
-        }
 
         public static IEnumerable<TSource> NullToEmpty<TSource>(
             this IEnumerable<TSource> source)
