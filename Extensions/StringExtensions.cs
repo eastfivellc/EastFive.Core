@@ -23,6 +23,11 @@ namespace BlackBarLabs
             return String.Format(str, args);
         }
 
+        public static string Join(this IEnumerable<string> strings, string separator)
+        {
+            return String.Join(separator, strings);
+        }
+
         public static Type GetClrType(this string type)
         {
             if (type.ToLower() == "string")
