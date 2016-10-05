@@ -174,14 +174,14 @@ namespace BlackBarLabs.Collections.Generic
             Func<TSource, int, TResult> selector)
         {
             if (default(IEnumerable<TSource>) == source)
-                return new TResult[] { };
-
+                yield break;
+            
             int index = 0;
-            return source.Select<TSource, TResult>((item) => {
-                var selected = selector.Invoke(item, index);
+            foreach (var item in source)
+            {
+                yield return selector(item, index);
                 index++;
-                return selected;
-            });
+            }
         }
     }
 }
