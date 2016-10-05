@@ -173,6 +173,9 @@ namespace BlackBarLabs.Collections.Generic
             this IEnumerable<TSource> source,
             Func<TSource, int, TResult> selector)
         {
+            if (default(IEnumerable<TSource>) == source)
+                return new TResult[] { };
+
             int index = 0;
             return source.Select<TSource, TResult>((item) => {
                 var selected = selector.Invoke(item, index);
