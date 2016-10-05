@@ -173,15 +173,20 @@ namespace BlackBarLabs.Collections.Generic
             this IEnumerable<TSource> source,
             Func<TSource, int, TResult> selector)
         {
-            if (default(IEnumerable<TSource>) == source)
-                yield break;
-            
             int index = 0;
-            foreach (var item in source)
+            foreach (var item in source.NullToEmpty())
             {
                 yield return selector(item, index);
                 index++;
             }
+        }
+
+        public static IEnumerable<TSource> NullToEmpty<TSource>(
+            this IEnumerable<TSource> source)
+        {
+            if (default(IEnumerable<TSource>) == source)
+                return new TSource[] { };
+            return source;
         }
     }
 }
