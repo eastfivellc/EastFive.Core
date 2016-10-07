@@ -176,5 +176,37 @@ namespace BlackBarLabs.Collections.Generic
                 return new TSource[] { };
             return source;
         }
+        
+        public static T Random<T>(this IEnumerable<T> items, int total, Random rand = null)
+        {
+            if (rand == null)
+            {
+                rand = new Random();
+            }
+            var totalD = (double)total;
+            var arrayItems = new T[total];
+            var arrayItemsIndex = 0;
+            foreach (var item in items)
+            {
+                if (rand.NextDouble() < (1.0 / totalD))
+                {
+                    return item;
+                }
+                totalD -= 1.0;
+                arrayItems[arrayItemsIndex] = item;
+                arrayItemsIndex++;
+            }
+            if (arrayItemsIndex == 0)
+            {
+                return default(T);
+            }
+            var selectedIndex = (int)(arrayItemsIndex * rand.NextDouble());
+            return arrayItems[selectedIndex];
+        }
+
+        public static T Random<T>(this IEnumerable<T> items, Random rand = null)
+        {
+            return items.Random(items.Count(), rand);
+        }
     }
 }
