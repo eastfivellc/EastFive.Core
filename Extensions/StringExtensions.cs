@@ -44,6 +44,10 @@ namespace BlackBarLabs
                 return typeof(float);
             if (type.ToLower() == "int32")
                 return typeof(int);
+            if (type.ToLower() == "bool")
+                return typeof(bool);
+            if (type.ToLower() == "boolean")
+                return typeof(bool);
             throw new InvalidDataException($"Type {type} not supported");
         }
     }
