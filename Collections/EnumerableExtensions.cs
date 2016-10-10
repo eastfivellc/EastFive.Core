@@ -168,18 +168,6 @@ namespace BlackBarLabs.Collections.Generic
                 index += batchsize;
             }
         }
-        
-        public static IEnumerable<TResult> Select<TSource, TResult>(
-            this IEnumerable<TSource> source,
-            Func<TSource, int, TResult> selector)
-        {
-            int index = 0;
-            foreach (var item in source.NullToEmpty())
-            {
-                yield return selector(item, index);
-                index++;
-            }
-        }
 
         public static IEnumerable<TSource> NullToEmpty<TSource>(
             this IEnumerable<TSource> source)
@@ -187,6 +175,55 @@ namespace BlackBarLabs.Collections.Generic
             if (default(IEnumerable<TSource>) == source)
                 return new TSource[] { };
             return source;
+        }
+        
+        public static T Random<T>(this IEnumerable<T> items, int total, Random rand = null)
+        {
+            if (rand == null)
+            {
+                rand = new Random();
+            }
+            var totalD = (double)total;
+            var arrayItems = new T[total];
+            var arrayItemsIndex = 0;
+            foreach (var item in items)
+            {
+                if (rand.NextDouble() < (1.0 / totalD))
+                {
+                    return item;
+                }
+                totalD -= 1.0;
+                arrayItems[arrayItemsIndex] = item;
+                arrayItemsIndex++;
+            }
+            if (arrayItemsIndex == 0)
+            {
+                return default(T);
+            }
+            var selectedIndex = (int)(arrayItemsIndex * rand.NextDouble());
+            return arrayItems[selectedIndex];
+        }
+
+        public static T Random<T>(this IEnumerable<T> items, Random rand = null)
+        {
+            return items.Random(items.Count(), rand);
+        }
+
+        public static TResult GetDistinctKvpValueByKey<TResult>(this IEnumerable<KeyValuePair<string, object>> kvps, string key,
+            Func<object, TResult> found,
+            Func<string, TResult> notFound,
+            Func<string, TResult> multipleItemsFoundWithSameKey)
+        {
+            var value = kvps.Where(kvp => kvp.Key == key).ToList();
+            if (!value.Any())
+            {
+                return notFound($"Could not find key {key}");
+            }
+            if (value.Count() > 1)
+            {
+                return multipleItemsFoundWithSameKey($"Multiple items found for key {key}");
+            }
+            return found(value.First().Value);
         }
     }
 }
