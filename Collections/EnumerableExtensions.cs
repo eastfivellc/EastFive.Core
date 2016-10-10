@@ -148,7 +148,7 @@ namespace BlackBarLabs.Collections.Generic
 
         public static bool Contains<T>(this IEnumerable<T> items, Func<T, bool> doesContain)
         {
-            foreach(var item in items)
+            foreach(var item in items.NullToEmpty())
             {
                 if (doesContain(item))
                     return true;
@@ -158,7 +158,7 @@ namespace BlackBarLabs.Collections.Generic
 
         public static IEnumerable<IEnumerable<T>> Split<T>(this IEnumerable<T> items, Func<int, int> batchSizeCallback)
         {
-            var itemsCopy = items;
+            var itemsCopy = items.NullToEmpty();
             var index = 0;
             while (itemsCopy.Any())
             {
