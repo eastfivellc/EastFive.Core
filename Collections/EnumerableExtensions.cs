@@ -208,5 +208,22 @@ namespace BlackBarLabs.Collections.Generic
         {
             return items.Random(items.Count(), rand);
         }
+
+        public static TResult GetDistinctKvpValueByKey<TResult>(this IEnumerable<KeyValuePair<string, object>> kvps, string key,
+            Func<object, TResult> found,
+            Func<string, TResult> notFound,
+            Func<string, TResult> multipleItemsFoundWithSameKey)
+        {
+            var value = kvps.Where(kvp => kvp.Key == key).ToList();
+            if (!value.Any())
+            {
+                return notFound($"Could not find key {key}");
+            }
+            if (value.Count() > 1)
+            {
+                return multipleItemsFoundWithSameKey($"Multiple items found for key {key}");
+            }
+            return found(value.First().Value);
+        }
     }
 }
