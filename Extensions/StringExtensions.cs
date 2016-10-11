@@ -34,6 +34,8 @@ namespace BlackBarLabs
                 return typeof(string);
             if (type.ToLower() == "int")
                 return typeof(int);
+            if (type.ToLower() == "number")
+                return typeof(decimal);
             if (type.ToLower() == "decimal")
                 return typeof(decimal);
             if (type.ToLower() == "double")
@@ -42,6 +44,8 @@ namespace BlackBarLabs
                 return typeof(long);
             if (type.ToLower() == "single")
                 return typeof(float);
+            if (type.ToLower() == "integer")
+                return typeof(int);
             if (type.ToLower() == "int32")
                 return typeof(int);
             if (type.ToLower() == "bool")
