@@ -208,5 +208,23 @@ namespace BlackBarLabs.Collections.Generic
         {
             return items.Random(items.Count(), rand);
         }
+        public static TResult FirstOrDefault<T, TResult>(this IEnumerable<T> items,
+            Func<T, TResult> found,
+            Func<TResult> notFound)
+        {
+            if (items.Any())
+                return found(items.First());
+            return notFound();
+        }
+
+        public static TResult FirstOrDefault<T, TResult>(this IEnumerable<T> items, Func<T, bool> predicate,
+            Func<T, TResult> found,
+            Func<TResult> notFound)
+        {
+            foreach (var item in items)
+                if (predicate(item))
+                    return found(item);
+            return notFound();
+        }
     }
 }
