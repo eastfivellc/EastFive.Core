@@ -148,7 +148,7 @@ namespace BlackBarLabs.Collections.Generic
 
         public static bool Contains<T>(this IEnumerable<T> items, Func<T, bool> doesContain)
         {
-            foreach(var item in items)
+            foreach(var item in items.NullToEmpty())
             {
                 if (doesContain(item))
                     return true;
@@ -158,7 +158,7 @@ namespace BlackBarLabs.Collections.Generic
 
         public static IEnumerable<IEnumerable<T>> Split<T>(this IEnumerable<T> items, Func<int, int> batchSizeCallback)
         {
-            var itemsCopy = items;
+            var itemsCopy = items.NullToEmpty();
             var index = 0;
             while (itemsCopy.Any())
             {
@@ -208,6 +208,7 @@ namespace BlackBarLabs.Collections.Generic
         {
             return items.Random(items.Count(), rand);
         }
+
         public static TResult FirstOrDefault<T, TResult>(this IEnumerable<T> items,
             Func<T, TResult> found,
             Func<TResult> notFound)
@@ -225,6 +226,34 @@ namespace BlackBarLabs.Collections.Generic
                 if (predicate(item))
                     return found(item);
             return notFound();
+        }
+
+        public static TResult GetDistinctKvpValueByKey<TResult>(this IEnumerable<KeyValuePair<string, object>> kvps, string key,
+            Func<object, TResult> found,
+            Func<string, TResult> notFound,
+            Func<string, TResult> multipleItemsFoundWithSameKey)
+        {
+            var value = kvps.Where(kvp => kvp.Key == key).ToList();
+            if (!value.Any())
+            {
+                return notFound($"Could not find key {key}");
+            }
+            if (value.Count() > 1)
+            {
+                return multipleItemsFoundWithSameKey($"Multiple items found for key {key}");
+            }
+            return found(value.First().Value);
+        }
+
+        public delegate TResult SelectWithDelegate<TWith, TItem, TResult>(TWith previous, TItem current, out TWith next);
+        public static IEnumerable<TResult> SelectWith<TWith, TItem, TResult>(this IEnumerable<TItem> items,
+            TWith seed, SelectWithDelegate<TWith, TItem, TResult> callback)
+        {
+            var carry = seed;
+            foreach(var item in items)
+            {
+                yield return callback(carry, item, out carry);
+            }
         }
     }
 }
