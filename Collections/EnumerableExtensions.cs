@@ -225,5 +225,16 @@ namespace BlackBarLabs.Collections.Generic
             }
             return found(value.First().Value);
         }
+
+        public delegate TResult SelectWithDelegate<TWith, TItem, TResult>(TWith previous, TItem current, out TWith next);
+        public static IEnumerable<TResult> SelectWith<TWith, TItem, TResult>(this IEnumerable<TItem> items,
+            TWith seed, SelectWithDelegate<TWith, TItem, TResult> callback)
+        {
+            var carry = seed;
+            foreach(var item in items)
+            {
+                yield return callback(carry, item, out carry);
+            }
+        }
     }
 }
