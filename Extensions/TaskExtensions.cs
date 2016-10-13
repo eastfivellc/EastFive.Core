@@ -21,5 +21,18 @@ namespace BlackBarLabs.Core
             }
             return results.ToArray();
         }
+
+        public static async Task WhenAllAsync(this IEnumerable<Task> tasks, int parallelLimit = 0)
+        {
+            if (parallelLimit <= 0)
+            {
+                await Task.WhenAll(tasks);
+                return;
+            }
+            foreach (var task in tasks)
+            {
+                await task;
+            }
+        }
     }
 }

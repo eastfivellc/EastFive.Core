@@ -28,7 +28,23 @@ namespace BlackBarLabs
             return String.Join(separator, strings);
         }
 
-        public static Type GetClrType(this string type)
+        public static TResult GetClrType<TResult>(this string type,
+            Func<Type, TResult> matched,
+            Func<TResult> noMatch)
+        {
+            if (string.IsNullOrWhiteSpace(type))
+                return noMatch();
+            try
+            {
+                var typeClr = GetClrType(type);
+                return matched(typeClr);
+            } catch(InvalidDataException)
+            {
+                return noMatch();
+            }
+        }
+
+        private static Type GetClrType(this string type)
         {
             if (type.ToLower() == "string")
                 return typeof(string);
