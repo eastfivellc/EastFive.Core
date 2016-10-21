@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BlackBarLabs.Collections.Generic;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -25,7 +26,7 @@ namespace BlackBarLabs
 
         public static string Join(this IEnumerable<string> strings, string separator)
         {
-            return String.Join(separator, strings);
+            return String.Join(separator, strings.NullToEmpty());
         }
 
         public static TResult GetClrType<TResult>(this string type,
