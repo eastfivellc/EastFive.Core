@@ -255,5 +255,34 @@ namespace BlackBarLabs.Collections.Generic
                 yield return callback(carry, item, out carry);
             }
         }
+
+        public static IEnumerable<TItem> OrderWith<TCarry, TItem>(this IEnumerable<TItem> items,
+            TCarry carry, Func<TCarry, TItem, bool> selectNextItem, Func<TItem, TCarry> selectNextCarry)
+        {
+            var itemsAvailable = items.NullToEmpty().ToArray();
+            while(itemsAvailable.Any())
+            {
+                bool found = false;
+                var nextItem = default(TItem);
+                itemsAvailable = itemsAvailable.Where(candidate =>
+                    {
+                        if (!found && selectNextItem(carry, candidate))
+                        {
+                            nextItem = candidate;
+                            return false;
+                        }
+                        return true;
+                    })
+                    .ToArray();
+                if (!found)
+                {
+                    foreach (var item in items)
+                        yield return item;
+                    yield break;
+                }
+                yield return nextItem;
+                carry = selectNextCarry(nextItem);
+            }
+        }
     }
 }
