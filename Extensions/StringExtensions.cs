@@ -74,11 +74,9 @@ namespace BlackBarLabs
             throw new InvalidDataException($"Type {type} not supported");
         }
 
-        public static object EscapeSingleQuote(this object parameter)
+        public static string EscapeSingleQuote(this string parameter)
         {
-            if (parameter is string)
-                return parameter.ToString().TrimStart('\'').TrimEnd('\'').Replace("'", "\'");
-            return parameter;
+            return parameter.ToString().Trim('\'').Replace("\'", "\'\'");
         }
     }
 }

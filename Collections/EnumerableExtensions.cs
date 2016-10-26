@@ -284,5 +284,37 @@ namespace BlackBarLabs.Collections.Generic
                 carry = selectNextCarry(nextItem);
             }
         }
+
+        public class SelectDiscriminateResult<TOption1, TOption2>
+        {
+            public TOption1 Option1;
+            public TOption2 Option2;
+            public bool IsOption2;
+
+            internal SelectDiscriminateResult(TOption1 item) { Option1 = item; IsOption2 = false; }
+            internal SelectDiscriminateResult(TOption2 item) { Option2 = item; IsOption2 = true; }
+        }
+
+        public static TResult SelectDiscriminate<TItem, TOption1, TOption2, TResult>(this IEnumerable<TItem> items,
+                Func<
+                    TItem,
+                    Func<TOption1, SelectDiscriminateResult<TOption1, TOption2>>,
+                    Func<TOption2, SelectDiscriminateResult<TOption1, TOption2>>,
+                    SelectDiscriminateResult<TOption1, TOption2>> callback,
+            Func<IEnumerable<TOption1>, TResult> option1,
+            Func<TOption2, TResult> option2)
+        {
+            IEnumerable<TOption1> option1s = new TOption1[] { };
+            foreach(var item in items)
+            {
+                var dr = callback(item,
+                    r => new SelectDiscriminateResult<TOption1, TOption2>(r),
+                    f => new SelectDiscriminateResult<TOption1, TOption2>(f));
+                if (dr.IsOption2)
+                    return option2(dr.Option2);
+                option1s = option1s.Append(dr.Option1);
+            }
+            return option1(option1s);
+        }
     }
 }
