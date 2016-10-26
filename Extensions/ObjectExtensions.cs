@@ -92,6 +92,5 @@ namespace BlackBarLabs.Core.Extensions // Make user force extensions because thi
         {
             return Task.FromResult(value);
         }
-
     }
 }
