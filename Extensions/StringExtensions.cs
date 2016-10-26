@@ -1,5 +1,6 @@
 ﻿using BlackBarLabs.Collections.Generic;
 using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -19,7 +20,7 @@ namespace BlackBarLabs
             return success(trimmed);
         }
 
-        public static string Format(this string str, params object [] args)
+        public static string Format(this string str, params object[] args)
         {
             return String.Format(str, args);
         }
@@ -39,7 +40,8 @@ namespace BlackBarLabs
             {
                 var typeClr = GetClrType(type);
                 return matched(typeClr);
-            } catch(InvalidDataException)
+            }
+            catch (InvalidDataException)
             {
                 return noMatch();
             }
@@ -48,28 +50,35 @@ namespace BlackBarLabs
         private static Type GetClrType(this string type)
         {
             if (type.ToLower() == "string")
-                return typeof(string);
+                return typeof (string);
             if (type.ToLower() == "int")
-                return typeof(int);
+                return typeof (int);
             if (type.ToLower() == "number")
-                return typeof(decimal);
+                return typeof (decimal);
             if (type.ToLower() == "decimal")
-                return typeof(decimal);
+                return typeof (decimal);
             if (type.ToLower() == "double")
-                return typeof(double);
+                return typeof (double);
             if (type.ToLower() == "long")
-                return typeof(long);
+                return typeof (long);
             if (type.ToLower() == "single")
-                return typeof(float);
+                return typeof (float);
             if (type.ToLower() == "integer")
-                return typeof(int);
+                return typeof (int);
             if (type.ToLower() == "int32")
-                return typeof(int);
+                return typeof (int);
             if (type.ToLower() == "bool")
-                return typeof(bool);
+                return typeof (bool);
             if (type.ToLower() == "boolean")
-                return typeof(bool);
+                return typeof (bool);
             throw new InvalidDataException($"Type {type} not supported");
+        }
+
+        public static object EscapeSingleQuote(this object parameter)
+        {
+            if (parameter is string)
+                return parameter.ToString().TrimStart('\'').TrimEnd('\'').Replace("'", "\'");
+            return parameter;
         }
     }
 }
