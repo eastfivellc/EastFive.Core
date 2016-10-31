@@ -316,5 +316,15 @@ namespace BlackBarLabs.Collections.Generic
             }
             return option1(option1s);
         }
+
+        public static IEnumerable<TResult> SplitSelect<TItem, TResult>(this IEnumerable<TItem> items, Predicate<TItem> isOption1,
+            Func<TItem, TResult> operation1, Func<TItem, TResult> operation2)
+        {
+            foreach (var item in items)
+                if (isOption1(item))
+                    yield return operation1(item);
+                else
+                    yield return operation2(item);
+        }
     }
 }
