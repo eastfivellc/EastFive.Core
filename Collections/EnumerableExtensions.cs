@@ -326,5 +326,22 @@ namespace BlackBarLabs.Collections.Generic
                 else
                     yield return operation2(item);
         }
+
+        public static IEnumerable<T> SelectRandom<T>(this IEnumerable<T> items, int total, Random rand = null)
+        {
+            if (rand == null)
+                rand = new Random();
+
+            var totalD = (double)total;
+            foreach (var item in items)
+            {
+                if (totalD < 0.5 ||
+                    rand.NextDouble() < (1.0 / totalD))
+                {
+                    yield return item;
+                }
+                totalD -= 1.0;
+            }
+        }
     }
 }
