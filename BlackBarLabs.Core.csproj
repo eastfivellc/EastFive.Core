@@ -60,6 +60,7 @@
     <Compile Include="Collections\EnumerableExtensions.cs" />
     <Compile Include="Collections\ListExtensions.cs" />
     <Compile Include="Delegates.cs" />
+    <Compile Include="Extensions\ComparisonExtensions.cs" />
     <Compile Include="Extensions\ComputationExtensions.cs" />
     <Compile Include="Extensions\DateTimeExtensions.cs" />
     <Compile Include="Extensions\ObjectExtensions.cs" />
