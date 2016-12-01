@@ -11,6 +11,16 @@ namespace BlackBarLabs.Core
 {
     public static class StreamExtensions
     {
+        public static byte [] ToBytes(this Stream stream)
+        {
+            using (var memoryStream = new MemoryStream())
+            {
+                stream.CopyTo(memoryStream);
+                var bytes = memoryStream.ToArray();
+                return bytes;
+            }
+        }
+
         public static TResult ToBytes<TResult>(this Stream stream,
             Func<byte [], TResult> success)
         {
