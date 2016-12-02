@@ -343,5 +343,13 @@ namespace BlackBarLabs.Collections.Generic
                 totalD -= 1.0;
             }
         }
+
+        public static IEnumerable<T> SelectWhereHasValue<T>(this IEnumerable<Nullable<T>> items)
+            where T : struct
+        {
+            return items
+                .Where(item => item.HasValue)
+                .Select(item => item.Value);
+        }
     }
 }

@@ -56,6 +56,7 @@
     <Compile Include="Async\IEnumerableAsync.cs" />
     <Compile Include="Async\IEnumeratorAsync.cs" />
     <Compile Include="Async\LinqExtensions.cs" />
+    <Compile Include="Collections\AsyncExtensions.cs" />
     <Compile Include="Collections\DictionaryExtensions.cs" />
     <Compile Include="Collections\EnumerableExtensions.cs" />
     <Compile Include="Collections\ListExtensions.cs" />

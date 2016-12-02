@@ -78,5 +78,11 @@ namespace BlackBarLabs
         {
             return parameter.ToString().Trim('\'').Replace("\'", "\'\'");
         }
+
+        public static bool IsGuid(this string possibleGuid)
+        {
+            Guid discard;
+            return Guid.TryParse(possibleGuid, out discard);
+        }
     }
 }
