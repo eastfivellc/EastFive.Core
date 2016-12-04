@@ -30,6 +30,12 @@ namespace BlackBarLabs.Collections.Async
             return items.SelectMany();
         }
 
+        public static async Task<IEnumerable<T>> SelectManyAsync<T>(this Task<IEnumerable<T>[]> itemsTask)
+        {
+            var items = await itemsTask;
+            return items.SelectMany();
+        }
+
         public static async Task<T[]> ToArrayAsync<T>(this Task<IEnumerable<T>> itemsTask)
         {
             var items = await itemsTask;
