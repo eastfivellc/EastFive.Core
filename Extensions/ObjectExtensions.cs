@@ -8,6 +8,11 @@ namespace BlackBarLabs.Core.Extensions // Make user force extensions because thi
 {
     public static class ObjectExtensions
     {
+        public static IEnumerable<T> ToEnumerable<T>(this T onlyItem)
+        {
+            yield return onlyItem;
+        }
+
         public static T OrIfDefault<T>(this T value, T alternative)
             where T : IComparable
         {
