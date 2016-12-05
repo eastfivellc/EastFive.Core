@@ -56,11 +56,15 @@
     <Compile Include="Async\IEnumerableAsync.cs" />
     <Compile Include="Async\IEnumeratorAsync.cs" />
     <Compile Include="Async\LinqExtensions.cs" />
+    <Compile Include="Collections\AsyncExtensions.cs" />
     <Compile Include="Collections\DictionaryExtensions.cs" />
     <Compile Include="Collections\EnumerableExtensions.cs" />
     <Compile Include="Collections\ListExtensions.cs" />
     <Compile Include="Delegates.cs" />
+    <Compile Include="Extensions\ComparisonExtensions.cs" />
+    <Compile Include="Extensions\ComputationExtensions.cs" />
     <Compile Include="Extensions\DateTimeExtensions.cs" />
+    <Compile Include="Extensions\DictionaryExtensions.cs" />
     <Compile Include="Extensions\ObjectExtensions.cs" />
     <Compile Include="Extensions\StreamExtensions.cs" />
     <Compile Include="Extensions\StringExtensions.cs" />
