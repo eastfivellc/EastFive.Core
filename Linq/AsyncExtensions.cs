@@ -67,5 +67,24 @@ namespace BlackBarLabs.Linq.Async
             var items = await itemsTask;
             return items.SelectWhereHasValue();
         }
+        
+        public static async Task<T> LastAsync<T>(this Task<IEnumerable<T>> itemsTask)
+        {
+            var items = await itemsTask;
+            return items.Last();
+        }
+
+        public static async Task<T> LastAsync<T>(this Task<T[]> itemsTask)
+        {
+            var items = await itemsTask;
+            return items.Last();
+        }
+
+        public static async Task<T> FirstAsync<T>(this Task<T[]> itemsTask)
+        {
+            var items = await itemsTask;
+            return items.First();
+        }
+
     }
 }
