@@ -1,13 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices.ComTypes;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 
-namespace BlackBarLabs.Core
+namespace BlackBarLabs
 {
     public static class StreamExtensions
     {
@@ -34,11 +31,11 @@ namespace BlackBarLabs.Core
 
         public static string Md5Checksum(this Stream stream)
         {
-                var hash = new MD5CryptoServiceProvider().ComputeHash(stream);
-                var sb = new StringBuilder(32);
-                foreach (var hex in hash)
-                    sb.Append(hex.ToString("X2"));
-                return sb.ToString().ToUpper();
+            var hash = new MD5CryptoServiceProvider().ComputeHash(stream);
+            var result = hash.Select(hex => hex.ToString("X2"))
+                .Join("")
+                .ToUpper();
+            return result;
         }
     }
 }

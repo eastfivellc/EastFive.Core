@@ -1,11 +1,11 @@
-﻿using BlackBarLabs.Collections.Generic;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
-namespace BlackBarLabs.Collections.Async
+using BlackBarLabs.Collections.Generic;
+
+namespace BlackBarLabs.Linq.Async
 {
     /// <summary>
     /// Why Microsoft, why make us build this!?!?!?!

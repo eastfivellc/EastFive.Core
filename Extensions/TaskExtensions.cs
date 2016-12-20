@@ -1,11 +1,11 @@
-﻿using BlackBarLabs.Collections.Generic;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
-namespace BlackBarLabs.Core
+using BlackBarLabs.Linq;
+
+namespace BlackBarLabs
 {
     public static class TaskExtensions
     {

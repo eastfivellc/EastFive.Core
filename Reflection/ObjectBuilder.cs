@@ -1,13 +1,13 @@
-﻿using BlackBarLabs.Core.Collections;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace BlackBarLabs.Core.Reflection
+using BlackBarLabs.Collections.Generic;
+
+
+namespace BlackBarLabs
 {
     public static class ObjectBuilder
     {
@@ -48,8 +48,10 @@ namespace BlackBarLabs.Core.Reflection
             return obj;
         }
 
-        public static object PopulateType(object obj, IDictionary<string, object> properties)
+        public static T PopulateType<T>(T obj, IDictionary<string, object> properties)
         {
+            // .GetType() must be used here instead of typeof(T) because
+            // the calling method may invoke with a parent class
             var objectProperties = obj.GetType().GetProperties();
 
             foreach (var objectProperty in objectProperties)

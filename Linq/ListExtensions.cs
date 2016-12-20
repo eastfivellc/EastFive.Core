@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace BlackBarLabs.Core.Collections
+namespace BlackBarLabs.Linq
 {
     public static class ListExtensions
     {

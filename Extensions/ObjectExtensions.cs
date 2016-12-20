@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BlackBarLabs.Core.Extensions // Make user force extensions because this affects _every_ object
+namespace BlackBarLabs.Extensions // Make user force extensions because this affects _every_ object
 {
     public static class ObjectExtensions
     {

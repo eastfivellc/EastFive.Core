@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BlackBarLabs.Core
+namespace BlackBarLabs
 {
     public delegate TResult DiscriminatedDelegate<TParam1, TResult>(Func<TParam1, TResult> callback);
     public delegate TResult DiscriminatedDelegate<TParam1, TParam2, TResult>(

@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using BlackBarLabs.Core;
 
-namespace BlackBarLabs.Core.Collections
+namespace BlackBarLabs.Collections.Generic
 {
     public static class DictionaryExtensions
     {
@@ -30,6 +29,16 @@ namespace BlackBarLabs.Core.Collections
             return kvpItems
                 .Distinct(comparison.ToEqualityComparer())
                 .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        }
+
+        public static IEnumerable<TValue> SelectValues<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> dictionary)
+        {
+            return dictionary.Select(kvp => kvp.Value);
+        }
+
+        public static IEnumerable<TKey> SelectKeys<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> dictionary)
+        {
+            return dictionary.Select(kvp => kvp.Key);
         }
     }
 }

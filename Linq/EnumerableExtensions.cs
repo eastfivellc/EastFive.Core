@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
-namespace BlackBarLabs.Collections.Generic
+namespace BlackBarLabs.Linq
 {
     public static class EnumerableExtensions
     {

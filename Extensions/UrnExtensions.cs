@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BlackBarLabs.Core
+namespace BlackBarLabs
 {
     public static class UrnExtensions
     {

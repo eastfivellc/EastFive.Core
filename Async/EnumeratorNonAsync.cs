@@ -88,7 +88,7 @@ namespace BlackBarLabs.Collections.Async
 
     public class EnumeratorStructNonAsync<TStruct> : IEnumerator<TStruct>
     {
-        private YieldStructDelegateAsync<TStruct> yieldAsync;
+        // private YieldStructDelegateAsync<TStruct> yieldAsync;
         private Task yieldAsyncTask;
         private Barrier callbackBarrier = new Barrier(2);
 
