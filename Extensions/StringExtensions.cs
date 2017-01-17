@@ -26,6 +26,14 @@ namespace BlackBarLabs
             return String.Join(separator, strings.NullToEmpty());
         }
 
+        public static string Base64(this string value, System.Text.Encoding encoding = default(System.Text.Encoding))
+        {
+            if (default(System.Text.Encoding) == encoding)
+                encoding = System.Text.Encoding.UTF8;
+            var bytes = encoding.GetBytes(value);
+            return Convert.ToBase64String(bytes);
+        }
+
         public static TResult GetClrType<TResult>(this string type,
             Func<Type, TResult> matched,
             Func<TResult> noMatch)
