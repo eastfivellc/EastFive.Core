@@ -50,5 +50,24 @@ namespace BlackBarLabs
 
             return uriBuilder.Uri;
         }
+
+        public static bool TryGetQueryParam(this Uri uri, string name, out string param)
+        {
+            var queryParams = System.Web.HttpUtility.ParseQueryString(
+               uri.Query);
+            if (queryParams.AllKeys.Contains(name))
+            {
+                param = queryParams[name];
+                return true;
+            }
+            param = default(string);
+            return false;
+        }
+
+        public static string GetQueryParam(this Uri uri, string name)
+        {
+            return System.Web.HttpUtility.ParseQueryString(
+               uri.Query)[name];
+        }
     }
 }
