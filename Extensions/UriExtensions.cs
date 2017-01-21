@@ -35,17 +35,20 @@ namespace BlackBarLabs
             return String.Join("&", source.Select(kvp => String.Format("{0}={1}", HttpUtility.UrlEncode(kvp.Key), HttpUtility.UrlEncode(kvp.Value))).ToArray());
         }
 
-        public static Uri AddQuery(this Uri uri, string name, string value)
+        public static Uri SetQueryParam(this Uri uri, string name, string value)
         {
             // From: http://stackoverflow.com/questions/829080/how-to-build-a-query-string-for-a-url-in-c#20492373
             
             // this actually returns HttpValueCollection : NameValueCollection
             // which uses unicode compliant encoding on ToString()
-            var query = HttpUtility.ParseQueryString(uri.Query);
-            query.Add(name, value);
+            var queryParams = HttpUtility.ParseQueryString(uri.Query);
+            if (queryParams.AllKeys.Contains(name))
+                queryParams[name] = value;
+            else
+                queryParams.Add(name, value);
             var uriBuilder = new UriBuilder(uri)
             {
-                Query = query.ToString()
+                Query = queryParams.ToString()
             };
 
             return uriBuilder.Uri;
