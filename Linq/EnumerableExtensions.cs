@@ -350,5 +350,17 @@ namespace BlackBarLabs.Linq
                 .Where(item => item.HasValue)
                 .Select(item => item.Value);
         }
+
+        public static T[][] Combinations<T>(this IEnumerable<T> items)
+        {
+            var item = items.First();
+            var remainder = items.Skip(1).ToArray();
+            var combinations = remainder
+                .Combinations()
+                .Select(co => new[] { co.ToArray(), co.ToArray().Append(item).ToArray() })
+                .SelectMany()
+                .ToArray();
+            return combinations;
+        }
     }
 }
