@@ -26,6 +26,11 @@ namespace BlackBarLabs
             return String.Join(separator, strings.NullToEmpty());
         }
 
+        public static string Join(this IEnumerable<string> strings, char separator)
+        {
+            return String.Join(separator.ToString(), strings.NullToEmpty());
+        }
+
         public static string Base64(this string value, System.Text.Encoding encoding = default(System.Text.Encoding))
         {
             if (default(System.Text.Encoding) == encoding)
