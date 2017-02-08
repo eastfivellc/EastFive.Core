@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BlackBarLabs.Collections.Generic;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -39,6 +40,12 @@ namespace BlackBarLabs.Linq
         public static IEnumerable<T> SelectMany<T>(this IEnumerable<IEnumerable<T>> itemss)
         {
             return itemss.SelectMany(items => items);
+        }
+        
+        public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items, Func<T, T, int> comparer)
+        {
+            IEqualityComparer<T> x = comparer.ToEqualityComparer();
+            return items.Distinct(x);
         }
 
         public static async Task<IEnumerable<T>> AppendYieldAsync<T>(this IEnumerable<T> items, Func<Action<T>, Task> callback)
