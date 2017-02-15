@@ -36,10 +36,23 @@ namespace BlackBarLabs.Linq.Async
             return items.SelectMany();
         }
 
+        public static async Task<IEnumerable<T>> SelectManyAsync<T>(this Task<Task<T[]>[]> itemsTasksTask)
+        {
+            var itemsTasks = await itemsTasksTask;
+            var items = await itemsTasks.WhenAllAsync();
+            return items.SelectMany();
+        }
+
         public static async Task<T[]> ToArrayAsync<T>(this Task<IEnumerable<T>> itemsTask)
         {
             var items = await itemsTask;
             return items.ToArray();
+        }
+
+        public static async Task<T> AwaitAsync<T>(this Task<Task<T>> taskTask)
+        {
+            var task = await await taskTask;
+            return task;
         }
 
         public static async Task<IEnumerable<T>> WhereAsync<T>(this Task<IEnumerable<T>> itemsTask, Func<T, bool> predicate)
