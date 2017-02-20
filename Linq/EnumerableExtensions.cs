@@ -323,6 +323,28 @@ namespace BlackBarLabs.Linq
             return option1(option1s);
         }
 
+        public static async Task<TResult> SelectDiscriminateAsync<TItem, TOption1, TOption2, TResult>(this IEnumerable<TItem> items,
+                Func<
+                    TItem,
+                    Func<TOption1, SelectDiscriminateResult<TOption1, TOption2>>,
+                    Func<TOption2, SelectDiscriminateResult<TOption1, TOption2>>,
+                    Task<SelectDiscriminateResult<TOption1, TOption2>>> callback,
+            Func<IEnumerable<TOption1>, TResult> option1,
+            Func<TOption2, TResult> option2)
+        {
+            IEnumerable<TOption1> option1s = new TOption1[] { };
+            foreach (var item in items)
+            {
+                var dr = await callback(item,
+                    r => new SelectDiscriminateResult<TOption1, TOption2>(r),
+                    f => new SelectDiscriminateResult<TOption1, TOption2>(f));
+                if (dr.IsOption2)
+                    return option2(dr.Option2);
+                option1s = option1s.Append(dr.Option1);
+            }
+            return option1(option1s);
+        }
+
         public static IEnumerable<TResult> SplitSelect<TItem, TResult>(this IEnumerable<TItem> items, Predicate<TItem> isOption1,
             Func<TItem, TResult> operation1, Func<TItem, TResult> operation2)
         {
