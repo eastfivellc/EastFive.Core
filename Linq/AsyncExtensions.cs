@@ -99,5 +99,11 @@ namespace BlackBarLabs.Linq.Async
             return items.First();
         }
 
+        public static async Task<IDictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue>(this Task<KeyValuePair<TKey, TValue>[]> kvpsTask)
+        {
+            var kvps = await kvpsTask;
+            return kvps.ToDictionary();
+        }
+
     }
 }
