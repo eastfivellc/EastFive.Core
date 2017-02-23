@@ -49,6 +49,12 @@ namespace BlackBarLabs.Linq.Async
             return items.ToArray();
         }
 
+        public static async Task<IEnumerable<T>> DistinctAsync<T>(this Task<IEnumerable<T>> itemsTask)
+        {
+            var items = await itemsTask;
+            return items.Distinct();
+        }
+
         public static async Task<T> AwaitAsync<T>(this Task<Task<T>> taskTask)
         {
             var task = await await taskTask;
