@@ -93,5 +93,12 @@ namespace BlackBarLabs
             Guid discard;
             return Guid.TryParse(possibleGuid, out discard);
         }
+
+        public static string ToText(this byte [] bytes, System.Text.Encoding encoding = default(System.Text.Encoding))
+        {
+            if (default(System.Text.Encoding) == encoding)
+                encoding = System.Text.ASCIIEncoding.ASCII;
+            return encoding.GetString(bytes);
+        }
     }
 }
