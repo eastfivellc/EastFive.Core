@@ -382,12 +382,22 @@ namespace BlackBarLabs.Linq
 
         public static T[][] Combinations<T>(this IEnumerable<T> items)
         {
-            var item = items.First();
+            var itemsArray = items.ToArray();
+
+            if (itemsArray.Length == 0)
+                return new T[][] { };
+
+            if (itemsArray.Length == 1)
+                return new T[][] { itemsArray };
+
+            var item = itemsArray[0];
             var remainder = items.Skip(1).ToArray();
-            var combinations = remainder
-                .Combinations()
-                .Select(co => new[] { co.ToArray(), co.ToArray().Append(item).ToArray() })
-                .SelectMany()
+            var combinationsRemainder = remainder
+                .Combinations();
+            var combinations = combinationsRemainder
+                .Select(co => co.Append(item).ToArray())
+                .Concat(combinationsRemainder)
+                .Append(new[] { item })
                 .ToArray();
             return combinations;
         }
