@@ -355,6 +355,38 @@ namespace BlackBarLabs.Linq
                     yield return operation2(item);
         }
 
+
+        public class SelectUntilResult<TOption1, TOption2>
+        {
+            public TOption1 Option1;
+            public TOption2 Option2;
+            public bool IsOption2;
+
+            internal SelectUntilResult(TOption1 item) { Option1 = item; IsOption2 = false; }
+            internal SelectUntilResult(TOption2 item) { Option2 = item; IsOption2 = true; }
+        }
+
+        public static TResult SelectUntil<TItem, TTransformed, TResult>(this IEnumerable<TItem> items,
+                Func<
+                    TItem,
+                    Func<TTransformed, SelectUntilResult<TTransformed, TResult>>,
+                    Func<TResult, SelectUntilResult<TTransformed, TResult>>,
+                    SelectUntilResult<TTransformed, TResult>> callback,
+            Func<TTransformed[], TResult> option1)
+        {
+            var option1s = new TTransformed[] { };
+            foreach (var item in items)
+            {
+                var dr = callback(item,
+                    r => new SelectUntilResult<TTransformed, TResult>(r),
+                    f => new SelectUntilResult<TTransformed, TResult>(f));
+                if (dr.IsOption2)
+                    return dr.Option2;
+                option1s = option1s.Append(dr.Option1).ToArray();
+            }
+            return option1(option1s);
+        }
+
         public static IEnumerable<T> SelectRandom<T>(this IEnumerable<T> items, int total, Random rand = null)
         {
             if (rand == null)
