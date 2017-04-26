@@ -48,6 +48,23 @@ namespace BlackBarLabs.Linq
             return items.Distinct(x);
         }
 
+        public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items, Func<T, T, bool> predicateComparer)
+        {
+            Func<T, T, int> comparer = (i1, i2) => predicateComparer(i1, i2) ? 0 : -1;
+            return items.Distinct(comparer);
+        }
+        public static IEnumerable<T> Except<T>(this IEnumerable<T> items, IEnumerable<T> itemsToExclude, Func<T, T, int> comparer)
+        {
+            IEqualityComparer<T> x = comparer.ToEqualityComparer();
+            return items.Except(itemsToExclude, x);
+        }
+
+        public static IEnumerable<T> Except<T>(this IEnumerable<T> items, IEnumerable<T> itemsToExclude, Func<T, T, bool> predicateComparer)
+        {
+            Func<T, T, int> comparer = (i1, i2) => predicateComparer(i1, i2) ? 0 : -1;
+            return items.Except(itemsToExclude, comparer);
+        }
+
         public static async Task<IEnumerable<T>> AppendYieldAsync<T>(this IEnumerable<T> items, Func<Action<T>, Task> callback)
         {
             var appendItems = new List<T>();
