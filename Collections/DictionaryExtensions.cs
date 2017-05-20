@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BlackBarLabs.Extensions;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -21,14 +22,21 @@ namespace BlackBarLabs.Collections.Generic
             return kvpItems.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         }
 
-        public static Dictionary<TKey, TValue> ToDictionaryDistinct<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> kvpItems)
+        public static Dictionary<TKey, TValue[]> ToDictionaryDistinct<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> kvpItems,
+            Func<TKey, int> hash = default(Func<TKey, int>))
             where TKey : IComparable<TKey>
         {
             Func<KeyValuePair<TKey, TValue>, KeyValuePair<TKey, TValue>, int> comparison =
                 (kvp1, kvp2) => kvp1.Key.CompareTo(kvp2.Key);
             return kvpItems
                 .Distinct(comparison.ToEqualityComparer())
-                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                .SelectKeys()
+                .Select(key => key.PairWithValue(
+                    kvpItems
+                        .Where(kvp => key.CompareTo(kvp.Key) == 0)
+                        .Select(kvp => kvp.Value)
+                        .ToArray()))
+                .ToDictionary();
         }
 
         public static IEnumerable<TValue> SelectValues<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> dictionary)

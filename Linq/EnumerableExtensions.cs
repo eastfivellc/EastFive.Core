@@ -42,27 +42,90 @@ namespace BlackBarLabs.Linq
             return itemss.SelectMany(items => items);
         }
         
-        public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items, Func<T, T, int> comparer)
+        public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items, 
+            Func<T, T, int> comparer,
+            Func<T, int> hash = default(Func<T, int>))
         {
-            IEqualityComparer<T> x = comparer.ToEqualityComparer();
-            return items.Distinct(x);
+            Func<T, T, bool> predicateComparer = (v1, v2) => comparer(v1, v2) == 0;
+            return items.Distinct(predicateComparer, hash);
         }
 
-        public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items, Func<T, T, bool> predicateComparer)
+        public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items, 
+            Func<T, T, bool> predicateComparer,
+            Func<T, int> hash = default(Func<T, int>))
         {
-            Func<T, T, int> comparer = (i1, i2) => predicateComparer(i1, i2) ? 0 : -1;
+            IEqualityComparer<T> comparer = predicateComparer.ToEqualityComparer(hash);
             return items.Distinct(comparer);
         }
-        public static IEnumerable<T> Except<T>(this IEnumerable<T> items, IEnumerable<T> itemsToExclude, Func<T, T, int> comparer)
+
+        public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items,
+            Func<T, string> propertySelection)
         {
-            IEqualityComparer<T> x = comparer.ToEqualityComparer();
+            Func<T, T, int> comparer = (v1, v2) =>
+                String.Compare(propertySelection(v1), propertySelection(v2));
+            return items.Distinct(comparer,
+                v => propertySelection(v).GetHashCode());
+        }
+
+        public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items,
+            Func<T, Guid> propertySelection)
+        {
+            Func<T, T, bool> comparer = (v1, v2) =>
+                propertySelection(v1) == propertySelection(v2);
+            return items.Distinct(comparer,
+                v => propertySelection(v).GetHashCode());
+        }
+
+        public static IEnumerable<T> Except<T>(this IEnumerable<T> items, IEnumerable<T> itemsToExclude,
+            Func<T, T, int> comparer,
+            Func<T, int> hash = default(Func<T, int>))
+        {
+            IEqualityComparer<T> x = comparer.ToEqualityComparer(hash);
             return items.Except(itemsToExclude, x);
         }
 
-        public static IEnumerable<T> Except<T>(this IEnumerable<T> items, IEnumerable<T> itemsToExclude, Func<T, T, bool> predicateComparer)
+        public static IEnumerable<T> Except<T>(this IEnumerable<T> items, IEnumerable<T> itemsToExclude, 
+            Func<T, T, bool> predicateComparer,
+            Func<T, int> hash = default(Func<T, int>))
         {
-            Func<T, T, int> comparer = (i1, i2) => predicateComparer(i1, i2) ? 0 : -1;
+            IEqualityComparer<T> comparer = predicateComparer.ToEqualityComparer(hash);
             return items.Except(itemsToExclude, comparer);
+        }
+
+        public static IEnumerable<T> Except<T>(this IEnumerable<T> items, IEnumerable<T> itemsToExclude,
+            Func<T, string> propertySelection,
+            Func<T, int> hash = default(Func<T, int>))
+        {
+            Func<T, T, int> comparer = (v1, v2) =>
+                   String.Compare(propertySelection(v1), propertySelection(v2));
+            return items.Except(itemsToExclude, comparer,
+                v => propertySelection(v).GetHashCode());
+        }
+
+        public static IEnumerable<T> Intersect<T>(this IEnumerable<T> items, IEnumerable<T> second,
+            Func<T, T, int> comparer,
+            Func<T, int> hash = default(Func<T, int>))
+        {
+            Func<T, T, bool> predicateComparer = (v1, v2) => comparer(v1, v2) == 0;
+            return items.Intersect(second, predicateComparer, hash);
+        }
+
+        public static IEnumerable<T> Intersect<T>(this IEnumerable<T> items, IEnumerable<T> second,
+            Func<T, T, bool> predicateComparer,
+            Func<T, int> hash = default(Func<T, int>))
+        {
+            IEqualityComparer<T> comparer = predicateComparer.ToEqualityComparer(hash);
+            return items.Intersect(second, comparer);
+        }
+
+        public static IEnumerable<T> Intersect<T>(this IEnumerable<T> items, IEnumerable<T> second,
+            Func<T, string> propertySelection,
+            Func<T, int> hash = default(Func<T, int>))
+        {
+            Func<T, T, int> comparer = (v1, v2) =>
+                   String.Compare(propertySelection(v1), propertySelection(v2));
+            return items.Intersect(second, comparer,
+                v => propertySelection(v).GetHashCode());
         }
 
         public static async Task<IEnumerable<T>> AppendYieldAsync<T>(this IEnumerable<T> items, Func<Action<T>, Task> callback)
