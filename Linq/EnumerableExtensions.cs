@@ -492,6 +492,13 @@ namespace BlackBarLabs.Linq
                 .Select(item => item.Value);
         }
 
+        public static IEnumerable<T> SelectWhereHasValue<T>(this IEnumerable<T> items)
+        {
+            return items
+                .Where(item => (!EqualityComparer<T>.Default.Equals(item, default(T))))
+                .Select(item => item);
+        }
+
         public static T[][] Combinations<T>(this IEnumerable<T> items)
         {
             var itemsArray = items.ToArray();
