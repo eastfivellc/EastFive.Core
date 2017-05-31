@@ -102,6 +102,16 @@ namespace BlackBarLabs.Linq
                 v => propertySelection(v).GetHashCode());
         }
 
+        public static IEnumerable<T> Except<T>(this IEnumerable<T> items, IEnumerable<T> itemsToExclude,
+            Func<T, Guid> propertySelection,
+            Func<T, int> hash = default(Func<T, int>))
+        {
+            Func<T, T, bool> comparer = (v1, v2) =>
+                propertySelection(v1) == propertySelection(v2);
+            return items.Except(itemsToExclude, comparer,
+                v => propertySelection(v).GetHashCode());
+        }
+
         public static IEnumerable<T> Intersect<T>(this IEnumerable<T> items, IEnumerable<T> second,
             Func<T, T, int> comparer,
             Func<T, int> hash = default(Func<T, int>))
