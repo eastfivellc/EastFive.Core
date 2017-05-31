@@ -502,7 +502,8 @@ namespace BlackBarLabs.Linq
                 .Select(item => item.Value);
         }
 
-        public static IEnumerable<T> SelectWhereHasValue<T>(this IEnumerable<T> items)
+        public static IEnumerable<T> SelectWhereNotNull<T>(this IEnumerable<T> items)
+            where T : class
         {
             return items
                 .Where(item => (!EqualityComparer<T>.Default.Equals(item, default(T))))
