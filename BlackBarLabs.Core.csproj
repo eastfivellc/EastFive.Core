@@ -51,6 +51,7 @@
     <Compile Include="Async\Extensions\DynamicDelegateExtensions.cs" />
     <Compile Include="Async\Extensions\DynamicDelegateResultSwapExtension.cs" />
     <Compile Include="Async\Func.cs" />
+    <Compile Include="Async\IEnumerableDelegateAsync.cs" />
     <Compile Include="Async\IIteratorAsync.cs" />
     <Compile Include="Async\IteratorSimpleAsync.cs" />
     <Compile Include="Async\EnumeratorBlockingAsync.cs" />

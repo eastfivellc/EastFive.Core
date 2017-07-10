@@ -88,6 +88,12 @@ namespace BlackBarLabs.Extensions // Make user force extensions because this aff
             return hasValue(value);
         }
 
+        public static T? ToOptional<T>(this T value)
+            where T : struct
+        {
+            return (T?)value;
+        }
+
         public static bool IsDefault(this Uri value)
         {
             return value.IsDefaultOrNull();
