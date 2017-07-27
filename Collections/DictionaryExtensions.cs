@@ -22,6 +22,12 @@ namespace BlackBarLabs.Collections.Generic
             return kvpItems.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         }
 
+        public static IDictionary<TKey, TValue> Append<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, TValue value)
+        {
+            dictionary.Add(key, value);
+            return dictionary;
+        }
+
         public static Dictionary<TKey, TValue[]> ToDictionaryDistinct<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> kvpItems,
             Func<TKey, int> hash = default(Func<TKey, int>))
             where TKey : IComparable<TKey>
