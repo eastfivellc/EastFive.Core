@@ -531,5 +531,26 @@ namespace BlackBarLabs.Linq
                 .ToArray();
             return combinations;
         }
+
+        public static TResult Aggregate<TItem, TAccum, TResult>(this IEnumerable<TItem> items,
+            TAccum start,
+            Func<TAccum, TItem, Func<TAccum, TResult>, TResult> aggr,
+            Func<TAccum, TResult> onComplete)
+        {
+            var enumerator = items.GetEnumerator();
+            var final = Aggregate(enumerator, start, aggr, onComplete);
+            return (final);
+        }
+
+        private static TResult Aggregate<TItem, TAccum, TResult>(IEnumerator<TItem> items,
+            TAccum start,
+            Func<TAccum, TItem, Func<TAccum, TResult>, TResult> aggr,
+            Func<TAccum, TResult> onComplete)
+        {
+            if (!items.MoveNext())
+                return onComplete(start);
+            return aggr(start, items.Current,
+                (next) => Aggregate(items, next, aggr, onComplete));
+        }
     }
 }
