@@ -111,5 +111,16 @@ namespace BlackBarLabs.Linq.Async
             return kvps.ToDictionary();
         }
 
+        public static async Task<bool> AllAsync<T>(this Task<T[]> itemsTask, Func<T, bool> predicate)
+        {
+            var items = await itemsTask;
+            return items.All(predicate);
+        }
+
+        public static async Task<bool> AllAsync<T>(this Task<IEnumerable<T>> itemsTask, Func<T, bool> predicate)
+        {
+            var items = await itemsTask;
+            return items.All(predicate);
+        }
     }
 }
