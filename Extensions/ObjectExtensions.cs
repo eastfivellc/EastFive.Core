@@ -113,5 +113,14 @@ namespace BlackBarLabs.Extensions // Make user force extensions because this aff
         {
             return new KeyValuePair<TKey, TValue>(key, value);
         }
+
+        public static RecursiveTuple<TKey> RecurseWithValue<TKey>(this TKey key, RecursiveTuple<TKey> value)
+        {
+            return new RecursiveTuple<TKey>()
+            {
+                item1 = key,
+                next = () => value,
+            };
+        }
     }
 }

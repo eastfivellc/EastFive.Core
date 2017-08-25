@@ -44,6 +44,23 @@ namespace BlackBarLabs.Collections.Generic
                         .ToArray()))
                 .ToDictionary();
         }
+        
+        public static Dictionary<TKey, TValue[]> ToDictionaryCollapsed<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> kvpItems,
+            Func<TKey, TKey, bool> areEqual,
+            Func<TKey, int> hash = default(Func<TKey, int>))
+        {
+            Func<KeyValuePair<TKey, TValue>, KeyValuePair<TKey, TValue>, int> fullComparison =
+                (kvp1, kvp2) => areEqual(kvp1.Key, kvp2.Key)? 0 : -1;
+            return kvpItems
+                .Distinct(fullComparison.ToEqualityComparer())
+                .SelectKeys()
+                .Select(key => key.PairWithValue(
+                    kvpItems
+                        .Where(kvp => areEqual(key, kvp.Key))
+                        .Select(kvp => kvp.Value)
+                        .ToArray()))
+                .ToDictionary();
+        }
 
         public static IEnumerable<TValue> SelectValues<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> dictionary)
         {
