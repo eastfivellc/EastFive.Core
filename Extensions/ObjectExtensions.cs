@@ -30,7 +30,6 @@ namespace BlackBarLabs.Extensions // Make user force extensions because this aff
         }
 
         public static bool IsDefault<T>(this T value)
-            where T : IComparable
         {
             return EqualityComparer<T>.Default.Equals(value, default(T));
         }

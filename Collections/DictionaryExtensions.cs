@@ -71,5 +71,16 @@ namespace BlackBarLabs.Collections.Generic
         {
             return dictionary.Select(kvp => kvp.Key);
         }
+
+        public static TResult WhereKey<TKey, TValue, TResult>(this IDictionary<TKey, TValue> dictionary,
+                Func<KeyValuePair<TKey, TValue>, bool> predicate,
+            Func<KeyValuePair<TKey, TValue>, TResult> onKeyFound,
+            Func<TResult> onKeyNotFound)
+        {
+            var matching = dictionary.Where(predicate).ToArray();
+            if (matching.Length > 0)
+                return onKeyFound(matching[0]);
+            return onKeyNotFound();
+        }
     }
 }
