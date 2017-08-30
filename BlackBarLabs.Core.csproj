@@ -59,6 +59,7 @@
     <Compile Include="Async\IEnumeratorAsync.cs" />
     <Compile Include="Async\LinqExtensions.cs" />
     <Compile Include="Extensions\RegexExtensions.cs" />
+    <Compile Include="Extensions\TResultExtensions.cs" />
     <Compile Include="Linq\AsyncExtensions.cs" />
     <Compile Include="Collections\DictionaryExtensions.cs" />
     <Compile Include="Linq\EnumerableExtensions.cs" />
@@ -77,6 +78,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Reflection\ObjectBuilder.cs" />
     <Compile Include="Settable.cs" />
+    <Compile Include="Structs\Optional.cs" />
     <Compile Include="Structs\RecursiveTuples.cs" />
   </ItemGroup>
   <ItemGroup>
