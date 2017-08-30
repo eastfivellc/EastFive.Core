@@ -552,6 +552,25 @@ namespace BlackBarLabs.Linq
             return aggr(start, items.Current,
                 (next) => Aggregate(items, next, aggr, onComplete));
         }
+        
+        public static TResult AggregateConsume<TItem, TResult>(this IEnumerable<TItem> items,
+            Func<TItem, Func<TResult>, TResult> aggr,
+            Func<TResult> noItems)
+        {
+            var enumerator = items.GetEnumerator();
+            var final = AggregateConsume(enumerator, aggr, noItems);
+            return (final);
+        }
+
+        private static TResult AggregateConsume<TItem, TResult>(IEnumerator<TItem> items,
+            Func<TItem, Func<TResult>, TResult> aggr,
+            Func<TResult> noItems)
+        {
+            if (!items.MoveNext())
+                return noItems();
+            return aggr(items.Current,
+                () => AggregateConsume(items, aggr, noItems));
+        }
 
         public static IEnumerable<TItem> TakeUntil<TItem>(this IEnumerable<TItem> items,
             Func<TItem, bool> predicate)
