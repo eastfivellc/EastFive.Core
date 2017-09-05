@@ -13,6 +13,25 @@ namespace BlackBarLabs.Extensions // Make user force extensions because this aff
             yield return onlyItem;
         }
 
+        #region AsArray
+
+        public static T[] AsArray<T>(this T onlyItem)
+        {
+            return new T[] { onlyItem };
+        }
+
+        public static T[] AsArray<T>(this T firstItem, T secondItem)
+        {
+            return new T[] { firstItem, secondItem, };
+        }
+
+        public static T[] AsArray<T>(this T firstItem, T secondItem, T thirdItem)
+        {
+            return new T[] { firstItem, secondItem, thirdItem };
+        }
+
+        #endregion
+
         public static T OrIfDefault<T>(this T value, T alternative)
             where T : IComparable
         {
