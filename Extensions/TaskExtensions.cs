@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-
-using BlackBarLabs.Linq;
 
 namespace BlackBarLabs
 {
@@ -13,12 +9,20 @@ namespace BlackBarLabs
         {
             if(parallelLimit <= 0)
                 return await Task.WhenAll(tasks);
-            IEnumerable<T> results = new T[] { };
+
+            var results = new List<T>();
+            var queue = new List<Task<T>>(parallelLimit);
             foreach (var task in tasks)
             {
-                var item = await task;
-                results = results.Append(item);
+                queue.Add(task);
+                if (queue.Count >= parallelLimit)
+                {
+                    var completedTask = await Task.WhenAny(queue.ToArray());
+                    queue.Remove(completedTask);
+                    results.Add(await completedTask);
+                }
             }
+            results.AddRange(await Task.WhenAll(queue));
             return results.ToArray();
         }
 
@@ -35,10 +39,18 @@ namespace BlackBarLabs
                 await Task.WhenAll(tasks);
                 return;
             }
+
+            var queue = new List<Task>(parallelLimit);
             foreach (var task in tasks)
             {
-                await task;
+                queue.Add(task);
+                if (queue.Count >= parallelLimit)
+                {
+                    var completedTask = await Task.WhenAny(queue.ToArray());
+                    queue.Remove(completedTask);
+                }
             }
+            await Task.WhenAll(queue);
         }
     }
 }
