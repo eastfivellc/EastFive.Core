@@ -1,4 +1,5 @@
 ﻿using BlackBarLabs.Collections.Generic;
+using BlackBarLabs.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -585,6 +586,30 @@ namespace BlackBarLabs.Linq
                     yield break;
                 }
             }
+        }
+
+        public static IEnumerable<TItem> OrderByLink<TItem>(this IEnumerable<TItem> items,
+            Func<TItem, bool> isFirst,
+            Func<TItem, TItem, bool> isNext)
+        {
+            return items.FirstOrDefault(item => isFirst(item),
+                (currentItem) => currentItem.AsArray().Concat(
+                    items
+                        .Where(item => !item.Equals(currentItem))
+                        .OrderByLink(
+                            (item) => isNext(currentItem, item),
+                            isNext)),
+                    () => new TItem[] { });
+        }
+
+        public static IEnumerable<TItem> OrderByLink<TItem, TKey>(this IEnumerator<TItem> items,
+            Func<TItem, bool> isFirst,
+            Func<TItem, TKey> getValue,
+            Func<TItem, TKey> getLink)
+        {
+            if (!items.MoveNext())
+                yield break;
+
         }
     }
 }
