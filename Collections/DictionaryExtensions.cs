@@ -1,4 +1,5 @@
 ﻿using BlackBarLabs.Extensions;
+using BlackBarLabs.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,6 +21,39 @@ namespace BlackBarLabs.Collections.Generic
         public static Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> kvpItems)
         {
             return kvpItems.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        }
+
+        public static TResult ToDictionary<TKey, TValue, TKeyDictionary, TValueDictionary, TResult>(this IEnumerable<KeyValuePair<TKey, TValue>> kvpItems,
+            Func<KeyValuePair<TKey, TValue>, TKeyDictionary> selectKey,
+            Func<KeyValuePair<TKey, TValue>, TValueDictionary> selectValue,
+            Func<Dictionary<TKeyDictionary, TValueDictionary>, KeyValuePair<TKey, TValue>[], TResult> dictionaryAndDuplicates)
+        {
+            var hashSet = new HashSet<TKey>();
+            var kvpItemsArray = kvpItems.ToArray();
+            var duplicates = new KeyValuePair<TKey, TValue>[] { };
+            var dictionary = kvpItems
+                .Select(
+                    kvp =>
+                    {
+                        if (hashSet.Contains(kvp.Key))
+                        {
+                            duplicates = duplicates.Append(kvp).ToArray();
+                            return default(KeyValuePair<TKeyDictionary, TValueDictionary>?);
+                        }
+                        return selectKey(kvp).PairWithValue(selectValue(kvp));
+                    })
+                .SelectWhereHasValue()
+                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            return dictionaryAndDuplicates(dictionary, duplicates);
+        }
+
+        public static TResult ToDictionary<TKey, TValue, TResult>(this IEnumerable<KeyValuePair<TKey, TValue>> kvpItems,
+            Func<Dictionary<TKey, TValue>, KeyValuePair<TKey, TValue>[], TResult> dictionaryAndDuplicates)
+        {
+            return kvpItems.ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value,
+                dictionaryAndDuplicates);
         }
 
         public static IDictionary<TKey, TValue> Append<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, TValue value)
