@@ -79,6 +79,7 @@
     <Compile Include="Reflection\ObjectBuilder.cs" />
     <Compile Include="Settable.cs" />
     <Compile Include="Structs\Optional.cs" />
+    <Compile Include="Structs\RecursiveDictionary.cs" />
     <Compile Include="Structs\RecursiveTuples.cs" />
   </ItemGroup>
   <ItemGroup>
