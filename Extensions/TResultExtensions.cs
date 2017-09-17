@@ -10,12 +10,18 @@ namespace BlackBarLabs
     {
         public static Func<TResult> AsFunctionException<TResult>(this string message)
         {
-            throw new Exception(message);
+            return () =>
+            {
+                throw new Exception(message);
+            };
         }
 
         public static Func<T1, TResult> AsFunctionException<T1, TResult>(this string message)
         {
-            throw new Exception(message);
+            return (t1) =>
+            {
+                throw new Exception(message);
+            };
         }
     }
 }
