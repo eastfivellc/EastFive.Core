@@ -67,6 +67,12 @@ namespace BlackBarLabs.Linq.Async
             return items.Where(predicate);
         }
 
+        public static async Task<IEnumerable<T>> WhereAsync<T>(this Task<T[]> itemsTask, Func<T, bool> predicate)
+        {
+            var items = await itemsTask;
+            return items.Where(predicate);
+        }
+
         public static async Task<IEnumerable<TResult>> SelectAsync<T1, TResult>(this Task<IEnumerable<T1>> itemsTask, Func<T1, TResult> selector)
         {
             var items = await itemsTask;
