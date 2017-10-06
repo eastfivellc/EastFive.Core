@@ -56,14 +56,6 @@ namespace BlackBarLabs.Collections.Generic
                 dictionaryAndDuplicates);
         }
 
-        public static RecursiveDictionary<T> AsRecursive<T>(this IDictionary<T, RecursiveDictionary<T>> dictionary)
-        {
-            var recursive = new RecursiveDictionary<T>();
-            foreach (var kvp in dictionary)
-                recursive.Add(kvp.Key, kvp.Value);
-            return recursive;
-        }
-
         public static IDictionary<TKey, TValue> Append<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, TValue value)
         {
             dictionary.Add(key, value);
