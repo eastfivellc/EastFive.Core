@@ -14,6 +14,20 @@ namespace BlackBarLabs.Linq
             return items.Concat(new T[] { item });
         }
 
+        public static IEnumerable<T> AppendIf<T>(this IEnumerable<T> items, T item, bool condition)
+        {
+            if (!condition)
+                return items;
+            return items.Append(item);
+        }
+
+        public static IEnumerable<T> AppendIf<T>(this IEnumerable<T> items, Func<T> getItem, bool condition)
+        {
+            if (!condition)
+                return items;
+            return items.Append(getItem());
+        }
+
         public static IEnumerable<T> AppendYield<T>(this IEnumerable<T> items, Action<Action<T>> callback)
         {
             //foreach (var item in items)
