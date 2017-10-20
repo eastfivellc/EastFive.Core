@@ -40,15 +40,17 @@ namespace BlackBarLabs.Collections.Generic
         public static RecursiveDictionary<TResult> SelectRecursive<TSource, TResult>(this RecursiveDictionary<TSource> dictionary,
             Func<TSource, TResult> selector)
         {
+            if (dictionary.IsDefault())
+                return default(RecursiveDictionary<TResult>);
             return dictionary
                 .Select(
                     kvp =>
                     {
                         return selector(kvp.Key)
                             .PairWithValue(
-                                kvp.Value.IsDefault()?
-                                    default(RecursiveDictionary<TResult>)
-                                :
+                                //kvp.Value.IsDefault()?
+                                //    default(RecursiveDictionary<TResult>)
+                                //:
                                     kvp.Value.SelectRecursive(selector));
                     })
                 .AsRecursive();
