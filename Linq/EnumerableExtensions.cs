@@ -625,5 +625,11 @@ namespace BlackBarLabs.Linq
                 yield break;
 
         }
+
+        public static IEnumerable<TItem> AsEnumerable<TItem>(this IEnumerator<TItem> items)
+        {
+            while (items.MoveNext())
+                yield return items.Current;
+        }
     }
 }
