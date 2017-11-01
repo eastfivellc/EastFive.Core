@@ -62,6 +62,7 @@
     <Compile Include="Extensions\SerializiationExtensions.cs" />
     <Compile Include="Extensions\RegexExtensions.cs" />
     <Compile Include="Extensions\TResultExtensions.cs" />
+    <Compile Include="FuncAsync.cs" />
     <Compile Include="Linq\AsyncExtensions.cs" />
     <Compile Include="Collections\DictionaryExtensions.cs" />
     <Compile Include="Linq\EnumerableExtensions.cs" />
