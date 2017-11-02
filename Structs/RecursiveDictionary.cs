@@ -12,8 +12,27 @@ namespace BlackBarLabs.Collections.Generic
     {
     }
 
+    public class RecursiveDictionary<TKey, TValue> : Dictionary<TKey, RecursiveDictionary<TKey, TValue>>
+    {
+        public TValue Value { get; set; }
+    }
+
     public static class RecursiveDictionaryExtensions
     {
+        public static RecursiveDictionary<TKey, TValue> Add<TKey, TValue>(this RecursiveDictionary<TKey, TValue> dictionary, TKey key, TValue value)
+        {
+            var next = new RecursiveDictionary<TKey, TValue>();
+            next.Value = value;
+            dictionary.Add(key, next);
+            return dictionary;
+        }
+
+        public static RecursiveDictionary<TKey, TValue> AddIfMissing<TKey, TValue>(this RecursiveDictionary<TKey, TValue> dictionary, TKey key, TValue value)
+        {
+            if (dictionary.ContainsKey(key))
+                return dictionary;
+            return dictionary.Add(key, value);
+        }
 
         public static IEnumerable<T> Flatten<T>(this RecursiveDictionary<T> dictionary)
         {

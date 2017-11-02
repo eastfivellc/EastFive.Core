@@ -26,6 +26,28 @@ namespace BlackBarLabs
             return results.ToArray();
         }
 
+        public static async Task<T[]> WhenAllAsync2<T>(this IEnumerable<Task<T>> tasks, int parallelLimit = 0)
+        {
+            if (parallelLimit <= 0)
+                return await Task.WhenAll(tasks);
+
+            //System.Collections.Enumerator. .Range()
+            var results = new List<T>();
+            var queue = new List<Task<T>>(parallelLimit);
+            foreach (var task in tasks)
+            {
+                queue.Add(task);
+                if (queue.Count >= parallelLimit)
+                {
+                    var completedTask = await Task.WhenAny(queue.ToArray());
+                    queue.Remove(completedTask);
+                    results.Add(await completedTask);
+                }
+            }
+            results.AddRange(await Task.WhenAll(queue));
+            return results.ToArray();
+        }
+
         public static async Task<T[]> WhenAllAsync<T>(this Task<IEnumerable<Task<T>>> tasksTask, int parallelLimit = 0)
         {
             var tasks = await tasksTask;
