@@ -116,5 +116,10 @@ namespace BlackBarLabs.Collections.Generic
                 return onKeyFound(matching[0]);
             return onKeyNotFound();
         }
+        
+        public static HashSet<T> AsHashSet<T>(this IEnumerable<T> items)
+        {
+            return new HashSet<T>(items);
+        }
     }
 }

@@ -31,7 +31,7 @@ namespace BlackBarLabs.Extensions // Make user force extensions because this aff
         }
 
         #endregion
-
+        
         public static T OrIfDefault<T>(this T value, T alternative)
             where T : IComparable
         {
