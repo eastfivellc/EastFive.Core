@@ -51,7 +51,7 @@ namespace BlackBarLabs.Collections.Generic
             return dictionary
                 .SelectMany(n =>
                     n.Value.IsDefault()?
-                    n.Key.ToEnumerable()
+                    n.Key.AsEnumerable()
                     :
                     n.Value.Bottom());
         }

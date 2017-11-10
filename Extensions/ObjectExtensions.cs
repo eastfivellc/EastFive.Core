@@ -1,4 +1,6 @@
-﻿using System;
+﻿using BlackBarLabs.Collections.Generic;
+using BlackBarLabs.Linq;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,6 +10,12 @@ namespace BlackBarLabs.Extensions // Make user force extensions because this aff
 {
     public static class ObjectExtensions
     {
+        public static IEnumerable<T> AsEnumerable<T>(this T onlyItem)
+        {
+            yield return onlyItem;
+        }
+
+        [Obsolete("Use AsEnumerable")]
         public static IEnumerable<T> ToEnumerable<T>(this T onlyItem)
         {
             yield return onlyItem;
@@ -32,6 +40,11 @@ namespace BlackBarLabs.Extensions // Make user force extensions because this aff
 
         #endregion
         
+        public static IDictionary<TKey, TValue> AsDictionary<TKey, TValue>(this KeyValuePair<TKey, TValue> onlyItem)
+        {
+            return onlyItem.AsEnumerable().ToDictionary();
+        }
+
         public static T OrIfDefault<T>(this T value, T alternative)
             where T : IComparable
         {
@@ -130,6 +143,19 @@ namespace BlackBarLabs.Extensions // Make user force extensions because this aff
         public static KeyValuePair<TKey, TValue> PairWithValue<TKey, TValue>(this TKey key, TValue value)
         {
             return new KeyValuePair<TKey, TValue>(key, value);
+        }
+
+        public static IEnumerable<KeyValuePair<TKey, TValue>> PairWithValues<TKey, TValue>(this IEnumerable<TKey> keys, IEnumerable<TValue> values)
+        {
+            var valuesIterator = values.GetEnumerator();
+            return keys.Select(
+                (key, index) =>
+                {
+                    if (!valuesIterator.MoveNext())
+                        return default(KeyValuePair<TKey, TValue>?);
+                    return key.PairWithValue(valuesIterator.Current);
+                })
+                .SelectWhereHasValue();
         }
 
         public static RecursiveTuple<TKey> RecurseWithValue<TKey>(this TKey key, RecursiveTuple<TKey> value)

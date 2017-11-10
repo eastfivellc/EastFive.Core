@@ -49,6 +49,12 @@ namespace BlackBarLabs.Linq.Async
             return items.ToArray();
         }
 
+        public static async Task<IDictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue>(this Task<IEnumerable<KeyValuePair<TKey, TValue>>> itemsTask)
+        {
+            var items = await itemsTask;
+            return items.ToDictionary();
+        }
+
         public static async Task<IEnumerable<T>> DistinctAsync<T>(this Task<IEnumerable<T>> itemsTask)
         {
             var items = await itemsTask;
