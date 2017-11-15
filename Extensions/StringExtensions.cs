@@ -102,3 +102,14 @@ namespace BlackBarLabs
         }
     }
 }
+
+namespace EastFive
+{
+    public static class StringExtensions
+    {
+        public static bool IsNullOrWhiteSpace(this string value)
+        {
+            return String.IsNullOrWhiteSpace(value);
+        }
+    }
+}
