@@ -1,5 +1,6 @@
 ﻿using BlackBarLabs.Collections.Generic;
 using BlackBarLabs.Linq;
+using EastFive.Collections.Generic;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -133,6 +134,21 @@ namespace BlackBarLabs.Extensions // Make user force extensions because this aff
         public static Task<T> ToTask<T>(this T value)
         {
             return Task.FromResult(value);
+        }
+
+        public static Func<Task<T>> AsAsyncFunc<T>(this Func<T> value)
+        {
+            return () => value().ToTask();
+        }
+
+        public static Func<T1, Task<T>> AsAsyncFunc<T, T1>(this Func<T1, T> value)
+        {
+            return (v1) => value(v1).ToTask();
+        }
+
+        public static Func<T1, Task<T>> AsAsyncFunc<T, T1>(this Func<T> value)
+        {
+            return (value1) => value().ToTask();
         }
 
         public static KeyValuePair<TKey, TValue> PairWithKey<TKey, TValue>(this TValue value, TKey key)

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using BlackBarLabs.Collections.Generic;
+using EastFive.Collections.Generic;
 
 namespace BlackBarLabs.Linq.Async
 {

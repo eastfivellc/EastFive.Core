@@ -1,10 +1,11 @@
-﻿using BlackBarLabs.Extensions;
+﻿using BlackBarLabs.Collections.Generic;
+using BlackBarLabs.Extensions;
 using BlackBarLabs.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace BlackBarLabs.Collections.Generic
+namespace EastFive.Collections.Generic
 {
     public static class DictionaryExtensions
     {
@@ -120,6 +121,13 @@ namespace BlackBarLabs.Collections.Generic
         public static HashSet<T> AsHashSet<T>(this IEnumerable<T> items)
         {
             return new HashSet<T>(items);
+        }
+
+        public static IDictionary<string, string> AsDictionary(this System.Collections.Specialized.NameValueCollection nameValueCollection)
+        {
+            return nameValueCollection.AllKeys
+                .Select(key => key.PairWithValue(nameValueCollection[key]))
+                .ToDictionary();
         }
     }
 }
