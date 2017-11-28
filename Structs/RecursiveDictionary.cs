@@ -34,6 +34,25 @@ namespace BlackBarLabs.Collections.Generic
             return dictionary.Add(key, value);
         }
 
+        public static RecursiveDictionary<TKey, TValue> AddWithRecursion<TKey, TValue>(this RecursiveDictionary<TKey, TValue> dictionary,
+            TKey key, TValue value,
+            Action<RecursiveDictionary<TKey, TValue>, Action<TKey, TValue>> callback)
+        {
+            if (dictionary.ContainsKey(key))
+                return dictionary;
+            dictionary.Add(key, value);
+            var x = dictionary[key];
+            x.WithRecursion(callback);
+            return dictionary;
+        }
+
+        private static void WithRecursion<TKey, TValue>(this RecursiveDictionary<TKey, TValue> dictionary,
+            Action<RecursiveDictionary<TKey, TValue>, Action<TKey, TValue>> callback)
+        {
+            callback(dictionary,
+                (key, value) => dictionary.AddWithRecursion(key, value, callback));
+        }
+
         public static IEnumerable<T> Flatten<T>(this RecursiveDictionary<T> dictionary)
         {
             return dictionary
