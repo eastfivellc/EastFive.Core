@@ -36,6 +36,10 @@ namespace EastFive.Linq
         {
             return items.Distinct(item => item.Key);
         }
+        public static bool All(this IEnumerable<bool> items)
+        {
+            return items.All(b => b);
+        }
     }
 }
 
