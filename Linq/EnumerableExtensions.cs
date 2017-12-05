@@ -5,6 +5,40 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
+namespace EastFive.Linq
+{
+    public static class EnumerableExtensions
+    {
+        public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items,
+            Func<T, string> propertySelection)
+        {
+            Func<T, T, int> comparer = (v1, v2) =>
+                String.Compare(propertySelection(v1), propertySelection(v2));
+            return BlackBarLabs.Linq.EnumerableExtensions.Distinct(items, comparer,
+                v => propertySelection(v).GetHashCode());
+        }
+
+        public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items,
+            Func<T, Guid> propertySelection)
+        {
+            Func<T, T, bool> comparer = (v1, v2) =>
+                propertySelection(v1) == propertySelection(v2);
+            return BlackBarLabs.Linq.EnumerableExtensions.Distinct(items, comparer,
+                v => propertySelection(v).GetHashCode());
+        }
+
+        public static IEnumerable<KeyValuePair<string, T>> Distinct<T>(this IEnumerable<KeyValuePair<string, T>> items)
+        {
+            return items.Distinct(item => item.Key);
+        }
+
+        public static IEnumerable<KeyValuePair<Guid, T>> Distinct<T>(this IEnumerable<KeyValuePair<Guid, T>> items)
+        {
+            return items.Distinct(item => item.Key);
+        }
+    }
+}
+
 namespace BlackBarLabs.Linq
 {
     public static class EnumerableExtensions
@@ -71,24 +105,6 @@ namespace BlackBarLabs.Linq
         {
             IEqualityComparer<T> comparer = predicateComparer.ToEqualityComparer(hash);
             return items.Distinct(comparer);
-        }
-
-        public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items,
-            Func<T, string> propertySelection)
-        {
-            Func<T, T, int> comparer = (v1, v2) =>
-                String.Compare(propertySelection(v1), propertySelection(v2));
-            return items.Distinct(comparer,
-                v => propertySelection(v).GetHashCode());
-        }
-
-        public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items,
-            Func<T, Guid> propertySelection)
-        {
-            Func<T, T, bool> comparer = (v1, v2) =>
-                propertySelection(v1) == propertySelection(v2);
-            return items.Distinct(comparer,
-                v => propertySelection(v).GetHashCode());
         }
 
         public static IEnumerable<T> Except<T>(this IEnumerable<T> items, IEnumerable<T> itemsToExclude,

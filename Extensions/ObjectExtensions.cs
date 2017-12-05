@@ -151,6 +151,11 @@ namespace BlackBarLabs.Extensions // Make user force extensions because this aff
             return (value1) => value().ToTask();
         }
 
+        public static Func<T1, T2, Task<T>> AsAsyncFunc<T, T1, T2>(this Func<T1, T2, T> value)
+        {
+            return (v1, v2) => value(v1, v2).ToTask();
+        }
+
         public static KeyValuePair<TKey, TValue> PairWithKey<TKey, TValue>(this TValue value, TKey key)
         {
             return new KeyValuePair<TKey, TValue>(key, value);

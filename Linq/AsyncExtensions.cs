@@ -137,3 +137,25 @@ namespace BlackBarLabs.Linq.Async
         }
     }
 }
+
+namespace EastFive.Linq.Async
+{
+    /// <summary>
+    /// Why Microsoft, why make us build this!?!?!?!
+    /// </summary>
+    public static class AsyncExtensions
+    {
+
+        public static async Task<IEnumerable<T>> DistinctAsync<T>(this Task<T[]> itemsTask)
+        {
+            var items = await itemsTask;
+            return items.Distinct();
+        }
+
+        public static async Task<IEnumerable<T>> DistinctAsync<T>(this Task<IEnumerable<T>> itemsTask, Func<T, Guid> uniqueProp)
+        {
+            var items = await itemsTask;
+            return items.Distinct(uniqueProp);
+        }
+    }
+}

@@ -8,19 +8,15 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 
-namespace BlackBarLabs.Serialization
+namespace EastFive.Serialization
 {
     public static class HashExtensions
     {
-
-        public static List<string> ToListOfKeys(this string delimitedList)
-        {
-            if (string.IsNullOrWhiteSpace(delimitedList)) return new List<string>();
-            var listOfGuids = delimitedList.Split(new[] { "|" }, StringSplitOptions.RemoveEmptyEntries).ToList();
-            return listOfGuids;
-        }
-        
         #region ByteArray
+
+        #region Numbers
+
+        #region Ints
 
         public static int[] ToIntsFromByteArray(this byte[] byteArrayOfInts)
         {
@@ -37,6 +33,10 @@ namespace BlackBarLabs.Serialization
         {
             return ints.SelectMany(i => BitConverter.GetBytes(i)).ToArray();
         }
+        
+        #endregion
+
+        #region Longs
 
         public static long[] ToLongsFromByteArray(this byte[] byteArrayOfLongs)
         {
@@ -53,6 +53,50 @@ namespace BlackBarLabs.Serialization
         {
             return longs.SelectMany(i => BitConverter.GetBytes(i)).ToArray();
         }
+        
+        #endregion
+
+        #region Decimal
+
+        public static byte[] ToByteArrayOfDeciamls(decimal dec)
+        {
+            //Load four 32 bit integers from the Decimal.GetBits function
+            Int32[] bits = decimal.GetBits(dec);
+            //Create a temporary list to hold the bytes
+            List<byte> bytes = new List<byte>();
+            //iterate each 32 bit integer
+            foreach (Int32 i in bits)
+            {
+                //add the bytes of the current 32bit integer
+                //to the bytes list
+                bytes.AddRange(BitConverter.GetBytes(i));
+            }
+            //return the bytes list as an array
+            return bytes.ToArray();
+        }
+
+        public static decimal ToDecimalsFromByteArray(byte[] bytes)
+        {
+            //check that it is even possible to convert the array
+            if (bytes.Count() != 16)
+                throw new Exception("A decimal must be created from exactly 16 bytes");
+            //make an array to convert back to int32's
+            Int32[] bits = new Int32[4];
+            for (int i = 0; i <= 15; i += 4)
+            {
+                //convert every 4 bytes into an int32
+                bits[i / 4] = BitConverter.ToInt32(bytes, i);
+            }
+            //Use the decimal's new constructor to
+            //create an instance of decimal
+            return new decimal(bits);
+        }
+
+        #endregion
+
+        #endregion
+
+        #region Guids
 
         public static Guid[] ToGuidsFromByteArray(this IEnumerable<byte> bytesOfGuids)
         {
@@ -74,18 +118,16 @@ namespace BlackBarLabs.Serialization
             return guids.SelectMany(guid => guid.ToByteArray()).ToArray();
         }
 
+        #endregion
+
+        #region Dates
+        
         public static DateTime[] ToDateTimesFromByteArray(this byte[] byteArrayOfDates)
         {
             return byteArrayOfDates
                 .ToLongsFromByteArray()
                 .Select(ticks => new DateTime(ticks, DateTimeKind.Utc))
                 .ToArray();
-        }
-
-        [Obsolete("Use ToByteArrayOfDateTimes instead")]
-        public static byte[] ToByteArrayOfDates(this IEnumerable<DateTime> dates)
-        {
-            return dates.SelectMany(date => BitConverter.GetBytes(date.Ticks)).ToArray();
         }
 
         public static byte[] ToByteArrayOfDateTimes(this IEnumerable<DateTime> dates)
@@ -119,6 +161,28 @@ namespace BlackBarLabs.Serialization
             return dates.SelectMany(date => BitConverter.GetBytes(date.HasValue ? ((DateTime)date).Ticks : 0)).ToArray();
         }
 
+        #endregion
+
+        #region Strings
+        
+        public static string[] ToStringsFromUTF8ByteArray(this byte[] byteArrayOfStrings)
+        {
+            if (byteArrayOfStrings == null)
+                return new string[] { };
+
+            return byteArrayOfStrings
+                .FromByteArray(
+                    (bytes) => System.Text.Encoding.UTF8.GetString(bytes))
+                .ToArray();
+        }
+
+        public static byte[] ToUTF8ByteArrayOfStrings(this IEnumerable<string> strings)
+        {
+            return strings.ToByteArray(str => Encoding.UTF8.GetBytes(str));
+        }
+        
+        #endregion
+        
         public static byte[] ToByteArray<TKey, TValue>(this IDictionary<TKey, TValue> obj,
             Func<TKey, byte[]> keyConverter, Func<TValue, byte[]> valueConverter)
         {
