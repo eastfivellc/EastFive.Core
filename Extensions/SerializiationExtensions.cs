@@ -53,12 +53,17 @@ namespace EastFive.Serialization
         {
             return longs.SelectMany(i => BitConverter.GetBytes(i)).ToArray();
         }
-        
+
         #endregion
 
         #region Decimal
 
-        public static byte[] ToByteArrayOfDeciamls(decimal dec)
+        public static byte[] ToByteArrayOfDecimals(this IEnumerable<decimal> dec)
+        {
+            return dec.SelectMany(i => i.ConvertToBytes()).ToArray();
+        }
+
+        public static byte[] ConvertToBytes(this decimal dec)
         {
             //Load four 32 bit integers from the Decimal.GetBits function
             Int32[] bits = decimal.GetBits(dec);
@@ -75,8 +80,9 @@ namespace EastFive.Serialization
             return bytes.ToArray();
         }
 
-        public static decimal ToDecimalsFromByteArray(byte[] bytes)
+        public static decimal ConvertToDecimal(this IEnumerable<byte> bytesEnumerable)
         {
+            var bytes = bytesEnumerable.ToArray();
             //check that it is even possible to convert the array
             if (bytes.Count() != 16)
                 throw new Exception("A decimal must be created from exactly 16 bytes");
@@ -90,6 +96,17 @@ namespace EastFive.Serialization
             //Use the decimal's new constructor to
             //create an instance of decimal
             return new decimal(bits);
+        }
+
+        public static decimal[] ToDecimalsFromByteArray(this byte[] bytes)
+        {
+            if (bytes == null)
+                return new decimal[] { };
+
+            var storageLength = sizeof(decimal);
+            return Enumerable.Range(0, bytes.Length / storageLength)
+                .Select((index) => bytes.Skip(index * storageLength).ConvertToDecimal())
+                .ToArray();
         }
 
         #endregion
