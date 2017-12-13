@@ -538,5 +538,16 @@ namespace EastFive.Serialization
             var id = guid1.ToByteArray().Concat(guid2.ToByteArray()).ToArray().MD5HashGuid();
             return id;
         }
+
+        public static Guid ComposeGuid(this Guid guid1, string textKey)
+        {
+            var id = guid1
+                .ToByteArray()
+                .Concat(
+                    Encoding.UTF8.GetBytes(textKey))
+                .ToArray()
+                .MD5HashGuid();
+            return id;
+        }
     }
 }
