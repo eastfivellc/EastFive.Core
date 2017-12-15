@@ -512,6 +512,17 @@ namespace BlackBarLabs.Linq
             return option1(option1s);
         }
 
+        public static IEnumerable<TItem> Until<TItem>(this IEnumerable<TItem> items,
+                Func<TItem, bool> predicate)
+        {
+            foreach (var item in items)
+            {
+                if (!predicate(item))
+                    yield break;
+                yield return item;
+            }
+        }
+
         public static IEnumerable<T> SelectRandom<T>(this IEnumerable<T> items, int total, Random rand = null)
         {
             if (rand == null)

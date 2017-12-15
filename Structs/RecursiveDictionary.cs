@@ -1,5 +1,6 @@
 ﻿using BlackBarLabs.Extensions;
 using BlackBarLabs.Linq;
+using EastFive.Collections.Generic;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -32,6 +33,25 @@ namespace BlackBarLabs.Collections.Generic
             if (dictionary.ContainsKey(key))
                 return dictionary;
             return dictionary.Add(key, value);
+        }
+
+        public static RecursiveDictionary<TKey> AddWithRecursion<TKey>(this RecursiveDictionary<TKey> dictionary,
+            TKey key,
+            Action<TKey, Action<TKey>> callback)
+        {
+            if (dictionary.ContainsKey(key))
+                return dictionary;
+            dictionary.Add(key, new RecursiveDictionary<TKey>());
+            var x = dictionary[key];
+            x.WithRecursion(key, callback);
+            return dictionary;
+        }
+
+        private static void WithRecursion<TKey>(this RecursiveDictionary<TKey> dictionary, TKey added,
+            Action<TKey, Action<TKey>> callback)
+        {
+            callback(added,
+                (key) => dictionary.AddWithRecursion(key, callback));
         }
 
         public static RecursiveDictionary<TKey, TValue> AddWithRecursion<TKey, TValue>(this RecursiveDictionary<TKey, TValue> dictionary,
@@ -92,6 +112,44 @@ namespace BlackBarLabs.Collections.Generic
                                     kvp.Value.SelectRecursive(selector));
                     })
                 .AsRecursive();
+        }
+
+        public delegate TResult SelectRecursiveDelegate<TSource, TResult>(int depth,
+            KeyValuePair<TSource, TResult> parent, KeyValuePair<TSource, TResult>[] left, TSource value);
+        public static RecursiveDictionary<TResult> SelectRecursive<TSource, TResult>(this RecursiveDictionary<TSource> dictionary,
+            SelectRecursiveDelegate<TSource, TResult> selector)
+        {
+            if (dictionary.IsDefault())
+                return default(RecursiveDictionary<TResult>);
+            return SelectRecursive_(0, 
+                    default(TSource), default(TResult),
+                dictionary,
+                selector);
+        }
+
+        private static RecursiveDictionary<TResult> SelectRecursive_<TSource, TResult>(int depth, 
+                TSource parent, TResult parentResult,
+                RecursiveDictionary<TSource> dictionary,
+            SelectRecursiveDelegate<TSource, TResult> selector)
+        {
+            var parentKvp = parent.PairWithValue(parentResult);
+            var value = dictionary
+                .Aggregate(
+                    new KeyValuePair<
+                        KeyValuePair<TResult, RecursiveDictionary<TResult>>,
+                        KeyValuePair<TSource, TResult>>[] { },
+                    (left, v) =>
+                    {
+                        var result = selector(depth, parentKvp, 
+                            left.SelectValues().ToArray(),
+                            v.Key);
+                        var subset = SelectRecursive_(depth + 1, v.Key, result, v.Value, selector);
+                        var resultSet = result.PairWithValue(subset);
+                        return left.Append(resultSet.PairWithValue(v.Key.PairWithValue(result))).ToArray();
+                    })
+                .SelectKeys()
+                .AsRecursive();
+            return value;
         }
 
         public static RecursiveDictionary<T> AsRecursive<T>(this IDictionary<T, RecursiveDictionary<T>> dictionary)
