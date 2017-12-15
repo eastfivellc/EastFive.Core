@@ -123,6 +123,17 @@ namespace EastFive.Collections.Generic
             return new HashSet<T>(items);
         }
 
+        public static Func<T, bool> AsPredicate<T>(this HashSet<T> lookups)
+        {
+            return (v) => lookups.Contains(v);
+        }
+
+        public static Func<TPredicate, bool> AsPredicate<T, TPredicate>(this HashSet<T> lookups,
+            Func<TPredicate, T> translation)
+        {
+            return (v) => lookups.Contains(translation(v));
+        }
+
         public static IDictionary<string, string> AsDictionary(this System.Collections.Specialized.NameValueCollection nameValueCollection)
         {
             return nameValueCollection.AllKeys

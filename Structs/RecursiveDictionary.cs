@@ -114,6 +114,30 @@ namespace BlackBarLabs.Collections.Generic
                 .AsRecursive();
         }
 
+        public static RecursiveDictionary<TSource> WhereRecursive<TSource>(this RecursiveDictionary<TSource> dictionary,
+            Func<TSource, bool> predicate)
+        {
+            if (dictionary.IsDefault())
+                return default(RecursiveDictionary<TSource>);
+            return dictionary
+                .Select(
+                    kvp =>
+                    {
+                        var next = kvp.Value.WhereRecursive(predicate);
+
+                        // Said more clearly, if the predicate is false, AND no children were returned
+                        // just return an empty or null set (written backwards so the predicate is not called
+                        // if child values DO EXIST since that would orphan them in the tree).
+                        var childValuesDoNotExists = next.IsDefault() || (!next.Any());
+                        if (childValuesDoNotExists && (!predicate(kvp.Key)))
+                            return default(KeyValuePair<TSource, RecursiveDictionary<TSource>>?);
+
+                        return kvp.Key.PairWithValue(next);
+                    })
+                .SelectWhereHasValue()
+                .AsRecursive();
+        }
+
         public delegate TResult SelectRecursiveDelegate<TSource, TResult>(int depth,
             KeyValuePair<TSource, TResult> parent, KeyValuePair<TSource, TResult>[] left, TSource value);
         public static RecursiveDictionary<TResult> SelectRecursive<TSource, TResult>(this RecursiveDictionary<TSource> dictionary,
