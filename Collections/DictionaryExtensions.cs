@@ -19,6 +19,11 @@ namespace EastFive.Collections.Generic
             dictionary.Add(key, value);
         }
 
+        public static IDictionary<TValue, TKey> SwapKeyValue<TKey, TValue>(this IDictionary<TKey, TValue> dictionary)
+        {
+            return dictionary.Select(kvp => kvp.Value.PairWithValue(kvp.Key)).ToDictionary();
+        }
+
         public static Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> kvpItems)
         {
             return kvpItems.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
