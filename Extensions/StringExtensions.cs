@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using BlackBarLabs.Linq;
+using EastFive.Linq;
 
-namespace BlackBarLabs
+namespace EastFive
 {
     public static class StringExtensions
     {
@@ -100,13 +100,7 @@ namespace BlackBarLabs
                 encoding = System.Text.ASCIIEncoding.ASCII;
             return encoding.GetString(bytes);
         }
-    }
-}
-
-namespace EastFive
-{
-    public static class StringExtensions
-    {
+    
         public static bool IsNullOrWhiteSpace(this string value)
         {
             return String.IsNullOrWhiteSpace(value);

@@ -1,5 +1,6 @@
 ﻿using BlackBarLabs.Collections.Generic;
 using BlackBarLabs.Extensions;
+using EastFive.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,14 @@ namespace EastFive.Linq
 {
     public static class EnumerableExtensions
     {
+        public static IEnumerable<TSource> NullToEmpty<TSource>(
+            this IEnumerable<TSource> source)
+        {
+            if (default(IEnumerable<TSource>) == source)
+                return new TSource[] { };
+            return source;
+        }
+
         public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items,
             Func<T, string> propertySelection)
         {
@@ -298,14 +307,6 @@ namespace BlackBarLabs.Linq
                 itemsCopy = itemsCopy.Skip(batchsize);
                 index += batchsize;
             }
-        }
-
-        public static IEnumerable<TSource> NullToEmpty<TSource>(
-            this IEnumerable<TSource> source)
-        {
-            if (default(IEnumerable<TSource>) == source)
-                return new TSource[] { };
-            return source;
         }
         
         public static T Random<T>(this IEnumerable<T> items, int total, Random rand = null)
