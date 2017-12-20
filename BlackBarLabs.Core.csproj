@@ -66,6 +66,7 @@
     <Compile Include="Linq\AsyncExtensions.cs" />
     <Compile Include="Collections\DictionaryExtensions.cs" />
     <Compile Include="Linq\EnumerableExtensions.cs" />
+    <Compile Include="Linq\Expressions\ExpressionExtensions.cs" />
     <Compile Include="Linq\ListExtensions.cs" />
     <Compile Include="Delegates.cs" />
     <Compile Include="Collections\ComparisonExtensions.cs" />

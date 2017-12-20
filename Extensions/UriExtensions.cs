@@ -35,6 +35,12 @@ namespace BlackBarLabs
             return String.Join("&", source.Select(kvp => String.Format("{0}={1}", HttpUtility.UrlEncode(kvp.Key), HttpUtility.UrlEncode(kvp.Value))).ToArray());
         }
 
+        public static Uri SetQuery(this Uri uri, string query)
+        {
+            var uriWithQueryParam = new UriBuilder(uri) { Query = query };
+            return uriWithQueryParam.Uri;
+        }
+
         public static Uri SetQueryParam(this Uri uri, string name, string value)
         {
             // From: http://stackoverflow.com/questions/829080/how-to-build-a-query-string-for-a-url-in-c#20492373
