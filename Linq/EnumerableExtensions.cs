@@ -1,5 +1,6 @@
 ﻿using BlackBarLabs.Collections.Generic;
 using BlackBarLabs.Extensions;
+using EastFive.Collections.Generic;
 using EastFive.Linq;
 using System;
 using System.Collections.Generic;
@@ -181,6 +182,46 @@ namespace BlackBarLabs.Linq
             return items.Intersect(second, comparer,
                 v => propertySelection(v).GetHashCode());
         }
+
+        public static TResult Merge<T0, T1, T2, TResult>(this IEnumerable<T1> items1, 
+                IEnumerable<T2> items2,
+                Func<T1, T0> propertySelection1,
+                Func<T2, T0> propertySelection2,
+            Func<IDictionary<T0, KeyValuePair<T1, T2>>, IEnumerable<T1>, IEnumerable<T2>, TResult> onResult,
+            Func<T0, T0, bool> predicateComparer,
+            Func<T0, int> hash = default(Func<T0, int>))
+        {
+            var item1Lookup =
+                items1.Select(item => propertySelection1(item).PairWithValue(item))
+                .ToDictionary();
+            var item2Lookup =
+                items2.Select(item => propertySelection2(item).PairWithValue(item))
+                .ToDictionary();
+            var item1Keys = item1Lookup.SelectKeys();
+            var item2Keys = item2Lookup.SelectKeys();
+            var intersection = item1Keys
+                .Intersect(item2Keys, predicateComparer, hash);
+
+            var itemsIntesection = intersection
+                .Select(key => key.PairWithValue(
+                    item1Lookup[key].PairWithValue(item2Lookup.First(item => predicateComparer(key, item.Key)).Value)))
+                .ToDictionary();
+
+            var items1Unmatched = item1Lookup
+                .SelectKeys()
+                .Except(intersection, predicateComparer, hash)
+                .Select(unmatchedKey => item1Lookup[unmatchedKey]);
+            var items2Unmatched = item2Lookup
+                .SelectKeys()
+                .Except(intersection, predicateComparer, hash)
+                .Select(unmatchedKey => item2Lookup[unmatchedKey]);
+
+            return onResult(itemsIntesection, items1Unmatched, items2Unmatched);
+        }
+
+
+
+
 
         public static async Task<IEnumerable<T>> AppendYieldAsync<T>(this IEnumerable<T> items, Func<Action<T>, Task> callback)
         {
