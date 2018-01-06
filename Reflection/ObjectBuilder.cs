@@ -7,11 +7,11 @@ using System.Reflection.Emit;
 using BlackBarLabs.Collections.Generic;
 using EastFive.Collections.Generic;
 
-namespace BlackBarLabs
+namespace EastFive
 {
     public static class ObjectBuilder
     {
-        public static Type BuildType(IDictionary<string, Type> properties)
+        public static Type BuildType(this IDictionary<string, Type> properties)
         {
             TypeBuilder tb = GetTypeBuilder();
             ConstructorBuilder constructor = tb.DefineDefaultConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
@@ -35,7 +35,7 @@ namespace BlackBarLabs
             return objectType;
         }
 
-        public static object CompileResultType(IDictionary<string, object> properties)
+        public static object CompileResultType(this IDictionary<string, object> properties)
         {
             var propertyTypes = properties
                 .Select(kvp => new KeyValuePair<string, Type>(kvp.Key, kvp.Value.GetType()))
@@ -48,7 +48,7 @@ namespace BlackBarLabs
             return obj;
         }
 
-        public static T PopulateType<T>(T obj, IDictionary<string, object> properties)
+        public static T PopulateType<T>(this T obj, IDictionary<string, object> properties)
         {
             // .GetType() must be used here instead of typeof(T) because
             // the calling method may invoke with a parent class
