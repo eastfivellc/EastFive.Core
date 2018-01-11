@@ -66,36 +66,31 @@ namespace EastFive.Serialization
         public static byte[] ConvertToBytes(this decimal dec)
         {
             //Load four 32 bit integers from the Decimal.GetBits function
-            Int32[] bits = decimal.GetBits(dec);
-            //Create a temporary list to hold the bytes
-            List<byte> bytes = new List<byte>();
-            //iterate each 32 bit integer
-            foreach (Int32 i in bits)
-            {
-                //add the bytes of the current 32bit integer
-                //to the bytes list
-                bytes.AddRange(BitConverter.GetBytes(i));
-            }
-            //return the bytes list as an array
-            return bytes.ToArray();
+            var bytes = decimal.GetBits(dec)
+                .SelectMany(i => BitConverter.GetBytes(i))
+                .ToArray();
+            return bytes;
         }
 
-        public static decimal ConvertToDecimal(this IEnumerable<byte> bytesEnumerable)
+        public static bool TryConvertToDecimal(this IEnumerable<byte> bytesEnumerable, out decimal value)
         {
             var bytes = bytesEnumerable.ToArray();
             //check that it is even possible to convert the array
-            if (bytes.Count() != 16)
-                throw new Exception("A decimal must be created from exactly 16 bytes");
-            //make an array to convert back to int32's
-            Int32[] bits = new Int32[4];
-            for (int i = 0; i <= 15; i += 4)
+            if (bytes.Length != 16)
             {
-                //convert every 4 bytes into an int32
-                bits[i / 4] = BitConverter.ToInt32(bytes, i);
+                value = default(decimal);
+                return false;
             }
+            //make an array to convert back to int32's
+            Int32[] bits = bytes
+                .Segment(4)
+                .Select(byteBlock => BitConverter.ToInt32(byteBlock.ToArray(), 0))
+                .ToArray();
+
             //Use the decimal's new constructor to
             //create an instance of decimal
-            return new decimal(bits);
+            value = new decimal(bits);
+            return true;
         }
 
         public static decimal[] ToDecimalsFromByteArray(this byte[] bytes)
@@ -104,8 +99,15 @@ namespace EastFive.Serialization
                 return new decimal[] { };
 
             var storageLength = sizeof(decimal);
-            return Enumerable.Range(0, bytes.Length / storageLength)
-                .Select((index) => bytes.Skip(index * storageLength).ConvertToDecimal())
+            return bytes
+                .Segment(storageLength)
+                .Where(bytesSegment => bytesSegment.TryConvertToDecimal(out decimal value))
+                .Select(
+                    bytesSegment =>
+                    {
+                        bytesSegment.TryConvertToDecimal(out decimal value);
+                        return value;
+                    })
                 .ToArray();
         }
 
@@ -244,6 +246,29 @@ namespace EastFive.Serialization
                     kvp => kvp.Key,
                     kvp => kvp.Value);
             return result;
+        }
+
+        public static IEnumerable<IEnumerable<TItem>> Segment<TItem>(this IEnumerable<TItem> items, int segmentSize)
+        {
+            if (segmentSize <= 0)
+                throw new ArgumentException("Segment size must be greater than 0", "segmentSize");
+            var enumerator = items.GetEnumerator();
+            while(enumerator.MoveNext())
+            {
+                var results = SegmentSubset(enumerator, segmentSize).ToArray();
+                // TODO: Make this work w/o the ToArray() unless the outer enumerator 
+                // is iterated before the inner enumerator.
+                yield return results;
+            }
+        }
+
+        private static IEnumerable<TItem> SegmentSubset<TItem>(this IEnumerator<TItem> items, int segmentSize)
+        {
+            do
+            {
+                yield return items.Current;
+                segmentSize--;
+            } while(segmentSize > 0 && items.MoveNext());
         }
 
         /// <summary>
