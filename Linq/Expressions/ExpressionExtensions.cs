@@ -31,5 +31,51 @@ namespace EastFive.Linq.Expressions
             }
             return onPropertyExpression(propertyInfo.Name);
         }
+
+        public static TResult MemberName<TObject, TProperty, TResult>(this Expression<Func<TObject, TProperty>> memberExpression,
+            Func<string, TResult> onMemberExpression,
+            Func<TResult> onNotMemberExpression)
+        {
+            if (memberExpression.Body.IsDefault())
+                return onNotMemberExpression();
+
+            if (!(memberExpression.Body is MemberExpression))
+                return onNotMemberExpression();
+
+            var memberExpressionTyped = memberExpression.Body as MemberExpression;
+            var member = memberExpressionTyped.Member;
+            return onMemberExpression(member.Name);
+        }
+
+        public static object GetValue(this MemberInfo memberInfo, object obj)
+        {
+            switch (memberInfo.MemberType)
+            {
+                case MemberTypes.Field:
+                    return ((FieldInfo)memberInfo).GetValue(obj);
+                case MemberTypes.Property:
+                    return ((PropertyInfo)memberInfo).GetValue(obj);
+                default:
+                    throw new ArgumentException($"memberInfo of type '{memberInfo.MemberType}' which is unsupported");
+            }
+        }
+
+        public static void SetValue<T>(this MemberInfo memberInfo, ref T obj, object value)
+        {
+            // unbox in case of struct
+            object objUnboxed = obj;
+            switch (memberInfo.MemberType)
+            {
+                case MemberTypes.Field:
+                    ((FieldInfo)memberInfo).SetValue(objUnboxed, value);
+                    break;
+                case MemberTypes.Property:
+                    ((PropertyInfo)memberInfo).SetValue(obj, value);
+                    break;
+                default:
+                    throw new ArgumentException($"memberInfo of type '{memberInfo.MemberType}' which is unsupported");
+            }
+            obj = (T)objUnboxed;
+        }
     }
 }

@@ -61,6 +61,25 @@ namespace EastFive.Linq
                     return func(accum.Value, item, accum.Key).PairWithKey(accum.Key + 1);
                 }).Value;
         }
+
+        public static TResult First<TItem, TResult>(this IEnumerable<TItem> items,
+            Func<TItem, Func<TResult, TResult>, Func<TResult>, TResult> predicateResult,
+            Func<TResult> final)
+        {
+            return items.GetEnumerator().First(predicateResult, final);
+        }
+
+        private static TResult First<TItem, TResult>(this IEnumerator<TItem> items,
+            Func<TItem, Func<TResult, TResult>, Func<TResult>, TResult> predicateResult,
+            Func<TResult> final)
+        {
+            if (!items.MoveNext())
+                return final();
+            var item = items.Current;
+            return predicateResult(item,
+                r => r,
+                () => items.First(predicateResult, final));
+        }
     }
 }
 

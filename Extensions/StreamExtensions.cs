@@ -1,11 +1,12 @@
-﻿using EastFive;
+﻿using BlackBarLabs.Extensions;
+using EastFive;
 using System;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace BlackBarLabs
+namespace EastFive
 {
     public static class StreamExtensions
     {
@@ -37,6 +38,18 @@ namespace BlackBarLabs
                 .Join("")
                 .ToUpper();
             return result;
+        }
+
+        public static string ReadAsString(this Stream stream, 
+            Encoding encoding = default(Encoding))
+        {
+            if (encoding.IsDefault())
+                encoding = Encoding.UTF8;
+            using (var reader = new StreamReader(stream, Encoding.UTF8))
+            {
+                string value = reader.ReadToEnd();
+                return value;
+            }
         }
     }
 }
