@@ -105,5 +105,11 @@ namespace EastFive
         {
             return String.IsNullOrWhiteSpace(value);
         }
+
+        public static TEnum AsEnum<TEnum>(this string value)
+            where TEnum : struct // best we can do for now
+        {
+            return (TEnum)Enum.Parse(typeof(TEnum), value);
+        }
     }
 }

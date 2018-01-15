@@ -2,9 +2,41 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-
+using BlackBarLabs;
 using BlackBarLabs.Collections.Generic;
+using BlackBarLabs.Extensions;
 using EastFive.Collections.Generic;
+using BlackBarLabs.Linq.Async;
+
+namespace EastFive.Linq.Async
+{
+    public static class AsyncExtensions
+    {
+        public static async Task<IEnumerable<T>> WhereAsync<T>(this IEnumerable<T> items, Func<T, Task<bool>> predicate)
+        {
+            return await items
+                .Select(async item => (await predicate(item)) ?
+                    item.PairWithValue(true)
+                    :
+                    default(KeyValuePair<T, bool>?))
+                .WhenAllAsync()
+                .SelectWhereHasValueAsync()
+                .SelectAsync(kvp => kvp.Key);
+        }
+
+        public static async Task<IEnumerable<T>> DistinctAsync<T>(this Task<T[]> itemsTask)
+        {
+            var items = await itemsTask;
+            return items.Distinct();
+        }
+
+        public static async Task<IEnumerable<T>> DistinctAsync<T>(this Task<IEnumerable<T>> itemsTask, Func<T, Guid> uniqueProp)
+        {
+            var items = await itemsTask;
+            return items.Distinct(uniqueProp);
+        }
+    }
+}
 
 namespace BlackBarLabs.Linq.Async
 {
@@ -79,7 +111,7 @@ namespace BlackBarLabs.Linq.Async
             var items = await itemsTask;
             return items.Where(predicate);
         }
-
+        
         public static async Task<IEnumerable<TResult>> SelectAsync<T1, TResult>(this Task<IEnumerable<T1>> itemsTask, Func<T1, TResult> selector)
         {
             var items = await itemsTask;
@@ -140,28 +172,6 @@ namespace BlackBarLabs.Linq.Async
         {
             var items = await itemsTask;
             return items.All(predicate);
-        }
-    }
-}
-
-namespace EastFive.Linq.Async
-{
-    /// <summary>
-    /// Why Microsoft, why make us build this!?!?!?!
-    /// </summary>
-    public static class AsyncExtensions
-    {
-
-        public static async Task<IEnumerable<T>> DistinctAsync<T>(this Task<T[]> itemsTask)
-        {
-            var items = await itemsTask;
-            return items.Distinct();
-        }
-
-        public static async Task<IEnumerable<T>> DistinctAsync<T>(this Task<IEnumerable<T>> itemsTask, Func<T, Guid> uniqueProp)
-        {
-            var items = await itemsTask;
-            return items.Distinct(uniqueProp);
         }
     }
 }
