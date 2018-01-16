@@ -80,13 +80,6 @@ namespace EastFive.Linq
                 r => r,
                 () => items.First(predicateResult, final));
         }
-    }
-}
-
-namespace BlackBarLabs.Linq
-{
-    public static class EnumerableExtensions
-    {
         public static IEnumerable<T> Append<T>(this IEnumerable<T> items, T item)
         {
             return items.Concat(new T[] { item });
@@ -118,6 +111,13 @@ namespace BlackBarLabs.Linq
             });
             return items.Concat(appendItems);
         }
+    }
+}
+
+namespace BlackBarLabs.Linq
+{
+    public static class EnumerableExtensions
+    {
 
         public static IEnumerable<T> RemoveItemAtIndex<T>(this IEnumerable<T> items, int index)
         {
