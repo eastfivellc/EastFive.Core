@@ -1,5 +1,6 @@
 ﻿using BlackBarLabs.Extensions;
 using EastFive;
+using EastFive.Extensions;
 using System;
 using System.IO;
 using System.Linq;

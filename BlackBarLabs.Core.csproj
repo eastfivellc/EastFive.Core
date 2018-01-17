@@ -60,6 +60,7 @@
     <Compile Include="Async\IEnumeratorAsync.cs" />
     <Compile Include="Async\LinqExtensions.cs" />
     <Compile Include="Extensions\EnumExtensions.cs" />
+    <Compile Include="Extensions\FuncExtensions.cs" />
     <Compile Include="Extensions\SerializiationExtensions.cs" />
     <Compile Include="Extensions\RegexExtensions.cs" />
     <Compile Include="Extensions\TResultExtensions.cs" />
