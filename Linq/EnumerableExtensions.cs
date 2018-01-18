@@ -25,7 +25,7 @@ namespace EastFive.Linq
         {
             Func<T, T, int> comparer = (v1, v2) =>
                 String.Compare(propertySelection(v1), propertySelection(v2));
-            return BlackBarLabs.Linq.EnumerableExtensions.Distinct(items, comparer,
+            return EnumerableExtensions.Distinct(items, comparer,
                 v => propertySelection(v).GetHashCode());
         }
 
@@ -34,7 +34,7 @@ namespace EastFive.Linq
         {
             Func<T, T, bool> comparer = (v1, v2) =>
                 propertySelection(v1) == propertySelection(v2);
-            return BlackBarLabs.Linq.EnumerableExtensions.Distinct(items, comparer,
+            return EnumerableExtensions.Distinct(items, comparer,
                 v => propertySelection(v).GetHashCode());
         }
 
@@ -112,13 +112,6 @@ namespace EastFive.Linq
             });
             return items.Concat(appendItems);
         }
-    }
-}
-
-namespace BlackBarLabs.Linq
-{
-    public static class EnumerableExtensions
-    {
 
         public static IEnumerable<T> RemoveItemAtIndex<T>(this IEnumerable<T> items, int index)
         {
