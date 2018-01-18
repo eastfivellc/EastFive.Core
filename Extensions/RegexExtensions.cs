@@ -1,5 +1,4 @@
 ﻿using BlackBarLabs.Extensions;
-using BlackBarLabs.Linq;
 using EastFive.Collections.Generic;
 using EastFive.Linq.Expressions;
 using System;
@@ -7,9 +6,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using EastFive.Linq.Async;
+using EastFive.Linq;
 
 namespace BlackBarLabs
 {

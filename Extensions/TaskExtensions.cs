@@ -2,6 +2,7 @@
 using BlackBarLabs.Linq;
 using System.Threading.Tasks;
 using BlackBarLabs.Extensions;
+using EastFive.Linq;
 
 namespace BlackBarLabs
 {

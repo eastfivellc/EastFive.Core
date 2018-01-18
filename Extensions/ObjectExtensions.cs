@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BlackBarLabs.Extensions;
+using EastFive.Linq;
 
 namespace BlackBarLabs.Extensions // Make user force extensions because this affects _every_ object
 {
