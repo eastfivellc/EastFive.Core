@@ -442,6 +442,34 @@ namespace EastFive.Linq
             return found(value.First().Value);
         }
 
+        public static IEnumerable<TResult> Select<TItem, TResult>(this IEnumerable<TItem> items,
+             Func<TItem, TResult> single, Func<TItem, TItem, TResult> first, Func<TItem, TItem, TItem, TResult> middle, Func<TItem, TItem, TResult> last)
+        {
+            var iter = items.GetEnumerator();
+            if (!iter.MoveNext())
+            {
+                yield break;
+            }
+            var lastValue = iter.Current;
+
+            if (!iter.MoveNext())
+            {
+                yield return single(lastValue);
+                yield break;
+            }
+            var current = iter.Current;
+
+            yield return first(lastValue, current);
+
+            while(iter.MoveNext())
+            {
+                yield return middle(lastValue, current, iter.Current);
+                lastValue = current;
+                current = iter.Current;
+            }
+            yield return last(lastValue, current);
+        }
+
         public delegate TResult SelectWithDelegate<TWith, TItem, TResult>(TWith previous, TItem current, out TWith next);
         public static IEnumerable<TResult> SelectWith<TWith, TItem, TResult>(this IEnumerable<TItem> items,
             TWith seed, SelectWithDelegate<TWith, TItem, TResult> callback)
