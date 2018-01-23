@@ -1,4 +1,5 @@
-﻿using System;
+﻿using EastFive.Extensions;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -199,9 +200,23 @@ namespace EastFive.Serialization
         {
             return strings.ToByteArray(str => Encoding.UTF8.GetBytes(str));
         }
-        
+
+        public static string GetString(this byte[] bytes, Encoding encoding = default(Encoding))
+        {
+            if (encoding.IsDefaultOrNull())
+                encoding = Encoding.UTF8;
+            return encoding.GetString(bytes);
+        }
+
+        public static byte[] GetBytes(this string text, Encoding encoding = default(Encoding))
+        {
+            if (encoding.IsDefaultOrNull())
+                encoding = Encoding.UTF8;
+            return encoding.GetBytes(text);
+        }
+
         #endregion
-        
+
         public static byte[] ToByteArray<TKey, TValue>(this IDictionary<TKey, TValue> obj,
             Func<TKey, byte[]> keyConverter, Func<TValue, byte[]> valueConverter)
         {
