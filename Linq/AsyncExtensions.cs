@@ -23,11 +23,24 @@ namespace EastFive.Linq.Async
                 .SelectWhereHasValueAsync()
                 .SelectAsync(kvp => kvp.Key);
         }
-
-        public static async Task<IEnumerable<T>> DistinctAsync<T>(this Task<T[]> itemsTask)
+        
+        public static async Task<IEnumerable<T>> AwaitAsync<T>(this Task<T[]> itemsTask, Func<IEnumerable<T>, IEnumerable<T>> callback)
         {
             var items = await itemsTask;
-            return items.Distinct();
+            return callback(items);
+        }
+
+        public static async Task<IEnumerable<T>> AwaitAsync<T>(this Task<IEnumerable<T>> itemsTask, Func<IEnumerable<T>, IEnumerable<T>> callback)
+        {
+            var items = await itemsTask;
+            return callback(items);
+        }
+
+        public static Task<IEnumerable<T>> DistinctAsync<T>(this Task<T[]> itemsTask)
+        {
+            return itemsTask.AwaitAsync(Enumerable.Distinct);
+            //var items = await itemsTask;
+            //return items.Distinct();
         }
 
         public static async Task<IEnumerable<T>> DistinctAsync<T>(this Task<IEnumerable<T>> itemsTask, Func<T, Guid> uniqueProp)
