@@ -62,6 +62,7 @@
     <Compile Include="Async\IEnumerableAsync.cs" />
     <Compile Include="Async\IEnumeratorAsync.cs" />
     <Compile Include="Async\LinqExtensions.cs" />
+    <Compile Include="Attributes\PropertySpecifierAttribute.cs" />
     <Compile Include="Extensions\EnumExtensions.cs" />
     <Compile Include="Extensions\FuncExtensions.cs" />
     <Compile Include="Extensions\SerializiationExtensions.cs" />

@@ -41,6 +41,13 @@ namespace BlackBarLabs
             return uriWithQueryParam.Uri;
         }
 
+        public static Uri SetQuery(this Uri uri, IDictionary<string, string> query)
+        {
+            var queryString = query.ToQueryString();
+            var uriWithQueryParam = new UriBuilder(uri) { Query = queryString };
+            return uriWithQueryParam.Uri;
+        }
+
         public static Uri SetQueryParam(this Uri uri, string name, string value)
         {
             // From: http://stackoverflow.com/questions/829080/how-to-build-a-query-string-for-a-url-in-c#20492373
