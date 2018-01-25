@@ -168,5 +168,13 @@ namespace EastFive.Extensions
         {
             return value.IsDefaultOrNull();
         }
+
+        public static T IfThen<T>(this T value, bool ifCondition,
+            Func<T, T> thenOperation)
+        {
+            if (ifCondition)
+                return thenOperation(value);
+            return value;
+        }
     }
 }
