@@ -16,6 +16,15 @@ namespace EastFive.Linq.Expressions
             Func<string, TResult> onPropertyExpression,
             Func<TResult> onNotPropertyExpression)
         {
+            return propertyExpression.PropertyInfo(
+                propertyInfo => onPropertyExpression(propertyInfo.Name),
+                onNotPropertyExpression);
+        }
+
+        public static TResult PropertyInfo<TObject, TProperty, TResult>(this Expression<Func<TObject, TProperty>> propertyExpression,
+            Func<PropertyInfo, TResult> onPropertyExpression,
+            Func<TResult> onNotPropertyExpression)
+        {
             if (propertyExpression.Body.IsDefault())
                 return onNotPropertyExpression();
 
@@ -24,13 +33,13 @@ namespace EastFive.Linq.Expressions
 
             var memberExpression = propertyExpression.Body as MemberExpression;
             var lockedPropertyMember = memberExpression.Member;
-            
+
             var propertyInfo = lockedPropertyMember as PropertyInfo;
             if (null == propertyInfo)
             {
                 return onNotPropertyExpression();
             }
-            return onPropertyExpression(propertyInfo.Name);
+            return onPropertyExpression(propertyInfo);
         }
 
         public static TResult MemberName<TObject, TProperty, TResult>(this Expression<Func<TObject, TProperty>> memberExpression,
