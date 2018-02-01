@@ -47,6 +47,8 @@ namespace BlackBarLabs
 
         public static bool IsUrn(this Uri uri)
         {
+            if (!uri.IsAbsoluteUri)
+                return false;
             return (uri.Scheme.ToLower().Equals("urn"));
         }
 
