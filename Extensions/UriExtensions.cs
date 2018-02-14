@@ -1,9 +1,14 @@
-﻿using System;
+﻿using EastFive;
+using EastFive.Collections.Generic;
+using EastFive.Extensions;
+using EastFive.Linq.Expressions;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Web;
 
-namespace BlackBarLabs
+namespace EastFive
 {
     public static class UriExtensions
     {
@@ -84,6 +89,162 @@ namespace BlackBarLabs
         {
             return System.Web.HttpUtility.ParseQueryString(
                uri.Query)[name];
+        }
+
+
+        public static Uri AddQuery(this Uri uri, string name, string value)
+        {
+            var ub = new UriBuilder(uri);
+
+            // decodes urlencoded pairs from uri.Query to HttpValueCollection
+            var httpValueCollection = HttpUtility.ParseQueryString(uri.Query);
+
+            httpValueCollection.Add(name, value);
+
+            // urlencodes the whole HttpValueCollection
+            ub.Query = httpValueCollection.ToString();
+
+            return ub.Uri;
+        }
+
+        public static IDictionary<string, string> ParseQuery(this Uri uri)
+        {
+            if (uri.IsDefault() || uri.Query.IsNullOrWhiteSpace())
+                return new Dictionary<string, string>();
+
+            var queryNameCollection = HttpUtility.ParseQueryString(uri.Query);
+            return queryNameCollection.AsDictionary();
+        }
+
+        public static Uri AddQueryParameter(this Uri uri, string parameter, string value)
+        {
+            var uriBuilder = new UriBuilder(uri);
+            var query = HttpUtility.ParseQueryString(uriBuilder.Query);
+            query[parameter] = value;
+            uriBuilder.Query = query.ToString();
+            return uriBuilder.Uri;
+        }
+
+        public static Uri AddQueryParameter<QueryType, TValue>(this Uri uri,
+            Expression<Func<QueryType, TValue>> parameterExpr,
+            string value)
+        {
+            return parameterExpr.PropertyName(
+                (parameter) => uri.AddQueryParameter(parameter, value),
+                () => { throw new ArgumentException("Not a property expression", "parameterExpr"); });
+        }
+
+        public static Uri AddQueryParameter<QueryType, TValue>(this Uri uri,
+            Expression<Func<QueryType, TValue>> parameterExpr,
+            IDictionary<string, string> values)
+        {
+            return parameterExpr.PropertyName(
+                (parameter) =>
+                {
+                    return values.Aggregate(
+                        new
+                        {
+                            src = uri,
+                            index = 0,
+                        },
+                        (aggr, value) =>
+                        {
+                            return new
+                            {
+                                src = uri
+                                    .AddQueryParameter($"{parameter}[{aggr.index}].Key", value.Key)
+                                    .AddQueryParameter($"{parameter}[{aggr.index}].Value", value.Value),
+                                index = aggr.index + 1,
+                            };
+                        },
+                        (aggr) => aggr.src);
+                },
+                () => { throw new ArgumentException("Not a property expression", "parameterExpr"); });
+        }
+        
+        public static Dictionary<Guid, object> ParseQueryParameter<QueryType>(this Uri uri,
+            Expression<Func<QueryType, Dictionary<Guid, object>>> parameterExpr)
+        {
+            return uri.ParseQueryParameter(parameterExpr,
+                    guidKey => Guid.Parse(guidKey),
+                    objValue => (object)objValue,
+                (webId) => webId,
+                () => default(Dictionary<Guid, object>));
+        }
+
+        public static TResult ParseQueryParameter<QueryType, TKey, TValue, TResult>(this Uri uri,
+            Expression<Func<QueryType, Dictionary<TKey, TValue>>> parameterExpr,
+            Func<string, TKey> parseKey,
+            Func<string, TValue> parseValue,
+            Func<Dictionary<TKey, TValue>, TResult> onFound,
+            Func<TResult> onNotInQueryString)
+        {
+            return parameterExpr.PropertyName(
+                (parameter) =>
+                {
+                    var value = ParseDictionary(uri, parameter, 0, parseKey, parseValue);
+                    if (!value.Any())
+                        return onNotInQueryString();
+                    return onFound(value);
+                },
+                () => { throw new ArgumentException("Not a property expression", "parameterExpr"); });
+        }
+
+        private static Dictionary<TKey, TValue> ParseDictionary<TKey, TValue>(Uri uri, string parameter, int index,
+            Func<string, TKey> parseKey,
+            Func<string, TValue> parseValue)
+        {
+            var parameterKey = $"{parameter}[{index}].Key";
+            var parameterValue = $"{parameter}[{index}].Value";
+            if (!uri.TryGetQueryParam(parameterKey, out string valueStringKey))
+                return new Dictionary<TKey, TValue>();
+            if (!uri.TryGetQueryParam(parameterValue, out string valueStringValue))
+                return new Dictionary<TKey, TValue>();
+
+            var next = ParseDictionary(uri, parameter, index + 1,
+                parseKey, parseValue);
+            next.Add(
+                parseKey(valueStringKey),
+                parseValue(valueStringValue));
+            return next;
+        }
+
+        public static TResult ParseQueryParameter<QueryType, TValue, TResult>(this Uri uri,
+            Expression<Func<QueryType, TValue>> parameterExpr,
+            Func<string, TValue> parse,
+            Func<TValue, TResult> onFound,
+            Func<TResult> onNotInQueryString)
+        {
+            return parameterExpr.PropertyName(
+                (parameter) =>
+                {
+                    if (!uri.TryGetQueryParam(parameter, out string valueString))
+                        return onNotInQueryString();
+
+                    var value = parse(valueString);
+                    return onFound(value);
+                },
+                () => { throw new ArgumentException("Not a property expression", "parameterExpr"); });
+        }
+
+        public static int GetNextParameterIndex(this Uri uri, string parameter)
+        {
+            var linkUriBuilder = new UriBuilder(uri);
+            var linkQuery = HttpUtility.ParseQueryString(linkUriBuilder.Query);
+            var parameters = linkQuery.AllKeys.Where(key => key.ToLower().Contains(parameter + "[")).ToList();
+            var index = 0;
+            if (parameters.Any())
+                index = parameters.Select(param => Convert.ToInt32(param.Substring(parameter.Length + 1, 1))).Max() + 1;
+            return index;
+        }
+
+        public static Uri ReplaceQueryParameterValue(this Uri uri, string parameterName, string newValue)
+        {
+            var uriBuilder = new UriBuilder(uri);
+            var query = HttpUtility.ParseQueryString(uriBuilder.Query);
+            query.Set(parameterName, newValue);
+            uriBuilder.Query = query.ToString();
+            return uriBuilder.Uri;
         }
     }
 }

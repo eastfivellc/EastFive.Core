@@ -37,7 +37,8 @@ namespace EastFive
             where TAttribute : System.Attribute
         {
             var attributesUncast = obj.GetCustomAttributes(typeof(TAttribute), inherit);
-            var attributes = attributesUncast.Select(attrib => attrib as TAttribute).ToArray();
+            //var attributes = attributesUncast.Select(attrib => attrib as TAttribute).ToArray();
+            var attributes = attributesUncast.Cast<TAttribute>().ToArray();
             if (!attributes.Any())
                 return onAttributeNotOnObject();
             return onHasAttribute(attributes.First());

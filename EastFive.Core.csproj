@@ -68,6 +68,7 @@
     <Compile Include="Extensions\RegexExtensions.cs" />
     <Compile Include="Extensions\TResultExtensions.cs" />
     <Compile Include="FuncAsync.cs" />
+    <Compile Include="Functional\DiscriminatedFunctions.cs" />
     <Compile Include="Linq\AsyncExtensions.cs" />
     <Compile Include="Collections\DictionaryExtensions.cs" />
     <Compile Include="Linq\Culling.cs" />

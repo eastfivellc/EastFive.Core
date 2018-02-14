@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BlackBarLabs
+namespace EastFive
 {
     public static class UrnExtensions
     {
