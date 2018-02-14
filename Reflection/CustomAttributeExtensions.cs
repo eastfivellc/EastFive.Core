@@ -98,5 +98,12 @@ namespace EastFive
             var attributes = method.GetCustomAttributes<T>(inherit);
             return attributes.Any();
         }
+
+        //public static bool ContainsCustomAttribute<T>(this ParameterInfo parameter, bool inherit = false)
+        //    where T : System.Attribute
+        //{
+        //    var attributes = type.GetCustomAttributes<T>(inherit);
+        //    return attributes.Any();
+        //}
     }
 }

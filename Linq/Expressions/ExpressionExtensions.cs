@@ -87,5 +87,45 @@ namespace EastFive.Linq.Expressions
             }
             obj = (T)objUnboxed;
         }
+
+        public static KeyValuePair<ParameterInfo, object>[] ResolveArgs(this MethodCallExpression body)
+        {
+            var values = body.Arguments
+                .Zip(
+                    body.Method.GetParameters(),
+                    (arg, paramInfo) => paramInfo.PairWithValue(arg))
+                .Select(argument => argument.Key.PairWithValue(ResolveMemberExpression(argument.Value)))
+                .ToArray();
+            return values;
+        }
+
+        private static object ResolveMemberExpression(Expression expression)
+        {
+            if (expression is MemberExpression)
+                return GetMemberExpressionValue((MemberExpression)expression);
+
+            if (expression is UnaryExpression)
+                // if casting is involved, Expression is not x => x.FieldName but x => Convert(x.Fieldname)
+                return GetMemberExpressionValue((MemberExpression)((UnaryExpression)expression).Operand);
+
+            var value = Expression.Lambda(expression).Compile().DynamicInvoke();
+            return value;
+        }
+
+        private static object GetMemberExpressionValue(MemberExpression exp)
+        {
+            // expression is ConstantExpression or FieldExpression
+            if (exp.Expression is ConstantExpression)
+                return (((ConstantExpression)exp.Expression).Value)
+                        .GetType()
+                        .GetField(exp.Member.Name)
+                        .GetValue(((ConstantExpression)exp.Expression).Value);
+
+            if (exp.Expression is MemberExpression)
+                return GetMemberExpressionValue((MemberExpression)exp.Expression);
+
+            var value = Expression.Lambda(exp.Expression).Compile().DynamicInvoke();
+            return value;
+        }
     }
 }
