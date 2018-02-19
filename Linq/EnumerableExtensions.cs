@@ -52,17 +52,6 @@ namespace EastFive.Linq
             return items.All(b => b);
         }
 
-        public static TAccumulate Aggregate<TSource, TAccumulate>(this IEnumerable<TSource> items,
-            TAccumulate seed,
-            Func<TAccumulate, TSource, int, TAccumulate> func)
-        {
-            return items.Aggregate(seed.PairWithKey(0),
-                (accum, item) =>
-                {
-                    return func(accum.Value, item, accum.Key).PairWithKey(accum.Key + 1);
-                }).Value;
-        }
-
         public static TResult First<TItem, TResult>(this IEnumerable<TItem> items,
             Func<TItem, Func<TResult, TResult>, Func<TResult>, TResult> predicateResult,
             Func<TResult> final)
@@ -670,6 +659,17 @@ namespace EastFive.Linq
                 .Append(new[] { item })
                 .ToArray();
             return combinations;
+        }
+
+        public static TAccumulate Aggregate<TSource, TAccumulate>(this IEnumerable<TSource> items,
+            TAccumulate seed,
+            Func<TAccumulate, TSource, int, TAccumulate> func)
+        {
+            return items.Aggregate(seed.PairWithKey(0),
+                (accum, item) =>
+                {
+                    return func(accum.Value, item, accum.Key).PairWithKey(accum.Key + 1);
+                }).Value;
         }
 
         public static TResult Aggregate<TItem, TAccum, TResult>(this IEnumerable<TItem> items,
