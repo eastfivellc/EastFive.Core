@@ -108,10 +108,29 @@ namespace EastFive.Collections.Generic
             return dictionary.Select(kvp => kvp.Value);
         }
 
+        public static IEnumerable<TResult> SelectValues<TKey, TValue, TResult>(this IEnumerable<KeyValuePair<TKey, TValue>> dictionary,
+            Func<TValue, TResult> selector)
+        {
+            return dictionary.Select(kvp => selector(kvp.Value));
+        }
+
         public static IEnumerable<TKey> SelectKeys<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> dictionary)
         {
             return dictionary.Select(kvp => kvp.Key);
         }
+
+        public static IEnumerable<TResult> SelectKeys<TKey, TValue, TResult>(this IEnumerable<KeyValuePair<TKey, TValue>> dictionary,
+            Func<TKey, TResult> selector)
+        {
+            return dictionary.Select(kvp => selector(kvp.Key));
+        }
+        
+        public static IDictionary<TKey, TValue> IntersectKeys<TKey, TValue>(this IDictionary<TKey, TValue> dictionary,
+                IEnumerable<TKey> keys)
+        {
+            return dictionary.Where(kvp => keys.Contains(kvp.Key)).ToDictionary();
+        }
+        
 
         public static TResult WhereKey<TKey, TValue, TResult>(this IDictionary<TKey, TValue> dictionary,
                 Func<KeyValuePair<TKey, TValue>, bool> predicate,
