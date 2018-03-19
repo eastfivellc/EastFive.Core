@@ -756,5 +756,20 @@ namespace EastFive.Linq
             while (items.MoveNext())
                 yield return items.Current;
         }
+
+        public static bool ContainsEqual<TItem>(this IEnumerable<TItem> items1, IEnumerable<TItem> items2)
+        {
+            var items1Arr = items1.ToArray();
+            var items2Arr = items2.ToArray();
+            if (items1Arr.Count() != items2Arr.Count())
+                return false;
+            return items1Arr.All(item => items2Arr.Contains(item));
+        }
+
+        //public static bool SequenceEqual<TItem>(this IEnumerable<TItem> items1, IEnumerable<TItem> items2)
+        //    where TItem : class
+        //{
+        //    return items1.Zip(items2, (i1, i2) => i1 == i2).All(b => b);
+        //}
     }
 }
