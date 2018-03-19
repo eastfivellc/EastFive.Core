@@ -146,5 +146,30 @@ namespace EastFive.Collections.Generic
                 .Select(key => key.PairWithValue(nameValueCollection[key]))
                 .ToDictionary();
         }
+
+        public static TValueAs IfKeyOrValueAs<TKey, TValueAs>(this IDictionary<TKey, object> dictionary, TKey key, TValueAs defaultValue)
+            where TValueAs : class
+        {
+            if (!dictionary.ContainsKey(key))
+                return defaultValue;
+            var value = dictionary[key];
+            if (!(value is TValueAs))
+                return defaultValue;
+            return value as TValueAs;
+        }
+
+        public static TResult IfKeyOrValueAs<TKey, TValueAs, TResult>(this IDictionary<TKey, object> dictionary, TKey key, 
+            Func<TValueAs, TResult> ifKeyAndValueAs,
+            TResult ifNotKeyOrValueAs)
+            where TValueAs : class
+        {
+            if (!dictionary.ContainsKey(key))
+                return ifNotKeyOrValueAs;
+            var value = dictionary[key];
+            if (!(value is TValueAs))
+                return ifNotKeyOrValueAs;
+            var valueAs = value as TValueAs;
+            return ifKeyAndValueAs(valueAs);
+        }
     }
 }
