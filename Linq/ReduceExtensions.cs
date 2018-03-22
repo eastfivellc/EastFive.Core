@@ -128,6 +128,25 @@ namespace EastFive.Linq
                 (v1next, v2next, r) => items.Reduce(r, v1next, v2next, callback));
         }
 
+        public static TResult Reduce<TItem, TResult>(this IEnumerable<TItem> items,
+           Func<TItem, Func<TResult>, TResult> callback, 
+           Func<TResult> onEmpty)
+        {
+            var enumerator = items.GetEnumerator();
+            return enumerator.Reduce(callback, onEmpty);
+        }
+
+        private static TResult Reduce<TItem, TResult>(this IEnumerator<TItem> items,
+            Func<TItem, Func<TResult>, TResult> callback,
+            Func<TResult> onEmpty)
+        {
+            if (!items.MoveNext())
+                return onEmpty();
+
+            return callback(items.Current,
+                () => items.Reduce(callback, onEmpty));
+        }
+
         public static IEnumerable<TResult> ReduceItems<T1, TItem, TResult>(this IEnumerable<TItem> items,
             T1 v1,
             Func<
