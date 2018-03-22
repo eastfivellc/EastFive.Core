@@ -137,24 +137,55 @@ namespace EastFive.Linq
                 IEnumerable<TResult>> callback)
         {
             var enumerator = items.GetEnumerator();
-            return enumerator.ReduceItems(v1, callback);
+            return enumerator.ReduceItems(v1, callback,
+                (v1_, items_) => items_);
         }
 
-        private static IEnumerable<TResult> ReduceItems<T1, TItem, TResult>(this IEnumerator<TItem> items,
+        public static TResult ReduceItems<T1, TItem, TSelect, TResult>(this IEnumerable<TItem> items,
             T1 v1,
             Func<
                 T1, TItem,
-                Func<TResult, T1, IEnumerable<TResult>>,  // next
-                Func<T1, IEnumerable<TResult>>, // skip
-                IEnumerable<TResult>> callback)
+                Func<TSelect, T1, TResult>,  // next
+                Func<T1, TResult>, // skip
+                TResult> callback,
+            Func<T1, IEnumerable<TSelect>, TResult> complete)
+        {
+            var enumerator = items.GetEnumerator();
+            return enumerator.ReduceItems(v1, callback, complete);
+        }
+
+        private static TResult ReduceItems<T1, TItem, TSelect, TResult>(this IEnumerator<TItem> items,
+            T1 v1,
+            Func<
+                T1, TItem,
+                Func<TSelect, T1, TResult>,  // next
+                Func<T1, TResult>, // skip
+                TResult> callback,
+            Func<T1, IEnumerable<TSelect>, TResult> complete)
         {
             if (!items.MoveNext())
-                return new TResult[] { };
+                return complete(v1, new TSelect[] { });
 
             return callback(v1, items.Current,
-                (r, v1next) => items.ReduceItems(v1next, callback).Append(r),
-                (v1next) => items.ReduceItems(v1next, callback));
+                (r, v1next) => items.ReduceItems(v1next, callback, (v1_, items_) => complete(v1_, items_.Append(r))),
+                (v1next) => items.ReduceItems(v1next, callback, complete));
         }
+
+        //private static IEnumerable<TResult> ReduceItems<T1, TItem, TResult>(this IEnumerator<TItem> items,
+        //    T1 v1,
+        //    Func<
+        //        T1, TItem,
+        //        Func<TResult, T1, IEnumerable<TResult>>,  // next
+        //        Func<T1, IEnumerable<TResult>>, // skip
+        //        IEnumerable<TResult>> callback)
+        //{
+        //    if (!items.MoveNext())
+        //        return new TResult[] { };
+
+        //    return callback(v1, items.Current,
+        //        (r, v1next) => items.ReduceItems(v1next, callback).Append(r),
+        //        (v1next) => items.ReduceItems(v1next, callback));
+        //}
 
         public static IEnumerable<TResult> ReduceItems<T1, T2, TItem, TResult>(this IEnumerable<TItem> items,
             T1 v1, T2 v2,

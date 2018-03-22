@@ -10,14 +10,15 @@ namespace EastFive.Collections.Generic
 {
     public static class DictionaryExtensions
     {
-        public static void AddOrReplace<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, TValue value)
+        public static IDictionary<TKey, TValue> AddOrReplace<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, TValue value)
         {
             if (dictionary.ContainsKey(key))
             {
                 dictionary[key] = value;
-                return;
+                return dictionary;
             }
             dictionary.Add(key, value);
+            return dictionary;
         }
 
         public static IDictionary<TValue, TKey> SwapKeyValue<TKey, TValue>(this IDictionary<TKey, TValue> dictionary)
