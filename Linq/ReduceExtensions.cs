@@ -55,7 +55,7 @@ namespace EastFive.Linq
                 Func<TSelect1, TSelect2, TResult>,
                 Func<TResult>,
                 TResult> select,
-            Func<IEnumerable<KeyValuePair<TSelect1, TSelect2>>, TResult> reduce)
+            Func<KeyValuePair<TSelect1, TSelect2>[], TResult> reduce)
         {
             return items.SelectReduce<TItem, KeyValuePair<TSelect1, TSelect2>, TResult>(
                 (item, next, skip) => select(
@@ -71,7 +71,7 @@ namespace EastFive.Linq
                 Func<TSelect1, TSelect2, Task<TResult>>,
                 Func<Task<TResult>>,
                 Task<TResult>> select,
-            Func<IEnumerable<KeyValuePair<TSelect1, TSelect2>>, TResult> reduce)
+            Func<KeyValuePair<TSelect1, TSelect2>[], TResult> reduce)
         {
             return items.SelectReduce<TItem, KeyValuePair<TSelect1, TSelect2>, Task<TResult>>(
                 (item, next, skip) => select(
@@ -91,9 +91,9 @@ namespace EastFive.Linq
         }
 
         private static TResult SelectReduce<TItem, TSelect, TResult>(this IEnumerator<TItem> items,
-            IEnumerable<TSelect> selections,
+            TSelect[] selections,
             Func<TItem, Func<TSelect, TResult>, Func<TResult>, TResult> select,
-            Func<IEnumerable<TSelect>, TResult> reduce)
+            Func<TSelect[], TResult> reduce)
         {
             if (!items.MoveNext())
                 return reduce(selections.ToArray());
@@ -101,7 +101,7 @@ namespace EastFive.Linq
             return select(items.Current,
                 (r) =>
                 {
-                    return items.SelectReduce(selections.Append(r), select, reduce);
+                    return items.SelectReduce(selections.Append(r).ToArray(), select, reduce);
                 },
                 () =>
                 {
