@@ -110,6 +110,34 @@ namespace EastFive.Linq
                 });
         }
 
+        public static TResult SelectPartition<TItem, TSelect1, TSelect2, TResult>(this IEnumerable<TItem> items,
+            Func<TItem, Func<TSelect1, TResult>, Func<TSelect2, TResult>, TResult> select,
+            Func<TSelect1[], TSelect2[], TResult> reduce)
+        {
+            var enumerator = items.GetEnumerator();
+            return enumerator.SelectPartition(new TSelect1[] { }, new TSelect2[] { }, select,
+                (rs1, rs2) => reduce(rs1, rs2));
+        }
+
+        private static TResult SelectPartition<TItem, TSelect1, TSelect2, TResult>(this IEnumerator<TItem> items,
+            TSelect1[] selections1, TSelect2[] selections2,
+            Func<TItem, Func<TSelect1, TResult>, Func<TSelect2, TResult>, TResult> select,
+            Func<TSelect1[], TSelect2[], TResult> reduce)
+        {
+            if (!items.MoveNext())
+                return reduce(selections1, selections2);
+
+            return select(items.Current,
+                (r) =>
+                {
+                    return items.SelectPartition(selections1.Append(r).ToArray(), selections2, select, reduce);
+                },
+                (r) =>
+                {
+                    return items.SelectPartition(selections1, selections2.Append(r).ToArray(), select, reduce);
+                });
+        }
+
         public static TResult Reduce<T1, T2, TItem, TResult>(this IEnumerable<TItem> items,
             TResult initial, T1 v1, T2 v2,
             Func<TResult, T1, T2, TItem, Func<T1, T2, TResult, TResult>, TResult> callback)
@@ -173,7 +201,7 @@ namespace EastFive.Linq
                 Func<TSelect, TResult>,  // next
                 Func<TResult>, // skip
                 TResult> callback,
-            Func<IEnumerable<TSelect>, TResult> complete)
+            Func<TSelect[], TResult> complete)
         {
             var block = new ManualResetEvent(false);
             TResult result = default(TResult);
@@ -208,7 +236,7 @@ namespace EastFive.Linq
                         step.trigger.WaitOne();
                         return step.selection;
                     });
-            result = complete(steps);
+            result = complete(steps.ToArray());
             block.Set();
             return result;
         }
@@ -224,7 +252,7 @@ namespace EastFive.Linq
         {
             TResult result = default(TResult);
             var block = new ManualResetEvent(false);
-
+            
             return items
                 .Aggregate(
                     v1.PairWithValue(new TSelect[] { }),
@@ -338,6 +366,24 @@ namespace EastFive.Linq
             return callback(v1, v2, items.Current,
                 (v1next, v2next, r) => items.ReduceItems(v1next, v2next, callback).Append(r),
                 (v1next, v2next) => items.ReduceItems(v1next, v2next, callback));
+        }
+
+        public static TResult First<TITem, TResult>(this IEnumerable<TITem> items,
+            Func<TITem, Func<TResult>, TResult> next,
+            Func<TResult> onNotFound)
+        {
+            var enumerator = items.GetEnumerator();
+            return enumerator.First(next, onNotFound);
+        }
+
+        public static TResult First<TITem, TResult>(this IEnumerator<TITem> items,
+            Func<TITem, Func<TResult>, TResult> next,
+            Func<TResult> onNotFound)
+        {
+            if (!items.MoveNext())
+                return onNotFound();
+
+            return next(items.Current, () => items.First(next, onNotFound));
         }
     }
 }

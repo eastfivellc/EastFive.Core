@@ -94,6 +94,7 @@
     <Compile Include="Structs\Optional.cs" />
     <Compile Include="Structs\RecursiveDictionary.cs" />
     <Compile Include="Structs\RecursiveTuples.cs" />
+    <Compile Include="Text\StringDistance.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

@@ -71,6 +71,12 @@ namespace EastFive.Extensions
                 .SelectWhereHasValue();
         }
 
+        public static IEnumerable<KeyValuePair<TKey, TValue>> PairWithValues<TKey, TValue>(this IEnumerable<TKey> keys, Func<TKey, TValue> calcValue)
+        {
+            foreach (var key in keys.NullToEmpty())
+                yield return key.PairWithValue(calcValue(key));
+        }
+
         public static RecursiveTuple<TKey> RecurseWithValue<TKey>(this TKey key, RecursiveTuple<TKey> value)
         {
             return new RecursiveTuple<TKey>()
@@ -109,6 +115,13 @@ namespace EastFive.Extensions
            where T : class
         {
             return EqualityComparer<T>.Default.Equals(value, default(T));
+        }
+
+        public static bool IsDefaultNullOrEmpty<T>(this T[] value)
+        {
+            if (value.IsDefaultOrNull())
+                return true;
+            return (!value.Any());
         }
 
         public static TResult HasValue<T, TResult>(this T value, Func<T, TResult> hasValue, Func<TResult> nullOrEmptyValue)
