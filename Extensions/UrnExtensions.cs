@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BlackBarLabs.Extensions;
+using System;
 
 namespace EastFive
 {
@@ -54,35 +55,47 @@ namespace EastFive
 
         public static bool TryParseUrnNamespaceString(this Uri uri, out string[] nss, out string nid)
         {
-            try
-            {
-                nss = uri.ParseUrnNamespaceString(out nid);
-            }
-            catch (Exception)
-            {
-                nss = null;
-                nid = null;
-                return false;
-            }
-            return true;
+            bool success = true;
+            var kvp = ParseUrnNamespaceString(uri,
+                (nid_, nss_) => nid_.PairWithValue(nss_),
+                (why) =>
+                {
+                    success = false;
+                    return ((string)null).PairWithValue<string, string[]>(null);
+                });
+            nid = kvp.Key;
+            nss = kvp.Value;
+            return success;
         }
 
         public static string[] ParseUrnNamespaceString(this Uri uri, out string nid)
         {
+            var kvp = ParseUrnNamespaceString(uri,
+                (nid_, nss_) => nid_.PairWithValue(nss_),
+                (why) =>
+                {
+                    throw new ArgumentException(why);
+                });
+            nid = kvp.Key;
+            return kvp.Value;
+        }
+
+        public static TResult ParseUrnNamespaceString<TResult>(this Uri uri,
+            Func<string, string[], TResult> onParsed,
+            Func<string, TResult> onInvalid)
+        {
             if (!uri.IsUrn())
-            {
-                throw new ArgumentException(String.Format("Uri has scheme:[{0}]. A URN is required. URNs have schema urn:", uri.Scheme));
-            }
+                return onInvalid("Either the uri was a relative URI or has the incorrect scheme. URNs have schema urn:");
+
             var uriSegment = uri.Segments[0];
             var nidAndNss = uriSegment.Split(new char[] { ':' });
             if (nidAndNss.Length <= 1)
-            {
-                throw new ArgumentException(String.Format("Invalid URN:[{0}].", uriSegment));
-            }
-            nid = nidAndNss[0];
+                return onInvalid(String.Format("Invalid URN:[{0}].", uriSegment));
+
+            string nid = nidAndNss[0];
             var nss = new string[nidAndNss.Length - 1];
             Array.ConstrainedCopy(nidAndNss, 1, nss, 0, nss.Length);
-            return nss;
+            return onParsed(nid, nss);
         }
 
         public static string[] GetParams(this Uri uri, string ns)
