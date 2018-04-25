@@ -114,6 +114,26 @@ namespace EastFive.Serialization
 
         #endregion
 
+        #region Double
+
+        public static byte[] ToByteArrayOfDoubles(this IEnumerable<double> values)
+        {
+            return values.SelectMany(v => BitConverter.GetBytes(v)).ToArray();
+        }
+
+        public static double[] ToDoublesFromByteArray(this byte[] byteArrayOfDoubles)
+        {
+            if (byteArrayOfDoubles == null)
+                return new double[] { };
+
+            var doubleStorageLength = sizeof(double);
+            return Enumerable.Range(0, byteArrayOfDoubles.Length / doubleStorageLength)
+                .Select((index) => BitConverter.ToDouble(byteArrayOfDoubles, index * doubleStorageLength))
+                .ToArray();
+        }      
+
+        #endregion
+
         #endregion
 
         #region Guids
