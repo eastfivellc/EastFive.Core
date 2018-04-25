@@ -13,7 +13,7 @@ namespace EastFive.Net.Http
     {
         private static AutoResetEvent rateLock = new AutoResetEvent(true);
 
-        public ThrottleMessageHandler(HttpClientHandler innerHandler = default(HttpClientHandler))
+        public ThrottleMessageHandler(HttpMessageHandler innerHandler = default(HttpMessageHandler))
             : base()
         {
             if(innerHandler.IsDefaultOrNull())
@@ -45,7 +45,7 @@ namespace EastFive.Net.Http
                         var response = await base.SendAsync(request, cancellationToken);
                         UpdateDelay(response);
 
-                        if (((int)response.StatusCode) != 429)
+                        if (!IsOverage(response))
                         {
                             return response;
                         }
@@ -62,6 +62,11 @@ namespace EastFive.Net.Http
                     }
                     return await SendAsync(request, cancellationToken);
                 }).ConfigureAwait(false);
+        }
+
+        protected virtual bool IsOverage(HttpResponseMessage response)
+        {
+            return (((int)response.StatusCode) == 429);
         }
     }
 }
