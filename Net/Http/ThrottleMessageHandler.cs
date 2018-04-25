@@ -23,32 +23,50 @@ namespace EastFive.Net.Http
 
         protected abstract TimeSpan ComputeDelay(HttpRequestMessage request);
 
-        protected abstract void UpdateDelay(HttpResponseMessage response);
+        protected abstract void UpdateDelay(HttpResponseMessage response, bool timeout);
+
+        protected virtual bool ShouldRateLock(HttpRequestMessage request)
+        {
+            return true;
+        }
 
         protected async override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            var ct = new CancellationToken();
             return await await Task.Run<Task<HttpResponseMessage>>(
                 async () =>
                 {
                     var threadName = request.RequestUri.AbsoluteUri;
-                    try
+                    var didRateLock = ShouldRateLock(request);
+                    if (didRateLock)
                     {
                         System.Diagnostics.Debug.WriteLine($"Thread [{threadName}] requesting mutex");
                         rateLock.WaitOne();
-                        System.Diagnostics.Debug.WriteLine($"Thread [{threadName}] inside mutex");
+                    }
+                    var delay = ComputeDelay(request);
 
-                        var delay = ComputeDelay(request);
+                    if (delay.Seconds > 0)
+                        Thread.Sleep(delay);
 
-                        if (delay.Seconds > 0)
-                            Thread.Sleep(delay);
-
-                        var response = await base.SendAsync(request, cancellationToken);
-                        UpdateDelay(response);
-
+                    System.Diagnostics.Debug.WriteLine((didRateLock ? "SYNC:" : "PARALLEL") + $"Request [{threadName}]");
+                    HttpResponseMessage response = default(HttpResponseMessage);
+                    bool didTimeout = false;
+                    try
+                    {
+                        response = await base.SendAsync(request, ct);
+                        System.Diagnostics.Debug.WriteLine((didRateLock ? "SYNC:" : "PARALLEL") + $"Response [{threadName}]");
                         if (!IsOverage(response))
                         {
                             return response;
                         }
+                    }
+                    catch (TaskCanceledException ex)
+                    {
+                        if (ex.CancellationToken.IsCancellationRequested)
+                            throw ex;
+
+                        // This is normally just a timeout
+                        didTimeout = true;
                     }
                     catch (Exception ex)
                     {
@@ -56,11 +74,15 @@ namespace EastFive.Net.Http
                     }
                     finally
                     {
-                        System.Diagnostics.Debug.WriteLine($"Thread [{threadName}] leaving mutex");
-                        rateLock.Set();
-                        System.Diagnostics.Debug.WriteLine($"Thread [{threadName}] exited mutex");
+                        UpdateDelay(response, didTimeout);
+                        if (didRateLock)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Thread [{threadName}] leaving mutex");
+                            rateLock.Set();
+                            System.Diagnostics.Debug.WriteLine($"Thread [{threadName}] exited mutex");
+                        }
                     }
-                    return await SendAsync(request, cancellationToken);
+                    return await SendAsync(request, ct);
                 }).ConfigureAwait(false);
         }
 
