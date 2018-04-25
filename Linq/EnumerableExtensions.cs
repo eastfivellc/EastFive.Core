@@ -51,25 +51,7 @@ namespace EastFive.Linq
         {
             return items.All(b => b);
         }
-
-        public static TResult First<TItem, TResult>(this IEnumerable<TItem> items,
-            Func<TItem, Func<TResult, TResult>, Func<TResult>, TResult> predicateResult,
-            Func<TResult> final)
-        {
-            return items.GetEnumerator().First(predicateResult, final);
-        }
-
-        private static TResult First<TItem, TResult>(this IEnumerator<TItem> items,
-            Func<TItem, Func<TResult, TResult>, Func<TResult>, TResult> predicateResult,
-            Func<TResult> final)
-        {
-            if (!items.MoveNext())
-                return final();
-            var item = items.Current;
-            return predicateResult(item,
-                r => r,
-                () => items.First(predicateResult, final));
-        }
+        
         public static IEnumerable<T> Append<T>(this IEnumerable<T> items, T item)
         {
             return items.Concat(new T[] { item });
@@ -637,6 +619,13 @@ namespace EastFive.Linq
             return items
                 .Where(item => (!EqualityComparer<T>.Default.Equals(item, default(T))))
                 .Select(item => item);
+        }
+
+        public static IEnumerable<KeyValuePair<T1, T2>> Combine<T1, T2>(this IEnumerable<T1> items1, IEnumerable<T2> combineWith)
+        {
+            foreach(var item1 in items1)
+                foreach(var item2 in combineWith)
+                    yield return item1.PairWithValue(item2);
         }
 
         public static T[][] Combinations<T>(this IEnumerable<T> items)

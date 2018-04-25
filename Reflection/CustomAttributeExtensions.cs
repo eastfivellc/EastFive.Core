@@ -58,6 +58,13 @@ namespace EastFive
             return attributes.Any();
         }
 
+        public static bool ContainsCustomAttribute(this System.Reflection.MemberInfo type, 
+            Type attributeType, bool inherit = false)
+        {
+            var attributes = type.GetCustomAttributes(attributeType, inherit);
+            return attributes.Any();
+        }
+
         public static TResult GetCustomAttribute<TAttribute, TResult>(this System.Reflection.MemberInfo obj,
             Func<TAttribute, TResult> onHasAttribute,
             Func<TResult> onAttributeNotOnObject,

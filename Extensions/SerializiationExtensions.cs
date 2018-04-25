@@ -187,7 +187,7 @@ namespace EastFive.Serialization
         
         public static string[] ToStringsFromUTF8ByteArray(this byte[] byteArrayOfStrings)
         {
-            if (byteArrayOfStrings == null)
+            if (byteArrayOfStrings.IsDefaultNullOrEmpty())
                 return new string[] { };
 
             return byteArrayOfStrings

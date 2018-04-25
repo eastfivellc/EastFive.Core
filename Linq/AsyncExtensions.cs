@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using EastFive;
 using BlackBarLabs;
 using BlackBarLabs.Extensions;
 using EastFive.Collections.Generic;
@@ -14,12 +15,11 @@ namespace EastFive.Linq.Async
     {
         public static async Task<IEnumerable<T>> WhereAsync<T>(this IEnumerable<T> items, Func<T, Task<bool>> predicate)
         {
-            return await items
+            return await BlackBarLabs.TaskExtensions.WhenAllAsync(items
                 .Select(async item => (await predicate(item)) ?
                     item.PairWithValue(true)
                     :
-                    default(KeyValuePair<T, bool>?))
-                .WhenAllAsync()
+                    default(KeyValuePair<T, bool>?)))
                 .SelectWhereHasValueAsync()
                 .SelectAsync(kvp => kvp.Key);
         }
@@ -75,7 +75,7 @@ namespace EastFive.Linq.Async
         public static async Task<IEnumerable<T>> SelectManyAsync<T>(this Task<Task<T[]>[]> itemsTasksTask)
         {
             var itemsTasks = await itemsTasksTask;
-            var items = await itemsTasks.WhenAllAsync();
+            var items = await BlackBarLabs.TaskExtensions.WhenAllAsync(itemsTasks);
             return items.SelectMany();
         }
 
