@@ -60,6 +60,10 @@ namespace EastFive.Net.Http
                             return response;
                         }
                     }
+                    #region Capture timeout
+                    // Timeouts can be initiated either internally or externally. 
+                    // Internal timeouts are caused by the Task being cancelled. It is worth noting that the cancellation token
+                    // cannot be reused because, well, it has flagged the process as cancelled.
                     catch (TaskCanceledException ex)
                     {
                         if (ex.CancellationToken.IsCancellationRequested)
@@ -68,6 +72,30 @@ namespace EastFive.Net.Http
                         // This is normally just a timeout
                         didTimeout = true;
                     }
+                    // External timouts are connection failures.
+                    catch(HttpRequestException ex)
+                    {
+                        if (!(ex.InnerException is System.Net.WebException))
+                            throw ex;
+
+                        var webEx = ex.InnerException as System.Net.WebException;
+                        if (webEx.InnerException is System.Net.Sockets.SocketException)
+                        {
+                            var socketEx = webEx.InnerException as System.Net.Sockets.SocketException;
+                            didTimeout = (socketEx.SocketErrorCode == System.Net.Sockets.SocketError.TimedOut);
+                        }
+                        else
+                        {
+                            if (webEx.Status == System.Net.WebExceptionStatus.Timeout ||
+                                webEx.Status == System.Net.WebExceptionStatus.ConnectFailure ||
+                                webEx.Status == System.Net.WebExceptionStatus.ConnectionClosed)
+                                didTimeout = true;
+                        }
+
+                        if (!didTimeout)
+                            throw ex;
+                    }
+                    #endregion
                     catch (Exception ex)
                     {
                         throw ex;

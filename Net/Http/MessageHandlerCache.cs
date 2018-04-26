@@ -16,6 +16,9 @@ namespace EastFive.Net.Http
 {
     public abstract class MessageHandlerCache : DelegatingHandler
     {
+        internal const string PropertyNoCache = "MessageHandlerCache.NoCache";
+        internal const string PropertyValueNoCache = "true";
+
         public MessageHandlerCache(HttpMessageHandler innerHandler = default(HttpMessageHandler))
             : base()
         {
@@ -37,6 +40,19 @@ namespace EastFive.Net.Http
             response.Content = new StreamContent(data);
             return response;
         }
+
+        protected bool IsNoCache(HttpRequestMessage message)
+        {
+            return message.Properties.ContainsKey(PropertyNoCache) &&
+                message.Properties[PropertyNoCache] == PropertyValueNoCache;
+        }
     }
     
+    public static class MessageHandlerCacheExtensions
+    {
+        public static void SetNoCaching(this HttpRequestMessage message)
+        {
+            message.Properties.Add(MessageHandlerCache.PropertyNoCache, MessageHandlerCache.PropertyValueNoCache);
+        }
+    }
 }

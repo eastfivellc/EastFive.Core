@@ -28,7 +28,7 @@ namespace EastFive.Net.Http
         {
             var requestUri = request.RequestUri.AbsoluteUri;
             
-            if (!cache.ContainsKey(requestUri))
+            if (IsNoCache(request) || (!cache.ContainsKey(requestUri)))
             {
                 var response = await base.SendAsync(request, cancellationToken);
                 var data = await response.Content.ReadAsByteArrayAsync();
