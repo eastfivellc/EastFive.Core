@@ -87,7 +87,10 @@
     <Compile Include="Extensions\TypeExtensions.cs" />
     <Compile Include="Extensions\UriExtensions.cs" />
     <Compile Include="Extensions\UrnExtensions.cs" />
-    <Compile Include="Linq\ReduceExtensions.cs" />
+    <Compile Include="Linq\Reduce\ReduceExtensionsCore.cs" />
+    <Compile Include="Linq\SelectPartitionExtensions.cs" />
+    <Compile Include="Linq\Reduce\ZipReduceExtensions.cs" />
+    <Compile Include="Linq\Reduce\SelectReduceExtensions.cs" />
     <Compile Include="Net\Http\RefreshTokenMessageHandler.cs" />
     <Compile Include="Net\Http\ThrottleMessageHandler.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -9,24 +9,14 @@ using System.Threading.Tasks;
 
 namespace EastFive.Linq
 {
-    public static class ReduceExtensions
+    public static class SelectReduceExtensions
     {
-        public static async Task<TSelect[]> SelectReduceAsync<TItem, TSelect>(this IEnumerable<TItem> items,
-            Func<TItem, Func<TSelect, Task<TSelect[]>>, Func<Task<TSelect[]>>, Task<Task<TSelect[]>>> select)
+        public static TSelect[] SelectReduce<TItem, TSelect, TResult>(this IEnumerable<TItem> items,
+            Func<TItem, Func<TSelect, TSelect[]>, TSelect[]> select)
         {
-            return await items.SelectReduce<TItem, TSelect, Task<TSelect[]>>(
-                    async (item, next, skip) => await await select(item,
-                        next,
-                        skip),
-                    (selected) => selected.ToTask());
-        }
-
-        public static TSelect[] SelectReduce<TItem, TSelect>(this IEnumerable<TItem> items,
-            Func<TItem, Func<TSelect, TSelect[]>, Func<TSelect[]>, TSelect[]> select)
-        {
-            return items.SelectReduce<TItem, TSelect, TSelect[]>(
-                (item, next, skip) => select(item, next, skip),
-                (values) => values.ToArray());
+            return items.SelectReduce(
+                (item, next, skip) => select(item, next),
+                (TSelect[] selections) => selections);
         }
 
         public static TResult SelectReduce<TItem, TSelect, TResult>(this IEnumerable<TItem> items,
@@ -38,48 +28,12 @@ namespace EastFive.Linq
                 reduce);
         }
 
-        public static KeyValuePair<TSelect1, TSelect2>[] ZipReduce<TItem, TSelect1, TSelect2>(this IEnumerable<TItem> items,
-            Func<
-                TItem,
-                Func<TSelect1, TSelect2, KeyValuePair<TSelect1, TSelect2>[]>,
-                Func<KeyValuePair<TSelect1, TSelect2>[]>,
-                KeyValuePair<TSelect1, TSelect2>[]> select)
+        public static TSelect[] SelectReduce<TItem, TSelect>(this IEnumerable<TItem> items,
+            Func<TItem, Func<TSelect, TSelect[]>, Func<TSelect[]>, TSelect[]> select)
         {
-            return items.ZipReduce<TItem, TSelect1, TSelect2, KeyValuePair<TSelect1, TSelect2>[]>(
-                select,
-                kvps => kvps.ToArray());
-        }
-
-        public static TResult ZipReduce<TItem, TSelect1, TSelect2, TResult>(this IEnumerable<TItem> items,
-            Func<
-                TItem,
-                Func<TSelect1, TSelect2, TResult>,
-                Func<TResult>,
-                TResult> select,
-            Func<KeyValuePair<TSelect1, TSelect2>[], TResult> reduce)
-        {
-            return items.SelectReduce<TItem, KeyValuePair<TSelect1, TSelect2>, TResult>(
-                (item, next, skip) => select(
-                    item,
-                    (k, p) => next(k.PairWithValue(p)),
-                    skip),
-                reduce);
-        }
-        
-        public static Task<TResult> ZipReduceAsync<TItem, TSelect1, TSelect2, TResult>(this IEnumerable<TItem> items,
-            Func<
-                TItem,
-                Func<TSelect1, TSelect2, Task<TResult>>,
-                Func<Task<TResult>>,
-                Task<TResult>> select,
-            Func<KeyValuePair<TSelect1, TSelect2>[], TResult> reduce)
-        {
-            return items.SelectReduce<TItem, KeyValuePair<TSelect1, TSelect2>, Task<TResult>>(
-                (item, next, skip) => select(
-                    item,
-                    (k, p) => next(k.PairWithValue(p)),
-                    skip),
-                (kvps) => reduce(kvps).ToTask());
+            var enumerator = items.GetEnumerator();
+            return enumerator.SelectReduce(new TSelect[] { }, select,
+                (TSelect[] selections) => selections);
         }
 
         public static TResult SelectReduce<TItem, TSelect, TResult>(this IEnumerable<TItem> items,
@@ -109,156 +63,6 @@ namespace EastFive.Linq
                     return items.SelectReduce(selections, select, reduce);
                 });
         }
-
-        private class Reduction<TSelect1, TSelect2, TResult>
-        {
-            internal ManualResetEvent selected;
-            internal ManualResetEvent reduced;
-            internal ManualResetEvent trigger;
-            internal TSelect1[] p1s;
-            internal TSelect2[] p2s;
-            internal TResult result;
-        }
-
-        public static TResult SelectPartition<TItem, TSelect1, TSelect2, TResult>(this IEnumerable<TItem> items,
-            Func<TItem, Func<TSelect1, TResult>, Func<TSelect2, TResult>, TResult> select,
-            Func<TSelect1[], TSelect2[], TResult> reduce,
-            int depthLimit = 100)
-        {
-            return items
-                .Split(index => depthLimit)
-                .Aggregate(
-                    new Reduction<TSelect1, TSelect2, TResult>[] { },
-                    (Reduction<TSelect1, TSelect2, TResult>[] reductions, IEnumerable<TItem> split) =>
-                    {
-                        var reduction = new Reduction<TSelect1, TSelect2, TResult>
-                        {
-                            selected = new ManualResetEvent(false),
-                            reduced = new ManualResetEvent(false),
-                            trigger = new ManualResetEvent(false),
-                        };
-                        var thread = new Thread(() =>
-                        {
-                            var enumerator = split.GetEnumerator();
-                            reduction.result = enumerator.SelectPartition(new TSelect1[] { }, new TSelect2[] { }, select,
-                                (p1s, p2s) =>
-                                {
-                                    reduction.p1s = p1s;
-                                    reduction.p2s = p2s;
-                                    reduction.selected.Set();
-                                    reduction.trigger.WaitOne();
-                                    return reduction.result;
-                                });
-                            reduction.reduced.Set();
-                        });
-                        thread.Start();
-                        return reductions.Append(reduction).ToArray();
-                    },
-                    (Reduction<TSelect1, TSelect2, TResult>[] reductions) =>
-                    {
-                        var allComplete = reductions.All(reduction => reduction.selected.WaitOne());
-                        var p1s = reductions.SelectMany(reduction => reduction.p1s.NullToEmpty()).ToArray();
-                        var p2s = reductions.SelectMany(reduction => reduction.p2s.NullToEmpty()).ToArray();
-                        return reductions
-                            .Reverse()
-                            .Aggregate(
-                                reduce(p1s, p2s),
-                                (result, reduction) =>
-                                {
-                                    reduction.result = result;
-                                    reduction.trigger.Set();
-                                    reduction.reduced.WaitOne();
-                                    return reduction.result;
-                                });
-                    });
-        }
-
-        //public static TResult SelectPartition<TItem, TSelect1, TSelect2, TResult>(this IEnumerable<TItem> items,
-        //    Func<TItem, Func<TSelect1, TResult>, Func<TSelect2, TResult>, TResult> select,
-        //    Func<TSelect1[], TSelect2[], TResult> reduce)
-        //{
-        //    var splits = items
-        //        .Skip(10)
-        //        .Split(index => 10)
-        //        .Aggregate(
-        //            new Task<TResult>(
-        //                () =>
-        //                {
-        //                    var enumerator = items.Take(10).GetEnumerator();
-        //                    return enumerator.SelectPartition(new TSelect1[] { }, new TSelect2[] { }, 
-        //                        (item, next, skip) => ((item, next, skip) =>  select(item, next, skip)),
-        //                        (rs1, rs2) => rs1.PairWithValue(rs2));
-        //                }),
-        //            (lastTask, split) =>
-        //            {
-
-        //                lastTask.ContinueWith(
-        //                    (finishedTask) =>
-        //                    {
-
-        //                        finishedTask.R
-        //                    })
-        //            })
-        //    return splits.Aggregate(
-        //        (new TSelect1[] { }).PairWithValue(new TSelect2[] { }),
-        //        (aggr, split) =>
-        //        {
-        //            var enumerator = split.GetEnumerator();
-        //            return enumerator.SelectPartition(new TSelect1[] { }, new TSelect2[] { }, select,
-        //                (rs1, rs2) => aggr.Key.Concat(rs1).ToArray().PairWithValue(aggr.Value.Concat(rs2).ToArray());
-        //        },
-        //        kvps =>
-        //        {
-
-        //        });
-        //}
-
-        private static TResult SelectPartition<TItem, TSelect1, TSelect2, TResult>(this IEnumerator<TItem> items,
-            TSelect1[] selections1, TSelect2[] selections2,
-            Func<TItem, Func<TSelect1, TResult>, Func<TSelect2, TResult>, TResult> select,
-            Func<TSelect1[], TSelect2[], TResult> reduce)
-        {
-            if (!items.MoveNext())
-                return reduce(selections1, selections2);
-
-            return select(items.Current,
-                (r) =>
-                {
-                    return items.SelectPartition(selections1.Append(r).ToArray(), selections2, select, reduce);
-                },
-                (r) =>
-                {
-                    return items.SelectPartition(selections1, selections2.Append(r).ToArray(), select, reduce);
-                });
-        }
-
-        //public static TResult SelectPartition<TItem, TSelect1, TSelect2, TResult>(this IEnumerable<TItem> items,
-        //    Func<TItem, Func<TSelect1, TResult>, Func<TSelect2, TResult>, TResult> select,
-        //    Func<TSelect1[], TSelect2[], TResult> reduce)
-        //{
-        //    var enumerator = items.GetEnumerator();
-        //    return enumerator.SelectPartition(new TSelect1[] { }, new TSelect2[] { }, select,
-        //        (rs1, rs2) => reduce(rs1, rs2));
-        //}
-
-        //private static TResult SelectPartition<TItem, TSelect1, TSelect2, TResult>(this IEnumerator<TItem> items,
-        //    TSelect1[] selections1, TSelect2[] selections2,
-        //    Func<TItem, Func<TSelect1, TResult>, Func<TSelect2, TResult>, TResult> select,
-        //    Func<TSelect1[], TSelect2[], TResult> reduce)
-        //{
-        //    if (!items.MoveNext())
-        //        return reduce(selections1, selections2);
-
-        //    return select(items.Current,
-        //        (r) =>
-        //        {
-        //            return items.SelectPartition(selections1.Append(r).ToArray(), selections2, select, reduce);
-        //        },
-        //        (r) =>
-        //        {
-        //            return items.SelectPartition(selections1, selections2.Append(r).ToArray(), select, reduce);
-        //        });
-        //}
 
         public static TResult Reduce<T1, T2, TItem, TResult>(this IEnumerable<TItem> items,
             TResult initial, T1 v1, T2 v2,
