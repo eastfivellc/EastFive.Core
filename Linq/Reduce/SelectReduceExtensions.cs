@@ -64,6 +64,68 @@ namespace EastFive.Linq
                 });
         }
 
+        public static TResult SelectReduce<TItem, T1, TSelect, TResult>(this IEnumerable<TItem> items,
+                T1 item1,
+            Func<TItem, T1, Func<TSelect, T1, TResult>, Func<T1, TResult>, TResult> select,
+            Func<TSelect[], T1, TResult> reduce)
+        {
+            var enumerator = items.GetEnumerator();
+            return enumerator.SelectReduce(item1, new TSelect[] { }, select,
+                (rs, items1New) =>
+                    reduce(rs.ToArray(), items1New));
+        }
+
+        private static TResult SelectReduce<TItem, T1, TSelect, TResult>(this IEnumerator<TItem> items,
+                T1 item1,
+                TSelect[] selections,
+            Func<TItem, T1, Func<TSelect, T1, TResult>, Func<T1, TResult>, TResult> select,
+            Func<TSelect[], T1, TResult> reduce)
+        {
+            if (!items.MoveNext())
+                return reduce(selections.ToArray(), item1);
+
+            return select(items.Current, item1,
+                (r, item1New) =>
+                {
+                    return items.SelectReduce(item1New, selections.Append(r).ToArray(), select, reduce);
+                },
+                (item1New) =>
+                {
+                    return items.SelectReduce(item1New, selections, select, reduce);
+                });
+        }
+
+        public static TResult SelectReduce<TItem, T1, T2, TSelect, TResult>(this IEnumerable<TItem> items,
+                T1 item1, T2 item2,
+            Func<TItem, T1, T2, Func<TSelect, T1, T2, TResult>, Func<T1, T2, TResult>, TResult> select,
+            Func<TSelect[], T1, T2, TResult> reduce)
+        {
+            var enumerator = items.GetEnumerator();
+            return enumerator.SelectReduce(item1, item2, new TSelect[] { }, select,
+                (rs, items1New, items2New) =>
+                    reduce(rs.ToArray(), items1New, items2New));
+        }
+
+        private static TResult SelectReduce<TItem, T1, T2, TSelect, TResult>(this IEnumerator<TItem> items,
+                T1 item1, T2 item2,
+                TSelect[] selections,
+            Func<TItem, T1, T2, Func<TSelect, T1, T2, TResult>, Func<T1, T2, TResult>, TResult> select,
+            Func<TSelect[], T1, T2, TResult> reduce)
+        {
+            if (!items.MoveNext())
+                return reduce(selections.ToArray(), item1, item2);
+
+            return select(items.Current, item1, item2,
+                (r, item1New, item2New) =>
+                {
+                    return items.SelectReduce(item1New, item2New, selections.Append(r).ToArray(), select, reduce);
+                },
+                (item1New, item2New) =>
+                {
+                    return items.SelectReduce(item1New, item2New, selections, select, reduce);
+                });
+        }
+
         public static TResult Reduce<T1, T2, TItem, TResult>(this IEnumerable<TItem> items,
             TResult initial, T1 v1, T2 v2,
             Func<TResult, T1, T2, TItem, Func<T1, T2, TResult, TResult>, TResult> callback)

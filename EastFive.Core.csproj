@@ -72,6 +72,7 @@
     <Compile Include="Functional\DiscriminatedFunctions.cs" />
     <Compile Include="Linq\AsyncExtensions.cs" />
     <Compile Include="Collections\DictionaryExtensions.cs" />
+    <Compile Include="Linq\RecurseExtensions.cs" />
     <Compile Include="Linq\Culling.cs" />
     <Compile Include="Linq\EnumerableExtensions.cs" />
     <Compile Include="Linq\Expressions\ExpressionExtensions.cs" />

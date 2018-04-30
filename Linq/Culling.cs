@@ -34,5 +34,14 @@ namespace EastFive.Linq
             return items.If(condition, 
                 itemsIfTrue => itemsIfTrue.Where(predicate));
         }
+
+        public static TResult IfAny<TItem, TResult>(this IEnumerable<TItem> items,
+            Func<IEnumerable<TItem>, TResult> onSome,
+            Func<TResult> onNone)
+        {
+            if (items.Any())
+                return onSome(items);
+            return onNone();
+        }
     }
 }
