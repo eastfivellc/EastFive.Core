@@ -143,10 +143,15 @@ namespace EastFive.Collections.Generic
                 return onKeyFound(matching[0]);
             return onKeyNotFound();
         }
-        
+
         public static HashSet<T> AsHashSet<T>(this IEnumerable<T> items)
         {
             return new HashSet<T>(items);
+        }
+
+        public static HashSet<T> AsHashSet<T>(this IEnumerable<T> items, IEqualityComparer<T> equalityComparer)
+        {
+            return new HashSet<T>(items, equalityComparer);
         }
 
         public static Func<T, bool> AsPredicate<T>(this HashSet<T> lookups)
