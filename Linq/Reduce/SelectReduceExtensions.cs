@@ -29,20 +29,24 @@ namespace EastFive.Linq
         }
 
         public static TSelect[] SelectReduce<TItem, TSelect>(this IEnumerable<TItem> items,
-            Func<TItem, Func<TSelect, TSelect[]>, Func<TSelect[]>, TSelect[]> select)
+            Func<TItem, Func<TSelect, TSelect[]>, Func<TSelect[]>, TSelect[]> select,
+            int recursionLimit = int.MaxValue)
         {
             var enumerator = items.GetEnumerator();
             return enumerator.SelectReduce(new TSelect[] { }, select,
-                (TSelect[] selections) => selections);
+                (TSelect[] selections) => selections,
+                0, recursionLimit);
         }
 
         public static TResult SelectReduce<TItem, TSelect, TResult>(this IEnumerable<TItem> items,
             Func<TItem, Func<TSelect, TResult>, Func<TResult>, TResult> select,
-            Func<TSelect[], TResult> reduce)
+            Func<TSelect[], TResult> reduce,
+            int recursionLimit = int.MaxValue)
         {
             var enumerator = items.GetEnumerator();
             return enumerator.SelectReduce(new TSelect[] { }, select,
-                (rs) => reduce(rs.ToArray()));
+                (rs) => reduce(rs.ToArray()),
+                0, recursionLimit);
         }
 
         private static TResult SelectReduce<TItem, TSelect, TResult>(this IEnumerator<TItem> items,
@@ -64,15 +68,51 @@ namespace EastFive.Linq
                 });
         }
 
+        private static TResult SelectReduce<TItem, TSelect, TResult>(this IEnumerator<TItem> items,
+            TSelect[] selections,
+            Func<TItem, Func<TSelect, TResult>, Func<TResult>, TResult> select,
+            Func<TSelect[], TResult> reduce,
+            int depth, int recursionLimit)
+        {
+            if (depth >= recursionLimit)
+            {
+                var result = default(TResult);
+                var thread = new Thread(
+                    () =>
+                    {
+                        result = SelectReduce(items, selections, select, reduce, 0, recursionLimit);
+
+                    });
+                thread.Start();
+                thread.Join();
+                return result;
+            }
+
+            if (!items.MoveNext())
+                return reduce(selections.ToArray());
+
+            return select(items.Current,
+                (r) =>
+                {
+                    return items.SelectReduce(selections.Append(r).ToArray(), select, reduce, depth + 1, recursionLimit);
+                },
+                () =>
+                {
+                    return items.SelectReduce(selections, select, reduce, depth + 1, recursionLimit);
+                });
+        }
+
         public static TResult SelectReduce<TItem, T1, TSelect, TResult>(this IEnumerable<TItem> items,
                 T1 item1,
             Func<TItem, T1, Func<TSelect, T1, TResult>, Func<T1, TResult>, TResult> select,
-            Func<TSelect[], T1, TResult> reduce)
+            Func<TSelect[], T1, TResult> reduce,
+            int recursionLimit = int.MaxValue)
         {
             var enumerator = items.GetEnumerator();
             return enumerator.SelectReduce(item1, new TSelect[] { }, select,
                 (rs, items1New) =>
-                    reduce(rs.ToArray(), items1New));
+                    reduce(rs.ToArray(), items1New),
+                0, recursionLimit);
         }
 
         private static TResult SelectReduce<TItem, T1, TSelect, TResult>(this IEnumerator<TItem> items,
@@ -92,6 +132,41 @@ namespace EastFive.Linq
                 (item1New) =>
                 {
                     return items.SelectReduce(item1New, selections, select, reduce);
+                });
+        }
+
+        private static TResult SelectReduce<TItem, T1, TSelect, TResult>(this IEnumerator<TItem> items,
+                T1 item1,
+                TSelect[] selections,
+            Func<TItem, T1, Func<TSelect, T1, TResult>, Func<T1, TResult>, TResult> select,
+            Func<TSelect[], T1, TResult> reduce,
+            int depth, int recursionLimit)
+        {
+            if(depth >= recursionLimit)
+            {
+                var result = default(TResult);
+                var thread = new Thread(
+                    () =>
+                    {
+                        result = SelectReduce(items, item1, selections, select, reduce, 0, recursionLimit);
+
+                    });
+                thread.Start();
+                thread.Join();
+                return result;
+            }
+
+            if (!items.MoveNext())
+                return reduce(selections.ToArray(), item1);
+
+            return select(items.Current, item1,
+                (r, item1New) =>
+                {
+                    return items.SelectReduce(item1New, selections.Append(r).ToArray(), select, reduce, depth+1, recursionLimit);
+                },
+                (item1New) =>
+                {
+                    return items.SelectReduce(item1New, selections, select, reduce, depth + 1, recursionLimit);
                 });
         }
 
