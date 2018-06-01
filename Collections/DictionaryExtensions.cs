@@ -172,6 +172,43 @@ namespace EastFive.Collections.Generic
                 .ToDictionary();
         }
 
+        /// <summary>
+        /// If <paramref name="key"/> is contained in <paramref name="dictionary"/> then call <paramref name="onDictionaryHasValue"/>.
+        /// Otherwise, call <paramref name="onAddValueSinceMissing"/> to add the key.
+        /// </summary>
+        /// <typeparam name="TKey">Type of keys in IDictionary</typeparam>
+        /// <typeparam name="TValue">Type of values in IDictionary</typeparam>
+        /// <typeparam name="TResult">Return type for all cases.</typeparam>
+        /// <param name="dictionary">Dictionary to check if contains <paramref name="key"/></param>
+        /// <param name="key">Key to check for in <paramref name="dictionary"/></param>
+        /// <param name="onAddValueSinceMissing">Is called if <paramref name="key"/> is not found in <paramref name="dictionary"/>. A callback is provided to optionally
+        /// create a value for <paramref name="key"/> in <paramref name="dictionary"/>.If the callback is invoked it will invoke <paramref name="onDictionaryHasValue"/> and return its TResult.</param>
+        /// <param name="onDictionaryHasValue">Invoked if <paramref name="key"/> is found in <paramref name="dictionary"/> or added to <paramref name="dictionary"/> by <paramref name="onAddValueSinceMissing"/>.
+        /// Arguments are (TValue valueForKey, IDictionary[TKey, TValue], bool wasAdded, dictionaryUpdated).</param>
+        /// <returns>TResult from callabcks</returns>
+        /// <example>
+        /// <code>
+        /// var result = await fieldInfoCache.AddIfMissing(property.Key,
+        ///   async (add) => await await ooContext.ProductProperties.GetByIdAsync(property.Key,
+        ///       (productPropertyFound) => add(productPropertyFound),
+        ///       () => skip(fieldInfoCache));
+        ///   (added, fieldInfo, fieldInfoCacheUpdated) => next(fieldInfo, cache));
+        /// </code>
+        /// </example>
+        public static TResult AddIfMissing<TKey, TValue, TResult>(this IDictionary<TKey, TValue> dictionary, TKey key,
+            Func<Func<TValue, TResult>, TResult> onAddValueSinceMissing,
+            Func<TValue, IDictionary<TKey, TValue>, bool, TResult> onDictionaryHasValue)
+        {
+            if (dictionary.ContainsKey(key))
+                return onDictionaryHasValue(dictionary[key], dictionary, false);
+            return onAddValueSinceMissing(
+                (value) =>
+                {
+                    dictionary.Add(key, value);
+                    return onDictionaryHasValue(value, dictionary, true);
+                });
+        }
+
         public static TValueAs IfKeyOrValueAs<TKey, TValueAs>(this IDictionary<TKey, object> dictionary, TKey key, TValueAs defaultValue)
             where TValueAs : class
         {
@@ -196,5 +233,13 @@ namespace EastFive.Collections.Generic
             var valueAs = value as TValueAs;
             return ifKeyAndValueAs(valueAs);
         }
+
+        public static TResult Compute<TItem, TResult>(this IEnumerable<TItem> items,
+            Func<IEnumerable<TItem>, TResult> compute)
+        {
+            return compute(items);
+        }
+
+        
     }
 }

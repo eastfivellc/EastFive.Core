@@ -103,6 +103,79 @@ namespace BlackBarLabs
 
             return results;
         }
-        
+
+        public static TResult MatchRegex<T, TResult>(this string input, string regularExpression,
+            Func<T, TResult> onMatched,
+            Func<TResult> onNotMatched,
+            params Expression<Func<T, object>>[] expressions)
+        {
+            var expressionLookup = expressions
+                .Select(
+                    exp => exp.MemberName(
+                        (name) =>
+                        {
+                            var members = typeof(T).GetProperties()
+                                .Cast<MemberInfo>()
+                                .Concat(typeof(T).GetFields()).ToArray();
+                            var propInfo = members.First(
+                                prop => prop.Name == name);
+                            return name.PairWithValue(propInfo);
+                        },
+                        () =>
+                        {
+                            // TODO: Warn here?
+                            //throw new ArgumentException($"The expression '{exp.Body}' is invalid. You must supply an expression that references a property.");
+                            return default(KeyValuePair<string, MemberInfo>?);
+                        }))
+                .SelectWhereHasValue()
+                .ToDictionary();
+
+            var regex = new Regex(regularExpression);
+            var results = regex
+                .Matches(input)
+                .AsMatches()
+                .Where(match => match.Success && match.Groups.Count == (expressions.Length + 1))
+                .Select(
+                    (match) =>
+                    {
+                        var groups = match.Groups.AsGroups().Skip(1).ToArray();
+
+                        var assignmentCollection = expressionLookup
+                            .Select(
+                                expKvp =>
+                                {
+                                    var matchingGroups = groups
+                                        .Where(
+                                            group =>
+                                            {
+                                                var groupName = (string)((dynamic)group).Name;
+                                                return groupName == expKvp.Key;
+                                            });
+                                    if (!matchingGroups.Any())
+                                        return default(KeyValuePair<MemberInfo, string>?);
+
+                                    return expKvp.Value.PairWithValue(matchingGroups.First().Value);
+                                })
+                            .SelectWhereHasValue()
+                            .ToArray();
+
+                        return assignmentCollection;
+                    })
+                .Where(assignmentCollection => assignmentCollection.Length == expressionLookup.Count)
+                .Select(
+                    (assignmentCollection) =>
+                    {
+                        return assignmentCollection.Aggregate(Activator.CreateInstance<T>(),
+                            (r, assignment) =>
+                            {
+                                assignment.Key.SetValue(ref r, assignment.Value);
+                                return r;
+                            });
+                    })
+                .ToArray();
+
+            return results.Any()? onMatched(results.First()) : onNotMatched();
+        }
+
     }
 }

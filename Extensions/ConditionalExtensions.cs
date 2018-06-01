@@ -14,5 +14,15 @@ namespace EastFive
                 return ifFunc();
             return elseFunc();
         }
+
+        public static TResult IfElseThen<T1, TResult>(this bool v,
+            Func<Func<T1, TResult>, TResult> ifFunc, 
+            Func<Func<T1, TResult>, TResult> elseFunc,
+            Func<T1, TResult> thenFunc)
+        {
+            if (v)
+                return ifFunc(thenFunc);
+            return elseFunc(thenFunc);
+        }
     }
 }
