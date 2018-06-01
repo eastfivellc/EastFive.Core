@@ -37,6 +37,42 @@ namespace EastFive.Linq
                 (selections, t1) => complete(selections));
         }
 
+        public static TResult FlatMap<TItem, T1, T2, TSelect, TResult>(this IEnumerable<TItem> items,
+                T1 item1, T2 item2,
+            Func<
+                TItem, T1, T2,
+                Func<TSelect, T1, T2, TResult>,  // next
+                Func<T1, T2, TResult>, // skip
+                TResult> callback,
+            Func<TSelect[], T1, T2, TResult> complete)
+        {
+            return items.FlatMap<TItem, KeyValuePair<T1, T2>, TSelect, TResult>(
+                item1.PairWithValue(item2),
+                (item, kvp, next, skip) =>
+                    callback(item, kvp.Key, kvp.Value,
+                        (select, item1Next, item2Next) => next(select, item1Next.PairWithValue(item2Next)),
+                        (item1Next, item2Next) => skip(item1Next.PairWithValue(item2Next))),
+                (selects, kvp) => complete(selects, kvp.Key, kvp.Value));
+        }
+
+        public static TResult FlatMap<TItem, T1, T2, T3, TSelect, TResult>(this IEnumerable<TItem> items,
+                T1 item1, T2 item2, T3 item3,
+            Func<
+                TItem, T1, T2, T3,
+                Func<TSelect, T1, T2, T3, TResult>,  // next
+                Func<T1, T2, T3, TResult>, // skip
+                TResult> callback,
+            Func<TSelect[], T1, T2, T3, TResult> complete)
+        {
+            return items.FlatMap<TItem, T1, KeyValuePair<T2, T3>, TSelect, TResult>(
+                item1, item2.PairWithValue(item3),
+                (item, item1Carry, item23CarryKvp, next, skip) =>
+                    callback(item, item1Carry, item23CarryKvp.Key, item23CarryKvp.Value,
+                        (select, item1Next, item2Next, item3Next) => next(select, item1Next, item2Next.PairWithValue(item3Next)),
+                        (item1Next, item2Next, item3Next) => skip(item1Next, item2Next.PairWithValue(item3Next))),
+                (selects, item1Final, item23FinalKvp) => complete(selects, item1Final, item23FinalKvp.Key, item23FinalKvp.Value));
+        }
+
         public static TResult FlatMap<TItem, T1, TSelect, TResult>(this IEnumerable<TItem> items,
                 T1 item1,
             Func<

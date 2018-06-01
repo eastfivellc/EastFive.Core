@@ -30,6 +30,16 @@ namespace EastFive
             throw new ArgumentException("Unsupported conversion type:" + type.FullName);
         }
 
+        public static object GetDefault(this Type t)
+        {
+            Func<object> f = GetDefault<object>;
+            return f.Method.GetGenericMethodDefinition().MakeGenericMethod(t).Invoke(null, null);
+        }
+
+        private static T GetDefault<T>()
+        {
+            return default(T);
+        }
 
         public static bool IsSubClassOfGeneric(this Type child, Type parent)
         {

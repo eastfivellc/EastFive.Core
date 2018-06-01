@@ -762,23 +762,28 @@ namespace EastFive.Linq
             Func<KeyValuePair<TItem1[], TItem2[]>[], TItem1 [], TItem2[], TResult> onGetResult)
         {
             var items1Grouped = items1.GroupBy(selector1);
-            var items2Grouped = items2.GroupBy(selector2);
-            return items1Grouped.SelectReduce<IGrouping<Selector1, TItem1>, TItem1[], IEnumerable<IGrouping<Selector2, TItem2>>, KeyValuePair<TItem1[], TItem2[]>, TResult>(
+            var items2Grouped = items2.GroupBy(selector2).ToArray();
+            return items1Grouped.FlatMap<IGrouping<Selector1, TItem1>, TItem1[], IGrouping<Selector2, TItem2>[], KeyValuePair<TItem1[], TItem2[]>, Func<TResult>>(
                     new TItem1[] { }, items2Grouped,
                 (item1, items1Unmatched, items2Unmatched, next, skip) =>
                 {
-                    var items2Matching = items2Unmatched.Where(item2 => matchPredicate(item1.Key, item2.Key));
-                    if (!items2Matching.Any())
-                        return skip(items1Unmatched.Concat(item1.ToArray()).ToArray(), items2Unmatched);
-                    return next(
-                        item1.ToArray().PairWithValue(items2Matching.Select(grp => grp.ToArray()).SelectMany().ToArray()),
-                        items1Unmatched,
-                        items2Unmatched.Except(items2Matching));
+                    return items2Unmatched.SplitReduce(
+                        item2 => matchPredicate(item1.Key, item2.Key),
+                        (items2Matching, items2UnmatchedNew) =>
+                        {
+                            if (!items2Matching.Any())
+                                return skip(items1Unmatched.Concat(item1).ToArray(), items2Unmatched);
+                            return next(
+                                item1.ToArray().PairWithValue(items2Matching.Select(grp => grp).SelectMany().ToArray()),
+                                items1Unmatched,
+                                items2UnmatchedNew.ToArray());
+                        });
                 },
-                (KeyValuePair<TItem1[], TItem2[]>[] itemsMatched, TItem1 [] items1Unmatched, IEnumerable<IGrouping<Selector2, TItem2>> items2Unmatched) =>
+                (KeyValuePair<TItem1[], TItem2[]>[] itemsMatched, TItem1 [] items1Unmatched, IGrouping<Selector2, TItem2>[] items2Unmatched) =>
                 {
-                    return onGetResult(itemsMatched, items1Unmatched, items2Unmatched.Select(grp => grp.ToArray()).SelectMany().ToArray());
-                });
+                    // return fuction to not trigger an async FlatMap
+                    return () => onGetResult(itemsMatched, items1Unmatched, items2Unmatched.Select(grp => grp.ToArray()).SelectMany().ToArray());
+                })();
         }
 
         //public static bool SequenceEqual<TItem>(this IEnumerable<TItem> items1, IEnumerable<TItem> items2)
