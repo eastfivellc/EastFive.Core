@@ -46,7 +46,7 @@ namespace EastFive.Linq
                 TResult> callback,
             Func<TSelect[], T1, TResult> complete)
         {
-            if (typeof(TResult).GetGenericTypeDefinition() == typeof(Task<>))
+            if (typeof(TResult).IsGenericType && typeof(TResult).GetGenericTypeDefinition() == typeof(Task<>))
             {
                 var method = typeof(MapReduceExtensions).GetMethod("FlatMapGenericAsync", BindingFlags.NonPublic | BindingFlags.Static);
                 var generic = method.MakeGenericMethod(typeof(TItem), typeof(T1), typeof(TSelect), typeof(TResult).GenericTypeArguments.First());
