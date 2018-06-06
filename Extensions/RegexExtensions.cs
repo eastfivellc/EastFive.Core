@@ -131,9 +131,10 @@ namespace BlackBarLabs
                 .ToDictionary();
 
             var regex = new Regex(regularExpression);
-            var results = regex
+            var matches = regex
                 .Matches(input)
-                .AsMatches()
+                .AsMatches();
+            var assignments = matches
                 .Where(match => match.Success && match.Groups.Count == (expressions.Length + 1))
                 .Select(
                     (match) =>
@@ -146,8 +147,11 @@ namespace BlackBarLabs
                                 {
                                     var matchingGroups = groups
                                         .Where(
-                                            group =>
+                                            groupMaybe =>
                                             {
+                                                if (!(groupMaybe is System.Text.RegularExpressions.Group))
+                                                    return false;
+                                                var group = groupMaybe as System.Text.RegularExpressions.Group;
                                                 var groupName = (string)((dynamic)group).Name;
                                                 return groupName == expKvp.Key;
                                             });
@@ -161,6 +165,8 @@ namespace BlackBarLabs
 
                         return assignmentCollection;
                     })
+                .ToArray();
+            var results = assignments
                 .Where(assignmentCollection => assignmentCollection.Length == expressionLookup.Count)
                 .Select(
                     (assignmentCollection) =>
@@ -176,6 +182,110 @@ namespace BlackBarLabs
 
             return results.Any()? onMatched(results.First()) : onNotMatched();
         }
+        
+        public static TResult MatchRegexInvoke<T, TResult>(this string input, string regularExpression,
+            Expression<Func<string, T>> expression,
+            Func<T[], TResult> onMatched)
+        {
+            var exec = expression.Compile();
+            return input.MatchRegexInvokeDynamic(regularExpression,
+                onMatched,
+                expression.Parameters.ToArray(),
+                invokeArgs => (T)exec.Invoke(invokeArgs[0]));
+        }
 
+        public static TResult MatchRegexInvoke<T, TResult>(this string input, string regularExpression,
+            Expression<Func<string, string, T>> expression,
+            Func<T[], TResult> onMatched)
+        {
+            var exec = expression.Compile();
+            return input.MatchRegexInvokeDynamic(regularExpression,
+                onMatched,
+                expression.Parameters.ToArray(),
+                invokeArgs => (T)exec.Invoke(invokeArgs[0], invokeArgs[1]));
+        }
+
+        public static TResult MatchRegexInvoke<T, TResult>(this string input, string regularExpression,
+            Expression<Func<string, string, string, T>> expression,
+            Func<T[], TResult> onMatched)
+        {
+            var exec = expression.Compile();
+            return input.MatchRegexInvokeDynamic(regularExpression,
+                onMatched,
+                expression.Parameters.ToArray(),
+                invokeArgs => (T)exec.Invoke(invokeArgs[0], invokeArgs[1], invokeArgs[2]));
+        }
+
+        private static TResult MatchRegexInvokeDynamic<T, TResult>(this string input, string regularExpression,
+            Func<T[], TResult> onMatched,
+            ParameterExpression [] parameterSet,
+            Func<string[], T> invoker)
+        {
+            var regex = new Regex(regularExpression);
+            var matches = regex
+                .Matches(input)
+                .AsMatches();
+            var parameterAndValuess = matches
+                .Where(match => match.Success && match.Groups.Count == (parameterSet.Length + 1))
+                .Select(
+                    (match) =>
+                    {
+                        var groups = match.Groups.AsGroups().Skip(1).ToArray();
+
+                        var assignmentCollection = parameterSet
+                            .Select(
+                                parameter =>
+                                {
+                                    var matchingGroups = groups
+                                        .Where(
+                                            groupMaybe =>
+                                            {
+                                                if (!(groupMaybe is System.Text.RegularExpressions.Group))
+                                                    return false;
+                                                var group = groupMaybe as System.Text.RegularExpressions.Group;
+                                                var groupName = (string)((dynamic)group).Name;
+                                                return groupName == parameter.Name;
+                                            });
+                                    if (!matchingGroups.Any())
+                                        return default(KeyValuePair<ParameterExpression, string>?);
+
+                                    return parameter.PairWithValue(matchingGroups.First().Value);
+                                })
+                            .SelectWhereHasValue()
+                            .ToArray();
+
+                        return assignmentCollection;
+                    })
+                .Where(parameterAndValues => parameterAndValues.Length == parameterSet.Length)
+                .ToArray();
+            return parameterAndValuess
+                .Aggregate(
+                    new string[][] { },
+                    (invokeArgss, parameterAndValues) =>
+                    {
+                        var nextArgs = parameterSet
+                            .Aggregate(
+                                new string[] { },
+                                (invokeArgs, parameter) =>
+                                {
+                                    var valuesMaybe = parameterAndValues.Where(pAndV => pAndV.Key == parameter);
+                                    if (!valuesMaybe.Any())
+                                        throw new ArgumentException();
+                                    var value = valuesMaybe.First();
+                                    return invokeArgs.Append(value.Value).ToArray();
+                                });
+                        return invokeArgss.Append(nextArgs).ToArray();
+                    },
+                    (invokeArgss) =>
+                    {
+                        if (!invokeArgss.Any())
+                            return onMatched(new T[] { });
+                        
+                        return onMatched(
+                            invokeArgss
+                                .Select(invoker)
+                                .ToArray());
+                    });
+        }
     }
 }

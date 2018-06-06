@@ -25,22 +25,33 @@ namespace EastFive.Net.Http
         protected async override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var accessToken = AccessToken;
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            request = ApplyToken(request, accessToken);
 
             var response = await base.SendAsync(request, cancellationToken);
 
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            if (NeedsRefresh(response))
             {
                 return await await RefreshTokenAsync(
                     (accessTokenNew) =>
                     {
-                        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessTokenNew);
+                        request = ApplyToken(request, accessTokenNew);
                         return base.SendAsync(request, cancellationToken);
                     },
                     (why) => response.ToTask());
             }
 
             return response;
+        }
+
+        protected virtual HttpRequestMessage ApplyToken(HttpRequestMessage request, string accessToken)
+        {
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            return request;
+        }
+
+        protected virtual bool NeedsRefresh(HttpResponseMessage response)
+        {
+            return (response.StatusCode == System.Net.HttpStatusCode.Unauthorized);
         }
 
         protected abstract string AccessToken { get; }

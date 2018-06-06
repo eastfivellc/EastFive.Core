@@ -21,6 +21,22 @@ namespace EastFive.Linq
                 reduce);
         }
 
+        public static TResult FlatMapPartition<TItem, TSelect1, TSelect2, TResult>(this IEnumerable<TItem> items,
+            Func<
+                TItem,
+                Func<TSelect1, TResult>,  // next
+                Func<TSelect2, TResult>, // skip
+                TResult> callback,
+            Func<TSelect1[], TSelect2[], TResult> complete)
+        {
+            return items.FlatMap<TItem, TSelect2[], TSelect1, TResult>(
+                new TSelect2[] { },
+                (item, t1, next, skip) => callback(item,
+                    (select1) => next(select1, t1),
+                    (select2) => skip(t1.Append(select2).ToArray())),
+                (selections, t1) => complete(selections, t1));
+        }
+
         public static TResult FlatMap<TItem, TSelect, TResult>(this IEnumerable<TItem> items,
             Func<
                 TItem,
@@ -84,6 +100,7 @@ namespace EastFive.Linq
         {
             if (typeof(TResult).IsGenericType && typeof(TResult).GetGenericTypeDefinition() == typeof(Task<>))
             {
+                // Call it this way because we need to remap TResult from Task<TR> to TR
                 var method = typeof(MapReduceExtensions).GetMethod("FlatMapGenericAsync", BindingFlags.NonPublic | BindingFlags.Static);
                 var generic = method.MakeGenericMethod(typeof(TItem), typeof(T1), typeof(TSelect), typeof(TResult).GenericTypeArguments.First());
                 var r = generic.Invoke(null, new object[] { items, item1, callback, complete});
