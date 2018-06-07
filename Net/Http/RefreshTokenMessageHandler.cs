@@ -24,23 +24,17 @@ namespace EastFive.Net.Http
 
         protected async override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            var accessToken = AccessToken;
-            request = ApplyToken(request, accessToken);
+            var response = await base.SendAsync(ApplyToken(request, AccessToken), cancellationToken);
+            if (!await NeedsRefreshAsync(response))
+                return response;
 
-            var response = await base.SendAsync(request, cancellationToken);
-
-            if (NeedsRefresh(response))
-            {
-                return await await RefreshTokenAsync(
-                    (accessTokenNew) =>
-                    {
-                        request = ApplyToken(request, accessTokenNew);
-                        return base.SendAsync(request, cancellationToken);
-                    },
-                    (why) => response.ToTask());
-            }
-
-            return response;
+            return await await RefreshTokenAsync(
+                (accessTokenNew) =>
+                {
+                    response.Dispose();
+                    return base.SendAsync(ApplyToken(request, accessTokenNew), cancellationToken);
+                },
+                (why) => response.ToTask());
         }
 
         protected virtual HttpRequestMessage ApplyToken(HttpRequestMessage request, string accessToken)
@@ -49,9 +43,9 @@ namespace EastFive.Net.Http
             return request;
         }
 
-        protected virtual bool NeedsRefresh(HttpResponseMessage response)
+        protected virtual Task<bool> NeedsRefreshAsync(HttpResponseMessage response)
         {
-            return (response.StatusCode == System.Net.HttpStatusCode.Unauthorized);
+            return (response.StatusCode == System.Net.HttpStatusCode.Unauthorized).ToTask();
         }
 
         protected abstract string AccessToken { get; }
