@@ -30,12 +30,14 @@ namespace EastFive.Net.Http
             
             if (IsNoCache(request) || (!cache.ContainsKey(requestUri)))
             {
-                var response = await base.SendAsync(request, cancellationToken);
-                var data = await response.Content.ReadAsByteArrayAsync();
-                cache.AddOrUpdate(requestUri,
-                        whenKey => DateTime.UtcNow.PairWithValue(data),
-                        (k, v) => v);
-                return GenerateResponse(data);
+                using (var response = await base.SendAsync(request, cancellationToken))
+                {
+                    var data = await response.Content.ReadAsByteArrayAsync();
+                    cache.AddOrUpdate(requestUri,
+                            whenKey => DateTime.UtcNow.PairWithValue(data),
+                            (k, v) => v);
+                    return GenerateResponse(data, response.StatusCode);
+                }
             }
 
             var index = cache[requestUri];
