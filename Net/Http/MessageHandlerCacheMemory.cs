@@ -1,16 +1,11 @@
 ﻿using BlackBarLabs.Extensions;
-using EastFive.Extensions;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-
-using EastFive;
 
 namespace EastFive.Net.Http
 {
@@ -27,16 +22,23 @@ namespace EastFive.Net.Http
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var requestUri = request.RequestUri.AbsoluteUri;
-            
-            if (IsNoCache(request) || (!cache.ContainsKey(requestUri)))
+            var isNoCache = IsNoCache(request);
+            if (isNoCache || (!cache.ContainsKey(requestUri)))
             {
                 using (var response = await base.SendAsync(request, cancellationToken))
                 {
-                    var data = await response.Content.ReadAsByteArrayAsync();
-                    cache.AddOrUpdate(requestUri,
-                            whenKey => DateTime.UtcNow.PairWithValue(data),
-                            (k, v) => v);
-                    return GenerateResponse(data, response.StatusCode);
+                    // stream is passed to GenerateResponse and disposed there
+                    var memStream = new MemoryStream();
+                    await response.Content.CopyToAsync(memStream);
+                    if (!isNoCache)
+                    {
+                        var data = memStream.ToArray();
+                        cache.AddOrUpdate(requestUri,
+                                whenKey => DateTime.UtcNow.PairWithValue(data),
+                                (k, v) => v);
+                    }
+                    memStream.Seek(0, SeekOrigin.Begin);
+                    return GenerateResponse(memStream, response.StatusCode);
                 }
             }
 

@@ -29,10 +29,10 @@ namespace EastFive.Net.Http
                 return response;
 
             return await await RefreshTokenAsync(
-                (accessTokenNew) =>
+                (token) =>
                 {
                     response.Dispose();
-                    return base.SendAsync(ApplyToken(request, accessTokenNew), cancellationToken);
+                    return SendAsync(request, cancellationToken);
                 },
                 (why) => response.ToTask());
         }
@@ -43,9 +43,9 @@ namespace EastFive.Net.Http
             return request;
         }
 
-        protected virtual Task<bool> NeedsRefreshAsync(HttpResponseMessage response)
+        protected virtual async Task<bool> NeedsRefreshAsync(HttpResponseMessage response)
         {
-            return (response.StatusCode == System.Net.HttpStatusCode.Unauthorized).ToTask();
+            return (response.StatusCode == System.Net.HttpStatusCode.Unauthorized);
         }
 
         protected abstract string AccessToken { get; }

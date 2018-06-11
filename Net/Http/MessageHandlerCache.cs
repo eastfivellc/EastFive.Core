@@ -36,6 +36,7 @@ namespace EastFive.Net.Http
         protected virtual HttpResponseMessage GenerateResponse(System.IO.Stream data,
             System.Net.HttpStatusCode statusCode = System.Net.HttpStatusCode.OK)
         {
+            // HttpResponseMessage will dispose of the passed in stream for us
             var response = new HttpResponseMessage(statusCode);
             response.Content = new StreamContent(data);
             return response;
