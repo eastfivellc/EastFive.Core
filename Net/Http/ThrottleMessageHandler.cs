@@ -68,7 +68,8 @@ namespace EastFive.Net.Http
                     {
                         if (ex.CancellationToken.IsCancellationRequested)
                         {
-                            response.Dispose();
+                            if (response != default(HttpResponseMessage))
+                                response.Dispose();
                             throw ex;
                         }
 
@@ -80,7 +81,8 @@ namespace EastFive.Net.Http
                     {
                         if (!(ex.InnerException is System.Net.WebException))
                         {
-                            response.Dispose();
+                            if (response != default(HttpResponseMessage))
+                                response.Dispose();
                             throw ex;
                         }
 
@@ -100,14 +102,16 @@ namespace EastFive.Net.Http
 
                         if (!didTimeout)
                         {
-                            response.Dispose();
+                            if (response != default(HttpResponseMessage))
+                                response.Dispose();
                             throw ex;
                         }
                     }
                     #endregion
                     catch (Exception ex)
                     {
-                        response.Dispose();
+                        if (response != default(HttpResponseMessage))
+                            response.Dispose();
                         throw ex;
                     }
                     finally
@@ -120,7 +124,8 @@ namespace EastFive.Net.Http
                             System.Diagnostics.Debug.WriteLine($"Thread [{threadName}] exited mutex");
                         }
                     }
-                    response.Dispose();
+                    if (response != default(HttpResponseMessage))
+                        response.Dispose();
                     return await SendAsync(request, ct);
                 }).ConfigureAwait(false);
         }
