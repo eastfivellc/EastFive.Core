@@ -47,6 +47,27 @@ namespace EastFive.Linq
         {
             return items.Distinct(item => item.Key);
         }
+
+        public static T[] Duplicates<T>(this IEnumerable<T> items, Func<T, T, bool> predicate)
+        {
+            var array = items.ToArray();
+            return array
+                .Aggregate(
+                    new T[] { },
+                    (aggr, item) =>
+                    {
+                        // See if this is already matched
+                        if (aggr.Any(aggrSet => predicate(aggrSet, item)))
+                            return aggr;
+
+                        var matches = array.Where(arrayItem => predicate(arrayItem, item)).ToArray();
+                        return matches.Length > 1 ?
+                            aggr.Append(item).ToArray()
+                            :
+                            aggr;
+                    });
+        }
+
         public static bool All(this IEnumerable<bool> items)
         {
             return items.All(b => b);

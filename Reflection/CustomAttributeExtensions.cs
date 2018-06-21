@@ -98,6 +98,19 @@ namespace EastFive
             var attributes = method.GetCustomAttributes(typeof(T), inherit);
             return attributes.Select(attrib => attrib as T).ToArray();
         }
+        
+        public static TResult GetCustomAttribute<TAttribute, TResult>(this ParameterInfo obj,
+            Func<TAttribute, TResult> onHasAttribute,
+            Func<TResult> onAttributeNotOnObject,
+            bool inherit = false)
+            where TAttribute : System.Attribute
+        {
+            var attributesUncast = obj.GetCustomAttributes(typeof(TAttribute), inherit);
+            var attributes = attributesUncast.Select(attrib => attrib as TAttribute).ToArray();
+            if (!attributes.Any())
+                return onAttributeNotOnObject();
+            return onHasAttribute(attributes.First());
+        }
 
         public static bool ContainsCustomAttribute<T>(this ParameterInfo method, bool inherit = false)
             where T : class

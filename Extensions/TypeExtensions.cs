@@ -93,5 +93,20 @@ namespace EastFive
 
             return true;
         }
+
+        public static bool IsNullable(this Type type)
+        {
+            // https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/nullable-types/how-to-identify-a-nullable-type
+            return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>);
+        }
+
+        public static TResult IsNullable<TResult>(this Type type,
+            Func<Type, TResult> onNullable,
+            Func<TResult> onNotNullable)
+        {
+            if (!type.IsNullable())
+                return onNotNullable();
+            return onNullable(Nullable.GetUnderlyingType(type));
+        }
     }
 }
