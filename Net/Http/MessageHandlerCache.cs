@@ -30,13 +30,14 @@ namespace EastFive.Net.Http
         protected virtual HttpResponseMessage GenerateResponse(byte[] data,
             System.Net.HttpStatusCode statusCode = System.Net.HttpStatusCode.OK)
         {
-            return GenerateResponse(new MemoryStream(data));
+            return GenerateResponse(new MemoryStream(data), statusCode);
         }
 
         protected virtual HttpResponseMessage GenerateResponse(System.IO.Stream data,
             System.Net.HttpStatusCode statusCode = System.Net.HttpStatusCode.OK)
         {
-            var response = new HttpResponseMessage(System.Net.HttpStatusCode.OK);
+            // HttpResponseMessage will dispose of the passed in stream for us
+            var response = new HttpResponseMessage(statusCode);
             response.Content = new StreamContent(data);
             return response;
         }

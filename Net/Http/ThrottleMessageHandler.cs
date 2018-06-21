@@ -48,7 +48,6 @@ namespace EastFive.Net.Http
                     if (delay.Seconds > 0)
                         Thread.Sleep(delay);
 
-                    System.Diagnostics.Debug.WriteLine((didRateLock ? "SYNC:" : "PARALLEL") + $"Request [{threadName}]");
                     HttpResponseMessage response = default(HttpResponseMessage);
                     bool didTimeout = false;
                     try
@@ -57,6 +56,7 @@ namespace EastFive.Net.Http
                         System.Diagnostics.Debug.WriteLine((didRateLock ? "SYNC:" : "PARALLEL") + $"Response [{threadName}]");
                         if (!IsOverage(response))
                         {
+                            // not disposing of response because it is the caller's job now
                             return response;
                         }
                     }
@@ -67,7 +67,11 @@ namespace EastFive.Net.Http
                     catch (TaskCanceledException ex)
                     {
                         if (ex.CancellationToken.IsCancellationRequested)
+                        {
+                            if (response != default(HttpResponseMessage))
+                                response.Dispose();
                             throw ex;
+                        }
 
                         // This is normally just a timeout
                         didTimeout = true;
@@ -76,7 +80,11 @@ namespace EastFive.Net.Http
                     catch(HttpRequestException ex)
                     {
                         if (!(ex.InnerException is System.Net.WebException))
+                        {
+                            if (response != default(HttpResponseMessage))
+                                response.Dispose();
                             throw ex;
+                        }
 
                         var webEx = ex.InnerException as System.Net.WebException;
                         if (webEx.InnerException is System.Net.Sockets.SocketException)
@@ -93,11 +101,17 @@ namespace EastFive.Net.Http
                         }
 
                         if (!didTimeout)
+                        {
+                            if (response != default(HttpResponseMessage))
+                                response.Dispose();
                             throw ex;
+                        }
                     }
                     #endregion
                     catch (Exception ex)
                     {
+                        if (response != default(HttpResponseMessage))
+                            response.Dispose();
                         throw ex;
                     }
                     finally
@@ -110,6 +124,8 @@ namespace EastFive.Net.Http
                             System.Diagnostics.Debug.WriteLine($"Thread [{threadName}] exited mutex");
                         }
                     }
+                    if (response != default(HttpResponseMessage))
+                        response.Dispose();
                     return await SendAsync(request, ct);
                 }).ConfigureAwait(false);
         }
