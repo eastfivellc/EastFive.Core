@@ -88,7 +88,6 @@
     <Compile Include="Extensions\TypeExtensions.cs" />
     <Compile Include="Extensions\UriExtensions.cs" />
     <Compile Include="Extensions\UrnExtensions.cs" />
-    <Compile Include="Linq\Reduce\ReduceExtensionsCore.cs" />
     <Compile Include="Linq\Reduce\MapReduceExtensions.cs" />
     <Compile Include="Linq\MathExtensions.cs" />
     <Compile Include="Linq\SelectPartitionExtensions.cs" />

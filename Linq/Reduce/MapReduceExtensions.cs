@@ -103,7 +103,7 @@ namespace EastFive.Linq
                 // Call it this way because we need to remap TResult from Task<TR> to TR
                 var method = typeof(MapReduceExtensions).GetMethod("FlatMapGenericAsync", BindingFlags.NonPublic | BindingFlags.Static);
                 var generic = method.MakeGenericMethod(typeof(TItem), typeof(T1), typeof(TSelect), typeof(TResult).GenericTypeArguments.First());
-                var r = generic.Invoke(null, new object[] { items, item1, callback, complete});
+                var r = generic.Invoke(null, new object[] { items, item1, callback, complete });
                 var tr = (TResult)r;
                 return tr;
             }
@@ -144,7 +144,7 @@ namespace EastFive.Linq
             Func<TSelect[], T1, Task<object>> complete)
         {
             var globalSelection = new TSelect[] { };
-            
+
             return items.Aggregate(
                 (new ManualResetEvent(true)).PairWithValue(default(object).ToTask()).ToTask(),
                 async (blockAndTaskAsync, item) =>
@@ -161,7 +161,7 @@ namespace EastFive.Linq
                             completeBlock.WaitOne();
                             return nextTask;
                         });
-                    
+
                     nextTask = await blockAndTask.Value.ContinueWith(
                         (lastTask) =>
                         {
@@ -190,6 +190,143 @@ namespace EastFive.Linq
                     blockAndTask.Key.WaitOne(); // wait here so Item1 is updated
                     await blockAndTask.Value;
                     return await complete(globalSelection, item1);
+                });
+        }
+        
+        public static TResult FlatMap<TItem, TSelect, TResult>(this IEnumerable<TItem> items,
+            Func<
+                TItem,
+                Func<TSelect, TResult>,  // next
+                Func<TResult>, // skip
+                Func<TResult, TResult>, // tail
+                TResult> callback,
+            Func<IEnumerable<TSelect>, TResult> complete)
+        {
+            return items.FlatMap<TItem, int, TSelect, TResult>(
+                1,
+                (item, t1, next, skip, tail) => callback(item,
+                    (select) => next(select, t1),
+                    () => skip(t1),
+                    tail),
+                (selections, t1) => complete(selections));
+        }
+
+        public static TResult FlatMap<TItem, T1, TSelect, TResult>(this IEnumerable<TItem> items,
+                T1 item1,
+            Func<
+                TItem, T1,
+                Func<TSelect, T1, TResult>,  // next
+                Func<T1, TResult>, // skip
+                Func<TResult, TResult>, // tail
+                TResult> callback,
+            Func<TSelect[], T1, TResult> complete)
+        {
+            if (typeof(TResult).IsGenericType && typeof(TResult).GetGenericTypeDefinition() == typeof(Task<>))
+            {
+                // Call it this way because we need to remap TResult from Task<TR> to TR
+                var method = typeof(MapReduceExtensions).GetMethod("FlatMapGenericTailAsync", BindingFlags.NonPublic | BindingFlags.Static);
+                var generic = method.MakeGenericMethod(typeof(TItem), typeof(T1), typeof(TSelect), typeof(TResult).GenericTypeArguments.First());
+                var r = generic.Invoke(null, new object[] { items, item1, callback, complete });
+                var tr = (TResult)r;
+                return tr;
+            }
+
+            var itemValue = new T1[] { item1 };
+            var aggr = new TSelect[] { };
+            foreach (var item in items)
+            {
+                var block = new ManualResetEvent(false);
+                var keepResult = false;
+                var resultToDiscard = callback(
+                    item, itemValue[0],
+                    (selection, item1Next) =>
+                    {
+                        itemValue[0] = item1Next;
+                        aggr = aggr.Append(selection).ToArray();
+                        block.Set();
+                        return default(TResult);
+                    },
+                    (item1Next) =>
+                    {
+                        itemValue[0] = item1Next;
+                        block.Set();
+                        return default(TResult);
+                    },
+                    (result) =>
+                    {
+                        keepResult = true;
+                        block.Set();
+                        return result;
+                    });
+                block.WaitOne();
+                if (keepResult)
+                    return resultToDiscard;
+            }
+            return complete(aggr, itemValue[0]);
+        }
+
+        public async static Task<object> FlatMapGenericTailAsync<TItem, T1, TSelect>(this IEnumerable<TItem> items,
+                T1 item1,
+            Func<
+                TItem, T1,
+                Func<TSelect, T1, Task<object>>,  // next
+                Func<T1, Task<object>>, // skip
+                Func<Task<object>, Task<object>>, // tail
+                Task<object>> callback,
+            Func<TSelect[], T1, Task<object>> complete)
+        {
+            var globalSelection = new TSelect[] { };
+            var lastTask = (new object { }).ToTask();
+            foreach (var item in items)
+            {
+                var completeBlock = new ManualResetEvent(false);
+                var nextTask = default(Task<object>);
+
+                var completeCallback = Task<object>.Run(
+                    () =>
+                    {
+                        completeBlock.WaitOne();
+                        return nextTask;
+                    });
+
+                var tailed = false;
+                var block = new ManualResetEvent(false);
+                nextTask = await lastTask.ContinueWith(
+                    (lastTaskInner) =>
+                    {
+                        return callback(
+                            item, item1,
+                            (selection, item1Next) =>
+                            {
+                                globalSelection = globalSelection.Append(selection).ToArray();
+                                item1 = item1Next;
+                                block.Set();
+                                return completeCallback;
+                            },
+                            (item1Next) =>
+                            {
+                                item1 = item1Next;
+                                block.Set();
+                                return completeCallback;
+                            },
+                            (tailResult) =>
+                            {
+                                completeBlock.Set();
+                                tailed = true;
+                                block.Set();
+                                return tailResult;
+                            });
+                    });
+                block.WaitOne(); // wait here so Item1 is updated
+                if (tailed)
+                    return await nextTask;
+                completeBlock.Set();
+                lastTask = nextTask;
+            }
+            return await lastTask.ContinueWith(
+                lastTaskInner =>
+                {
+                    return complete(globalSelection, item1);
                 });
         }
 
