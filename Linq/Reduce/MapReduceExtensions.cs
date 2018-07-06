@@ -265,69 +265,58 @@ namespace EastFive.Linq
             return complete(aggr, itemValue[0]);
         }
 
-        public async static Task<object> FlatMapGenericTailAsync<TItem, T1, TSelect>(this IEnumerable<TItem> items,
+        private async static Task<TResult> FlatMapGenericTailAsync<TItem, T1, TSelect, TResult>(this IEnumerable<TItem> items,
                 T1 item1,
             Func<
                 TItem, T1,
-                Func<TSelect, T1, Task<object>>,  // next
-                Func<T1, Task<object>>, // skip
-                Func<Task<object>, Task<object>>, // tail
-                Task<object>> callback,
-            Func<TSelect[], T1, Task<object>> complete)
+                Func<TSelect, T1, Task<TResult>>,  // next
+                Func<T1, Task<TResult>>, // skip
+                Func<Task<TResult>, Task<TResult>>, // tail
+                Task<TResult>> callback,
+            Func<TSelect[], T1, Task<TResult>> complete)
         {
             var globalSelection = new TSelect[] { };
-            var lastTask = (new object { }).ToTask();
-            foreach (var item in items)
+            var itemsEnumerator = items.GetEnumerator();
+            var nextTask = default(Task<TResult>);
+            while (true)
             {
-                var completeBlock = new ManualResetEvent(false);
-                var nextTask = default(Task<object>);
+                if(!itemsEnumerator.MoveNext())
+                    return await complete(globalSelection, item1);
+                var item = itemsEnumerator.Current;
 
-                var completeCallback = Task<object>.Run(
-                    () =>
-                    {
-                        completeBlock.WaitOne();
-                        return nextTask;
-                    });
-
-                var tailed = false;
                 var block = new ManualResetEvent(false);
-                nextTask = await lastTask.ContinueWith(
-                    (lastTaskInner) =>
+                var tailed = false;
+                nextTask = callback(
+                    item, item1,
+                    (selection, item1Next) =>
                     {
-                        return callback(
-                            item, item1,
-                            (selection, item1Next) =>
-                            {
-                                globalSelection = globalSelection.Append(selection).ToArray();
-                                item1 = item1Next;
-                                block.Set();
-                                return completeCallback;
-                            },
-                            (item1Next) =>
-                            {
-                                item1 = item1Next;
-                                block.Set();
-                                return completeCallback;
-                            },
-                            (tailResult) =>
-                            {
-                                completeBlock.Set();
-                                tailed = true;
-                                block.Set();
-                                return tailResult;
-                            });
+                        globalSelection = globalSelection.Append(selection).ToArray();
+                        item1 = item1Next;
+                        block.Set();
+                        return nextTask;
+                    },
+                    (item1Next) =>
+                    {
+                        item1 = item1Next;
+                        block.Set();
+                        return nextTask;
+                    },
+                    (tailResult) =>
+                    {
+                        tailed = true;
+                        block.Set();
+                        return tailResult;
                     });
                 block.WaitOne(); // wait here so Item1 is updated
                 if (tailed)
                     return await nextTask;
-                completeBlock.Set();
-                lastTask = nextTask;
+
+                nextTask = await nextTask.ContinueWith(
+                    (lastTaskInner) =>
+                    {
+                        return nextTask;
+                    });
             }
-            return await lastTask.ContinueWith(
-                lastTaskInner =>
-                {
-                    return complete(globalSelection, item1);
-                });
         }
 
         /// <summary>
