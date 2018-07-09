@@ -265,70 +265,85 @@ namespace EastFive.Linq
             return complete(aggr, itemValue[0]);
         }
 
-        public async static Task<object> FlatMapGenericTailAsync<TItem, T1, TSelect>(this IEnumerable<TItem> items,
+        private async static Task<TResult> FlatMapGenericTailAsync<TItem, T1, TSelect, TResult>(this IEnumerable<TItem> items,
                 T1 item1,
             Func<
                 TItem, T1,
-                Func<TSelect, T1, Task<object>>,  // next
-                Func<T1, Task<object>>, // skip
-                Func<Task<object>, Task<object>>, // tail
-                Task<object>> callback,
-            Func<TSelect[], T1, Task<object>> complete)
+                Func<TSelect, T1, Task<TResult>>,  // next
+                Func<T1, Task<TResult>>, // skip
+                Func<Task<TResult>, Task<TResult>>, // tail
+                Task<TResult>> callback,
+            Func<TSelect[], T1, Task<TResult>> complete)
         {
-            var globalSelection = new TSelect[] { };
-            var lastTask = (new object { }).ToTask();
-            foreach (var item in items)
+            var globalSelection = new List<TSelect>();
+            var itemsEnumerator = items.GetEnumerator();
+            //var lastTask = default(Task<TResult>);
+            while (true)
             {
-                var completeBlock = new ManualResetEvent(false);
-                var nextTask = default(Task<object>);
+                if(!itemsEnumerator.MoveNext())
+                    return await complete(globalSelection.ToArray(), item1);
+                var item = itemsEnumerator.Current;
 
-                var completeCallback = Task<object>.Run(
-                    () =>
-                    {
-                        completeBlock.WaitOne();
-                        return nextTask;
-                    });
-
+                //var block = new ManualResetEvent(false);
                 var tailed = false;
-                var block = new ManualResetEvent(false);
-                nextTask = await lastTask.ContinueWith(
-                    (lastTaskInner) =>
+                var tailedValue = default(TResult).ToTask();
+                var lastTask = callback(
+                    item, item1,
+                    (selection, item1Next) =>
                     {
-                        return callback(
-                            item, item1,
-                            (selection, item1Next) =>
-                            {
-                                globalSelection = globalSelection.Append(selection).ToArray();
-                                item1 = item1Next;
-                                block.Set();
-                                return completeCallback;
-                            },
-                            (item1Next) =>
-                            {
-                                item1 = item1Next;
-                                block.Set();
-                                return completeCallback;
-                            },
-                            (tailResult) =>
-                            {
-                                completeBlock.Set();
-                                tailed = true;
-                                block.Set();
-                                return tailResult;
-                            });
+                        globalSelection.Add(selection);
+                        //globalSelection = globalSelection.Add(selection).ToArray();
+                        item1 = item1Next;
+                        //block.Set();
+                        return tailedValue; // lastTask;
+                    },
+                    (item1Next) =>
+                    {
+                        item1 = item1Next;
+                        //block.Set();
+                        return tailedValue; // lastTask;
+                    },
+                    (tailResult) =>
+                    {
+                        tailed = true;
+                        //block.Set();
+                        tailedValue = tailResult;
+                        return tailResult;
                     });
-                block.WaitOne(); // wait here so Item1 is updated
-                if (tailed)
-                    return await nextTask;
-                completeBlock.Set();
-                lastTask = nextTask;
-            }
-            return await lastTask.ContinueWith(
-                lastTaskInner =>
+
+
+                var taskChainNext = (object)lastTask;
+                while (true)
                 {
-                    return complete(globalSelection, item1);
-                });
+                    if (taskChainNext.IsDefaultOrNull())
+                        break;
+
+                    var taskChainNextType = taskChainNext.GetType();
+                    if (!taskChainNextType.IsGenericType)
+                        break;
+                    if (taskChainNextType.GetGenericTypeDefinition() != typeof(Task<>))
+                        break;
+
+                    var task = (Task)taskChainNext;
+                    await task.ConfigureAwait(false);
+                    // Harvest the result
+                    taskChainNext = (object)((dynamic)task).Result;
+                }
+
+                if (tailed)
+                    return await tailedValue;
+            }
         }
+
+        //private async Task<TResult> BuildContinuation<TResult>(Task<TResult> taskToContinue, Func<Task<TResult>> getNextTask)
+        //{
+        //    return await await taskToContinue.ContinueWith(
+        //        (lastTaskInner) =>
+        //        {
+        //            return getNextTask();
+        //        });
+
+        //}
 
         /// <summary>
         /// This method is tail optimized mean that calling methods should not use the return values from callback's next/skip
