@@ -1,4 +1,5 @@
 ﻿using EastFive.Extensions;
+using EastFive.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -218,7 +219,7 @@ namespace EastFive.Serialization
 
         public static byte[] ToUTF8ByteArrayOfStrings(this IEnumerable<string> strings)
         {
-            return strings.ToByteArray(str => Encoding.UTF8.GetBytes(str));
+            return strings.NullToEmpty().ToByteArray(str => str.IsDefaultOrNull()? new byte[] { } : Encoding.UTF8.GetBytes(str));
         }
 
         public static string GetString(this byte[] bytes, Encoding encoding = default(Encoding))
