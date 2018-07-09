@@ -201,6 +201,40 @@ namespace EastFive.Linq
                 });
         }
 
+        public delegate IEnumerable<TItem> ReduceCallbackDelegate<TItem>(TItem item1, TItem item2, out bool complete);
+        public static IEnumerable<TItem> Reduce<TItem>(this IEnumerable<TItem> items,
+            ReduceCallbackDelegate<TItem> callback)
+        {
+            var enumerator = items.NullToEmpty().GetEnumerator();
+            if (!enumerator.MoveNext())
+                return new TItem[] { };
+
+            var item1 = enumerator.Current;
+            bool complete = true;
+            var enumerationNext = item1.AsEnumerable();
+            while (true)
+            {
+                if (!enumerator.MoveNext())
+                {
+                    if (complete)
+                        return enumerationNext;
+
+                    complete = true;
+                    enumerator = enumerationNext.GetEnumerator();
+                    continue;
+                }
+                var item2 = enumerator.Current;
+
+                var newItems = callback(item1, item2, out bool completeSingle);
+                complete = complete && completeSingle;
+                if (!newItems.Any())
+                    continue;
+
+                item1 = newItems.Last();
+                enumerationNext = enumerationNext.Concat(newItems);
+            }
+        }
+
         public static TResult Reduce<T1, T2, TItem, TResult>(this IEnumerable<TItem> items,
             TResult initial, T1 v1, T2 v2,
             Func<TResult, T1, T2, TItem, Func<T1, T2, TResult, TResult>, TResult> callback)

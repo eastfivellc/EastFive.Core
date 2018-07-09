@@ -473,6 +473,31 @@ namespace EastFive.Linq
             }
         }
 
+        public static IEnumerable<TResult> SelectWithPeek<TItem, TResult, TInnerResult>(this IEnumerable<TItem> items,
+            Func<
+                TItem,
+                Func<
+                    Func<TItem, TInnerResult>,
+                    Func<TInnerResult>,
+                    TInnerResult>,
+                TResult> callback)
+        {
+            var enumerator = items.GetEnumerator();
+            bool peeked = false;
+            while(peeked || enumerator.MoveNext())
+            {
+                yield return callback(enumerator.Current,
+                    (next, end) =>
+                    {
+                        peeked = true;
+                        return enumerator.MoveNext() ?
+                            next(enumerator.Current)
+                            :
+                            end();
+                    });
+            }
+        }
+
         public static IEnumerable<TItem> OrderWith<TCarry, TItem>(this IEnumerable<TItem> items,
             TCarry carry, Func<TCarry, TItem, bool> selectNextItem, Func<TItem, TCarry> selectNextCarry)
         {
