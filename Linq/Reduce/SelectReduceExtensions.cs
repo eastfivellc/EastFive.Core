@@ -201,6 +201,76 @@ namespace EastFive.Linq
                 });
         }
 
+        public delegate IEnumerable<TItem> ReduceCallbackDelegate<TItem>(TItem item1, TItem item2, out bool complete);
+        public static IEnumerable<TItem> Reduce<TItem>(this IEnumerable<TItem> items,
+            ReduceCallbackDelegate<TItem> callback)
+        {
+            var enumerator = items.NullToEmpty().GetEnumerator();
+            var enumerationNext = new TItem[] { };
+
+            if (!enumerator.MoveNext())
+                return enumerationNext;
+
+            var item1 = enumerator.Current;
+            bool complete = true;
+
+            while (true)
+            {
+                if (!enumerator.MoveNext())
+                {
+                    enumerationNext = enumerationNext.Append(item1).ToArray();
+                    if (complete)
+                        return enumerationNext;
+
+                    enumerator = enumerationNext.Cast<TItem>().GetEnumerator();
+                    
+                    enumerator.MoveNext(); // next is always possible since item1 was added to enumerationNext before enumerator was created.
+                    item1 = enumerator.Current;
+                    enumerationNext = new TItem[] { };
+                    complete = true;
+                    continue;
+                }
+
+                var item2 = enumerator.Current;
+                var newItems = callback(item1, item2, out bool completeSingle).ToArray();
+                complete = complete && completeSingle;
+
+                // If items are returned...
+                if (newItems.Any())
+                {
+                    // ...add all but the last item to the next iteration
+                    enumerationNext = enumerationNext.Concat(newItems.Take(newItems.Length - 1)).ToArray();
+                    // ...and use the last item as the new item1
+                    item1 = newItems.Last();
+                    continue;
+                }
+
+                #region if no items, were returned things get tricky
+
+                // If there are more items to operate over..
+                if (enumerator.MoveNext())
+                {
+                    // ... just use the next item as item1 and continue
+                    item1 = enumerator.Current; 
+                    continue;
+                }
+
+                // otherwise, the interation needs to be started over again with the next round
+                enumerator = enumerationNext.Cast<TItem>().GetEnumerator();
+                enumerationNext = new TItem[] { };
+                
+                // and if the next round is empty, all the items have been reduced out
+                if (!enumerator.MoveNext())
+                    return enumerationNext;
+
+                item1 = enumerator.Current;
+                complete = true;
+
+                #endregion
+
+            }
+        }
+
         public static TResult Reduce<T1, T2, TItem, TResult>(this IEnumerable<TItem> items,
             TResult initial, T1 v1, T2 v2,
             Func<TResult, T1, T2, TItem, Func<T1, T2, TResult, TResult>, TResult> callback)

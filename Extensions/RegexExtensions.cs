@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using EastFive.Linq.Async;
 using EastFive.Linq;
 
-namespace BlackBarLabs
+namespace EastFive
 {
     public static class RegexExtensions
     {
