@@ -39,6 +39,12 @@ namespace EastFive.Extensions
             return new KeyValuePair<TKey, TValue>(key, value);
         }
 
+        public static T? AsOptional<T>(this T value)
+            where T : struct
+        {
+            return (T?)value;
+        }
+
         #region AsArray
 
         public static T[] AsArray<T>(this T onlyItem)

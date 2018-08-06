@@ -406,7 +406,14 @@ namespace EastFive.Serialization
         private static IEnumerable<Nullable<T>> ToNullableEnumerableFromByteArray<T>(this byte[] byteArrayOfNullables, Func<byte[], T> convert, int constantSize)
             where T : struct
         {
-            var storageLength = BitConverter.ToInt32(byteArrayOfNullables, 0);
+            int storageLength;
+            try
+            {
+                storageLength = BitConverter.ToInt32(byteArrayOfNullables, 0);
+            } catch(ArgumentOutOfRangeException)
+            {
+                yield break;
+            }
             var byteArrayOfNullable = new byte[storageLength];
             var index = sizeof(int);
             while (index < byteArrayOfNullables.Length)

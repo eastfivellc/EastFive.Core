@@ -103,12 +103,13 @@ namespace EastFive.Linq
                 // Call it this way because we need to remap TResult from Task<TR> to TR
                 var method = typeof(MapReduceExtensions).GetMethod("FlatMapGenericAsync", BindingFlags.NonPublic | BindingFlags.Static);
                 var generic = method.MakeGenericMethod(typeof(TItem), typeof(T1), typeof(TSelect), typeof(TResult).GenericTypeArguments.First());
-                var r = generic.Invoke(null, new object[] { items, item1, callback, complete });
+                var r = generic.Invoke(null, new object[] { items.NullToEmpty(), item1, callback, complete });
                 var tr = (TResult)r;
                 return tr;
             }
 
             return items
+                .NullToEmpty()
                 .Aggregate(
                     item1.PairWithValue(new TSelect[] { }),
                     (aggr, item) =>

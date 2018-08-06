@@ -236,8 +236,28 @@ namespace EastFive.Linq
         }
 
 
+        public static IDictionary<TKey, TValue> Merge<TKey, TValue>(this IDictionary<TKey, TValue> items1,
+            IEnumerable<KeyValuePair<TKey, TValue>> items2,
+            Func<TKey, TValue, TValue, TValue> merge)
+        {
+            var item1Lookup = items1.NullToEmpty().ToDictionary();
+            var item2Lookup = items2.NullToEmpty().ToDictionary();
+            var item1Keys = item1Lookup.SelectKeys();
+            var item2Keys = item2Lookup.SelectKeys();
 
+            var intersection = item1Keys.Union(item2Keys);
 
+            return intersection
+                .Select(key => key.PairWithValue(
+                    item1Lookup.ContainsKey(key) ?
+                        item2Lookup.ContainsKey(key) ?
+                            merge(key, item1Lookup[key], item2Lookup[key])
+                        :
+                        item1Lookup[key]
+                    :
+                    item2Lookup[key]))
+                .ToDictionary();
+        }
 
         public static async Task<IEnumerable<T>> AppendYieldAsync<T>(this IEnumerable<T> items, Func<Action<T>, Task> callback)
         {

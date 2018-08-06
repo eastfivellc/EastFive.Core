@@ -32,7 +32,15 @@ namespace EastFive
             foreach (Group capture in collection)
                 yield return capture;
         }
-        
+
+        /// <summary>
+        /// Populates an object of type <typeparamref name="T"/> for each matching expression. The objects' properties are specified in <paramref name="expressions"/>
+        /// </summary>
+        /// <typeparam name="T">Must have empty contructor for Activator.CreateInstance<T>()</typeparam>
+        /// <param name="input">String to match against.</param>
+        /// <param name="regularExpression"></param>
+        /// <param name="expressions">Which properties of the object to populate.</param>
+        /// <returns></returns>
         public static T[] MatchRegex<T>(this string input, string regularExpression,
             params Expression<Func<T, object>>[] expressions)
         {
@@ -104,6 +112,13 @@ namespace EastFive
             return results;
         }
 
+        /// <summary>
+        /// Populates an object of type <typeparamref name="T"/> for a single matching expression. The object's properties are specified in <paramref name="expressions"/>
+        /// </summary>
+        /// <typeparam name="T">Must have empty contructor for Activator.CreateInstance<T>()</typeparam>
+        /// <param name="input">String to match against.</param>
+        /// <param name="regularExpression"></param>
+        /// <param name="expressions">Which properties of the object to populate.</param>
         public static TResult MatchRegex<T, TResult>(this string input, string regularExpression,
             Func<T, TResult> onMatched,
             Func<TResult> onNotMatched,
@@ -182,7 +197,24 @@ namespace EastFive
 
             return results.Any()? onMatched(results.First()) : onNotMatched();
         }
-        
+
+        /// <summary>
+        /// Invokes expression for each match of <paramref name="regularExpression"/> in <paramref name="input"/>.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="input">String to match against.</param>
+        /// <param name="regularExpression">
+        /// To populate an expression parameter named `verb1` use "The fox (?<verb1>[a-zA-Z]+) the log."
+        /// To ignore case: ".*(?i)IgNore CaSE oF THIS(?-i)
+        /// </param>
+        /// <param name="expression">
+        /// Invoked once for each match. The argument must be named. For example, <code>(string verb1) =>...</code>"
+        /// </param>
+        /// <param name="onMatched">
+        /// Method to handle the match results. An empty array is provided if <paramref name="input"/> did not match <paramref name="expression"/>.
+        /// </param>
+        /// <returns></returns>
         public static TResult MatchRegexInvoke<T, TResult>(this string input, string regularExpression,
             Expression<Func<string, T>> expression,
             Func<T[], TResult> onMatched)
@@ -194,6 +226,23 @@ namespace EastFive
                 invokeArgs => (T)exec.Invoke(invokeArgs[0]));
         }
 
+        /// <summary>
+        /// Invokes expression for each match of <paramref name="regularExpression"/> in <paramref name="input"/>.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="input">String to match against.</param>
+        /// <param name="regularExpression">
+        /// To populate expression parameters named `verb1` and `noun1` use "The fox (?<verb1>[a-zA-Z]+) the (?<noun1>[a-zA-Z]+)."
+        /// To ignore case: ".*(?i)IgNore CaSE oF THIS(?-i)
+        /// </param>
+        /// <param name="expression">
+        /// Invoked once for each match. The arguments must be named. For example, <code>(string verb1, string noun1) =>...</code>"
+        /// </param>
+        /// <param name="onMatched">
+        /// Method to handle the match results. An empty array is provided if <paramref name="input"/> did not match <paramref name="expression"/>.
+        /// </param>
+        /// <returns></returns>
         public static TResult MatchRegexInvoke<T, TResult>(this string input, string regularExpression,
             Expression<Func<string, string, T>> expression,
             Func<T[], TResult> onMatched)
@@ -205,6 +254,23 @@ namespace EastFive
                 invokeArgs => (T)exec.Invoke(invokeArgs[0], invokeArgs[1]));
         }
 
+        /// <summary>
+        /// Invokes expression for each match of <paramref name="regularExpression"/> in <paramref name="input"/>.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="input">String to match against.</param>
+        /// <param name="regularExpression">
+        /// To populate expression parameters named `verb1`, `noun1`, and `noun2` use "The (?<noun2>[a-zA-Z]+) (?<verb1>[a-zA-Z]+) the (?<noun1>[a-zA-Z]+)."
+        /// To ignore case: ".*(?i)IgNore CaSE oF THIS(?-i)
+        /// </param>
+        /// <param name="expression">
+        /// Invoked once for each match. The arguments must be named. For example, <code>(string verb1, string noun1, string noun2) =>...</code>"
+        /// </param>
+        /// <param name="onMatched">
+        /// Method to handle the match results. An empty array is provided if <paramref name="input"/> did not match <paramref name="expression"/>.
+        /// </param>
+        /// <returns></returns>
         public static TResult MatchRegexInvoke<T, TResult>(this string input, string regularExpression,
             Expression<Func<string, string, string, T>> expression,
             Func<T[], TResult> onMatched)
