@@ -121,6 +121,16 @@ namespace BlackBarLabs
 
         #endregion
 
+        #region Misc
+        public static int BirthDateToAge(this DateTime dateOfBirth)
+        {
+            int years = DateTime.Now.Year - dateOfBirth.Year;
+            if ((dateOfBirth.Month > DateTime.Now.Month) || (dateOfBirth.Month == DateTime.Now.Month && dateOfBirth.Day > DateTime.Now.Day))
+                years--;
+            return years;
+        }
+        #endregion Misc
+
         #endregion
     }
 }
