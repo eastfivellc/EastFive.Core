@@ -334,17 +334,7 @@ namespace EastFive.Linq
                     return await tailedValue;
             }
         }
-
-        //private async Task<TResult> BuildContinuation<TResult>(Task<TResult> taskToContinue, Func<Task<TResult>> getNextTask)
-        //{
-        //    return await await taskToContinue.ContinueWith(
-        //        (lastTaskInner) =>
-        //        {
-        //            return getNextTask();
-        //        });
-
-        //}
-
+        
         /// <summary>
         /// This method is tail optimized mean that calling methods should not use the return values from callback's next/skip
         /// </summary>
