@@ -106,6 +106,24 @@ namespace EastFive
             return String.IsNullOrWhiteSpace(value);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="value"></param>
+        /// <param name="onIsNullOrWhiteSpace"></param>
+        /// <param name="onHasContent">Passes back the string that was passed in to help keep the calling method from getting the params backwards</param>
+        /// <returns></returns>
+        public static TResult IsNullOrWhiteSpace<TResult>(this string value,
+            Func<TResult> onIsNullOrWhiteSpace,
+            Func<string, TResult> onHasContent)
+        {
+            return String.IsNullOrWhiteSpace(value) ?
+                onIsNullOrWhiteSpace()
+                :
+                onHasContent(value);
+        }
+
         public static TEnum AsEnum<TEnum>(this string value)
             where TEnum : struct // best we can do for now
         {
