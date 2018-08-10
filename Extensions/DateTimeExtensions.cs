@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BlackBarLabs
+namespace EastFive
 {
     public static class DateTimeExtensions
     {
@@ -130,6 +130,24 @@ namespace BlackBarLabs
             return years;
         }
         #endregion Misc
+
+        #endregion
+
+        #region Comparison
+
+        public static DateTime Min(this DateTime time1, DateTime time2)
+        {
+            if (time1 < time2)
+                return time1;
+            return time2;
+        }
+
+        public static DateTime Max(this DateTime time1, DateTime time2)
+        {
+            if (time1 > time2)
+                return time1;
+            return time2;
+        }
 
         #endregion
     }
