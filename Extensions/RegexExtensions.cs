@@ -292,7 +292,7 @@ namespace EastFive
                 .Matches(input)
                 .AsMatches();
             var parameterAndValuess = matches
-                .Where(match => match.Success && match.Groups.Count == (parameterSet.Length + 1))
+                .Where(match => match.Success)
                 .Select(
                     (match) =>
                     {

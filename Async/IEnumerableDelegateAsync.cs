@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace EastFive.Linq.Async
 {
-    public static class IEnumerableAsync
+    public static class IEnumerableAsyncZ
     {
         public delegate Task<bool> IEnumerableDelegateAsync<TItem>(
             Action<TItem, IEnumerableDelegateAsync<TItem>> callback);
