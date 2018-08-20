@@ -73,11 +73,6 @@
     <Compile Include="Functional\DiscriminatedFunctions.cs" />
     <Compile Include="Linq\AsyncExtensions.cs" />
     <Compile Include="Collections\DictionaryExtensions.cs" />
-    <Compile Include="Linq\Async\EnumerableAsync.cs" />
-    <Compile Include="Linq\Async\IDictionaryAsync.cs" />
-    <Compile Include="Linq\Async\IEnumerableAsync.cs" />
-    <Compile Include="Linq\Async\IEnumeratorAsync.cs" />
-    <Compile Include="Linq\Async\EnumerableAsync.LinqExtensions.cs" />
     <Compile Include="Linq\RecurseExtensions.cs" />
     <Compile Include="Linq\Culling.cs" />
     <Compile Include="Linq\EnumerableExtensions.cs" />
