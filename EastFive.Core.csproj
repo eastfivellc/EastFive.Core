@@ -74,7 +74,11 @@
     <Compile Include="Linq\AsyncExtensions.cs" />
     <Compile Include="Collections\DictionaryExtensions.cs" />
     <Compile Include="Linq\Async\EnumerableAsync.cs" />
+    <Compile Include="Linq\Async\EnumerableAsync.EnumerationExtensions.cs" />
+    <Compile Include="Linq\Async\EnumerableAsync.DictionaryExtensions.cs" />
+    <Compile Include="Linq\Async\EnumerableAsync.GroupExtensions.cs" />
     <Compile Include="Linq\Async\IDictionaryAsync.cs" />
+    <Compile Include="Linq\Async\IGroupingAsync.cs" />
     <Compile Include="Linq\Async\IEnumerableAsync.cs" />
     <Compile Include="Linq\Async\IEnumeratorAsync.cs" />
     <Compile Include="Linq\Async\EnumerableAsync.LinqExtensions.cs" />
