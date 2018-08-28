@@ -47,7 +47,12 @@ namespace EastFive.Linq.Async
             }
             return new StepEnumerable<T>(firstStep);
         }
-
+        
+        public static async Task<T[]> ToArrayAsync<T>(this IEnumerableAsync<T> enumerableAsync)
+        {
+            var enumerable = await enumerableAsync.Async();
+            return enumerable.ToArray();
+        }
 
         private struct Step<T>
         {
@@ -106,19 +111,6 @@ namespace EastFive.Linq.Async
                 this.GetEnumerator();
         }
         
-
-        //public static IDictionaryAsync<TKey, TValue> ToAsyncDictionary<T, TKey, TValue>(this IEnumerableAsync<Task<T>> enumerable,
-        //    Func<T, TKey> selectKey,
-        //    Func<T, TValue> selectValue)
-        //{
-        //    return new DelegateEnumerableAsync<T, Task<T>>(enumerable,
-        //        async (enumeratorAsync, moved, ended) =>
-        //        {
-        //            if (!await enumeratorAsync.MoveNextAsync())
-        //                return ended();
-        //            var next = await enumeratorAsync.Current;
-        //            return moved(next);
-        //        });
-        //}
+        
     }
 }

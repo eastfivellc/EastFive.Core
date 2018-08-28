@@ -84,5 +84,12 @@ namespace EastFive.Linq.Async
             return new DictionaryAsync<TElement, TKey, TValue>(enumerable, keySelector, valueSelector);
         }
 
+        public static IDictionaryAsync<TKey, TValue> ToDictionary<TKey, TValue>(this IEnumerableAsync<KeyValuePair<TKey, TValue>> enumerable)
+        {
+            return new DictionaryAsync<KeyValuePair<TKey, TValue>, TKey, TValue>(enumerable, 
+                (kvp) => kvp.Key,
+                (kvp) => kvp.Value);
+        }
+
     }
 }
