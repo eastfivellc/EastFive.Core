@@ -1,4 +1,8 @@
-﻿using System;
+﻿using BlackBarLabs;
+using BlackBarLabs.Extensions;
+using EastFive.Collections.Generic;
+using EastFive.Extensions;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -61,7 +65,6 @@ namespace EastFive.Linq.Async
             return onNone();
         }
 
-
         public static IEnumerableAsync<T> Take<T>(this IEnumerableAsync<T> enumerable, int count)
         {
             return new AppendedDelegateEnumerableAsync<T, T, int>(count, enumerable,
@@ -113,6 +116,53 @@ namespace EastFive.Linq.Async
                 });
         }
         
+        public static IEnumerableAsync<T> SelectMany<T>(this IEnumerable<IEnumerableAsync<T>> enumerables)
+        {
+            var enumerators = enumerables
+                .Select(enumerable => enumerable.GetEnumerator())
+                .Select(enumerator => enumerator.PairWithKey(enumerator.MoveNextAsync()))
+                .ToDictionary();
+
+            return Yield<T>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    while (true)
+                    {
+                        var finishedTask = GetFirstSuccessfulTask<bool>(enumerators
+                            .Select(kvp => kvp.Key));
+                        var moved = await finishedTask;
+                        var enumerator = enumerators[finishedTask];
+                        enumerators.Remove(finishedTask);
+                        if (moved)
+                        {
+                            var current = enumerator.Current;
+                            enumerators.Add(enumerator.MoveNextAsync(), enumerator);
+                            return yieldReturn(current);
+                        }
+                        if (!enumerators.Any())
+                            return yieldBreak;
+                    }
+                });
+        }
+
+        public static Task<T> GetFirstSuccessfulTask<T>(this IEnumerable<Task<T>> tasks)
+        {
+            var tcs = new TaskCompletionSource<T>();
+            int remainingTasks = tasks.Count();
+            foreach (var task in tasks)
+            {
+                task.ContinueWith(t =>
+                {
+                    if (task.Status == TaskStatus.RanToCompletion)
+                        tcs.TrySetResult(t.Result);
+                    else if (System.Threading.Interlocked.Decrement(ref remainingTasks) == 0)
+                        tcs.SetException(new AggregateException(
+                            tasks.SelectMany(t2 => t2.Exception?.InnerExceptions ?? Enumerable.Empty<Exception>())));
+                });
+            }
+            return tcs.Task;
+        }
+
         public static IEnumerableAsync<T> Await<T>(this IEnumerableAsync<Task<T>> enumerable)
         {
             return new DelegateEnumerableAsync<T, Task<T>>(enumerable,

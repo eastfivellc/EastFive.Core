@@ -132,5 +132,21 @@ namespace EastFive.Linq.Async
         {
             return new YieldEnumerable<T>(generateFunction);
         }
+
+        public static IEnumerableAsync<T> Range<T>(int start, int count,
+            Func<int, Task<T>> generateFunction)
+        {
+            return Yield<T>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    if (count == 0)
+                        return yieldBreak;
+                    count--;
+                    var index = start;
+                    start++;
+                    var value = await generateFunction(index);
+                    return yieldReturn(value);
+                });
+        }
     }
 }
