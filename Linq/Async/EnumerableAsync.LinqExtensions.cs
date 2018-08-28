@@ -119,30 +119,51 @@ namespace EastFive.Linq.Async
         public static IEnumerableAsync<T> SelectMany<T>(this IEnumerable<IEnumerableAsync<T>> enumerables)
         {
             var enumerators = enumerables
-                .Select(enumerable => enumerable.GetEnumerator())
-                .Select(enumerator => enumerator.PairWithKey(enumerator.MoveNextAsync()))
+                .Select((enumerable, index) => index.PairWithValue(enumerable.GetEnumerator()))
                 .ToDictionary();
+
+            var tasks = enumerators
+                .Select(enumerator => enumerator.Key.PairWithValue(enumerator.Value.MoveNextAsync()))
+                .ToArray();
 
             return Yield<T>(
                 async (yieldReturn, yieldBreak) =>
                 {
                     while (true)
                     {
-                        var finishedTask = GetFirstSuccessfulTask<bool>(enumerators
-                            .Select(kvp => kvp.Key));
-                        var moved = await finishedTask;
-                        var enumerator = enumerators[finishedTask];
-                        enumerators.Remove(finishedTask);
+                        var finishedTaskKvp = await GetCompletedTaskIndex<bool>(tasks);
+                        var finishedTaskIndex = finishedTaskKvp.Key;
+                        var moved = finishedTaskKvp.Value;
+                        var enumerator = enumerators[finishedTaskIndex];
+                        tasks = tasks.Where(task => task.Key != finishedTaskIndex).ToArray();
                         if (moved)
                         {
                             var current = enumerator.Current;
-                            enumerators.Add(enumerator.MoveNextAsync(), enumerator);
+                            tasks = tasks.Append(finishedTaskIndex.PairWithValue(enumerators[finishedTaskIndex].MoveNextAsync())).ToArray();
                             return yieldReturn(current);
                         }
-                        if (!enumerators.Any())
+                        if (!tasks.Any())
                             return yieldBreak;
                     }
                 });
+        }
+
+        public static Task<KeyValuePair<int, T>> GetCompletedTaskIndex<T>(this IEnumerable<KeyValuePair<int, Task<T>>> tasks)
+        {
+            var tcs = new TaskCompletionSource<KeyValuePair<int, T>>();
+            int remainingTasks = tasks.Count();
+            foreach (var task in tasks)
+            {
+                task.Value.ContinueWith(t =>
+                {
+                    if (task.Value.Status == TaskStatus.RanToCompletion)
+                        tcs.TrySetResult(task.Key.PairWithValue(task.Value.Result));
+                    else if (System.Threading.Interlocked.Decrement(ref remainingTasks) == 0)
+                        tcs.SetException(new AggregateException(
+                            tasks.SelectMany(t2 => t2.Value.Exception?.InnerExceptions ?? Enumerable.Empty<Exception>())));
+                });
+            }
+            return tcs.Task;
         }
 
         public static Task<T> GetFirstSuccessfulTask<T>(this IEnumerable<Task<T>> tasks)

@@ -115,7 +115,7 @@ namespace EastFive.Linq.Async
                         },
                         () =>
                         {
-                            this.currentStep = null;
+                            //this.currentStep = null;
                             return false;
                         });
                 }
