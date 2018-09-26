@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using EastFive.Linq;
 using EastFive.Serialization;
 
@@ -93,6 +94,18 @@ namespace EastFive
         {
             Guid discard;
             return Guid.TryParse(possibleGuid, out discard);
+        }
+
+        public static bool IsGuids(this string possibleGuids)
+        {
+            if (possibleGuids.IsNullOrWhiteSpace())
+                return false;
+
+            if (Guid.TryParse(possibleGuids, out Guid guidDiscard))
+                return true;
+
+            var possibleGuidArray = possibleGuids.Split(',');
+            return possibleGuidArray.Any(possibleGuid => Guid.TryParse(possibleGuid, out Guid discard));
         }
 
         public static string ToText(this byte [] bytes, System.Text.Encoding encoding = default(System.Text.Encoding))
