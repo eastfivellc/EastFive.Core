@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using EastFive.Linq;
+using EastFive.Serialization;
 
 namespace EastFive
 {
@@ -100,7 +101,14 @@ namespace EastFive
                 encoding = System.Text.ASCIIEncoding.ASCII;
             return encoding.GetString(bytes);
         }
-    
+
+        public static Stream ToStream(this string text, System.Text.Encoding encoding = default(System.Text.Encoding))
+        {
+            var bytes = text.GetBytes(encoding);
+            var stream = new MemoryStream(bytes);
+            return stream;
+        }
+
         public static bool IsNullOrWhiteSpace(this string value)
         {
             return String.IsNullOrWhiteSpace(value);
