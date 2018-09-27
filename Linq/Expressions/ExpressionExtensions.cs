@@ -99,10 +99,27 @@ namespace EastFive.Linq.Expressions
             return values;
         }
 
+        /// <summary>
+        /// Attempt to resolve the value of the expression without compiling and invoking the expression.
+        /// </summary>
+        /// <remarks>
+        /// This method will compile and invoke the expression,
+        /// or a subset of the expression, 
+        /// if it fails to resolve it with other means.
+        /// Methods called by the expression will be invoked.
+        /// </remarks>
+        /// <param name="expression"></param>
+        /// <returns></returns>
         public static object Resolve(this Expression expression)
         {
             if (expression is MemberExpression)
-                return GetMemberExpressionValue((MemberExpression)expression);
+            {
+                var memberExpression = expression as MemberExpression;
+                var memberObject = memberExpression.Expression.Resolve();
+                var memberOfObjectAccessed = memberObject.GetType().GetField(memberExpression.Member.Name);
+                var memberValue = memberOfObjectAccessed.GetValue(memberObject);
+                return memberValue;
+            }
 
             if (expression is UnaryExpression)
             {
@@ -114,36 +131,30 @@ namespace EastFive.Linq.Expressions
                 if(unaryMethod.IsStatic && unaryMethod.GetParameters().Length == 1)
                 {
                     var operandValue = unaryExpression.Operand.Resolve();
-                    var convertedValue = unaryExpression.Method.Invoke(null, new object[] { operandValue });
-                    return convertedValue;
+                    try
+                    {
+                        var convertedValue = unaryExpression.Method.Invoke(null, new object[] { operandValue });
+                        return convertedValue;
+                    } catch(Exception ex)
+                    {
+                        ex.GetType();
+                    }
                 }
                 // otherwise more work is required to call it.
                 
             }
 
+            if (expression is ConstantExpression)
+            {
+                var constantExpression = expression as ConstantExpression;
+                var constantValue = constantExpression.Value;
+                return constantValue;
+            }
+
             var value = Expression.Lambda(expression).Compile().DynamicInvoke();
             return value;
         }
-
-        private static object GetMemberExpressionValue(MemberExpression exp)
-        {
-            // expression is ConstantExpression or FieldExpression
-            if (exp.Expression is ConstantExpression)
-            {
-                var constantExpression = exp.Expression as ConstantExpression;
-                var constantValue = constantExpression.Value;
-                var memberAccessedFromConst = constantExpression.Type.GetField(exp.Member.Name);
-                var memberValue = memberAccessedFromConst.GetValue(constantValue);
-                return memberValue;
-            }
-
-            if (exp.Expression is MemberExpression)
-                return GetMemberExpressionValue((MemberExpression)exp.Expression);
-
-            var value = Expression.Lambda(exp.Expression).Compile().DynamicInvoke();
-            return value;
-        }
-
+        
         public static TResult GetAssignment<TObject, TResult>(this Expression<Action<TObject>> expression,
             Func<MemberInfo, object, TResult> onAssignmentResolved,
             Func<string, TResult> onFailure = default(Func<string, TResult>))
