@@ -65,7 +65,7 @@ namespace EastFive.Linq.Async
                 Func<TValue, TResult> onValue,
                 Func<TResult> onNotFound)
             {
-                return await enumerable.FirstAsync(
+                return await enumerable.FirstMatchAsync(
                     async (element, next) =>
                     {
                         var elementKey = this.keySelector(element);

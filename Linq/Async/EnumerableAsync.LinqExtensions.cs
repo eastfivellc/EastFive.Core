@@ -44,8 +44,17 @@ namespace EastFive.Linq.Async
                 });
         }
 
+        public static async Task<TResult> FirstAsync<T, TResult>(this IEnumerableAsync<T> enumerable,
+            Func<T, TResult> onOne,
+            Func<TResult> onNone)
+        {
+            var enumerator = enumerable.GetEnumerator();
+            if (await enumerator.MoveNextAsync())
+                return onOne(enumerator.Current);
+            return onNone();
+        }
 
-        public static Task<TResult> FirstAsync<T, TResult>(this IEnumerableAsync<T> enumerable,
+        public static Task<TResult> FirstMatchAsync<T, TResult>(this IEnumerableAsync<T> enumerable,
             Func<T, Func<Task<TResult>>, Task<TResult>> onOne,
             Func<TResult> onNone)
         {
@@ -115,7 +124,27 @@ namespace EastFive.Linq.Async
                     return moved(current);
                 });
         }
-        
+
+        public static IEnumerableAsync<T> Distinct<T, TKey>(this IEnumerableAsync<T> enumerable, Func<T, TKey> selectKey)
+        {
+            var accumulation = new TKey[] { }; // TODO: Should be a hash
+            return new DelegateEnumerableAsync<T, T>(enumerable,
+                async (enumeratorAsync, enumeratorDestination, moved, ended) =>
+                {
+                    if (!await enumeratorAsync.MoveNextAsync())
+                        return ended();
+                    var current = enumeratorAsync.Current;
+                    while (accumulation.Contains(selectKey(current)))
+                    {
+                        if (!await enumeratorAsync.MoveNextAsync())
+                            return ended();
+                        current = enumeratorAsync.Current;
+                    }
+                    accumulation = accumulation.Append(selectKey(current)).ToArray();
+                    return moved(current);
+                });
+        }
+
         public static IEnumerableAsync<T> SelectMany<T>(this IEnumerable<IEnumerableAsync<T>> enumerables)
         {
             var enumerators = enumerables
@@ -144,6 +173,29 @@ namespace EastFive.Linq.Async
                         }
                         if (!tasks.Any())
                             return yieldBreak;
+                    }
+                });
+        }
+
+        public static IEnumerableAsync<TResult> SelectMany<T, TResult>(this IEnumerableAsync<T> enumerables, Func<T, IEnumerable<TResult>> selectMany)
+        {
+            var enumerator = enumerables.GetEnumerator();
+            var enumeratorInner = default(IEnumerator<TResult>);
+            return Yield<TResult>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    while (true)
+                    {
+                        if (enumeratorInner.IsDefaultOrNull() || (!enumeratorInner.MoveNext()))
+                        {
+                            if (!await enumerator.MoveNextAsync())
+                                return yieldBreak;
+
+                            enumeratorInner = selectMany(enumerator.Current).GetEnumerator();
+                            if (!enumeratorInner.MoveNext())
+                                continue;
+                        }
+                        return yieldReturn(enumeratorInner.Current);
                     }
                 });
         }
