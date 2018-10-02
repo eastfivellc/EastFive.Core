@@ -15,16 +15,6 @@ namespace EastFive.Linq.Async
             return enumerator.MoveNextAsync();
         }
 
-        public static async Task<TResult> FirstAsync<T, TResult>(this IEnumerableAsync<T> enumerable,
-            Func<T, TResult> onOne,
-            Func<TResult> onNone)
-        {
-            var enumerator = enumerable.GetEnumerator();
-            if (!await enumerator.MoveNextAsync())
-                return onNone();
-            return onOne(enumerator.Current);
-        }
-
         public static async Task<IEnumerable<T>> Async<T>(this IEnumerableAsync<T> enumerable)
         {
             var enumerator = enumerable.GetEnumerator();
