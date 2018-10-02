@@ -31,6 +31,24 @@ namespace EastFive.Linq.Async
                 });
         }
 
+        public static IEnumerableAsync<T> AsyncWhere<T>(this IEnumerableAsync<T> enumerable, Func<T, Task<bool>> predicate)
+        {
+            return new DelegateEnumerableAsync<T, T>(enumerable,
+                async (enumeratorAsync, enumeratorDestination, moved, ended) =>
+                {
+                    if (!await enumeratorAsync.MoveNextAsync())
+                        return ended();
+                    var current = enumeratorAsync.Current;
+                    while (!await predicate(current))
+                    {
+                        if (!await enumeratorAsync.MoveNextAsync())
+                            return ended();
+                        current = enumeratorAsync.Current;
+                    }
+                    return moved(current);
+                });
+        }
+
         public static IEnumerableAsync<TResult> Select<T, TResult>(this IEnumerableAsync<T> enumerable, Func<T, TResult> selection)
         {
             return new DelegateEnumerableAsync<TResult, T>(enumerable,
@@ -74,7 +92,13 @@ namespace EastFive.Linq.Async
             return onNone();
         }
 
-
+        public static async Task<IOrderedEnumerable<TItem>> OrderByAsync<TItem, TRank>(this IEnumerableAsync<TItem> enumerable,
+            Func<TItem, TRank> ranking)
+        {
+            var items = await enumerable.ToArrayAsync();
+            return items.OrderBy(ranking);
+        }
+        
         public static Task<TResult> MinimumAsync<TItem, TRank, TResult>(this IEnumerableAsync<TItem> enumerable,
                 Func<TItem, TRank> getRank,
             Func<TItem, TResult> onOne,

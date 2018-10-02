@@ -163,5 +163,19 @@ namespace EastFive.Linq.Async
                     return yieldReturn(item);
                 });
         }
+
+        public static IEnumerableAsync<TItem> AsyncEnumerable<TItem>(this IEnumerable<Task<TItem>> items)
+        {
+            var enumerator = items.GetEnumerator();
+            return Yield<TItem>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    if (!enumerator.MoveNext())
+                        return yieldBreak;
+
+                    var current = await enumerator.Current;
+                    return yieldReturn(current);
+                });
+        }
     }
 }
