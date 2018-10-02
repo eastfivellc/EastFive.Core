@@ -80,22 +80,23 @@ namespace EastFive.Linq.Async
             Func<TItem, TResult> onOne,
             Func<TResult> onNone)
         {
-            var accumulation = new TKey[] { }; // TODO: Should be a hash
-            return new DelegateEnumerableAsync<T, T>(enumerable,
-                async (enumeratorAsync, enumeratorDestination, moved, ended) =>
-                {
-                    if (!await enumeratorAsync.MoveNextAsync())
-                        return ended();
-                    var current = enumeratorAsync.Current;
-                    while (accumulation.Contains(selectKey(current)))
-                    {
-                        if (!await enumeratorAsync.MoveNextAsync())
-                            return ended();
-                        current = enumeratorAsync.Current;
-                    }
-                    accumulation = accumulation.Append(selectKey(current)).ToArray();
-                    return moved(current);
-                });
+            throw new NotImplementedException();
+            //var accumulation = new TKey[] { }; // TODO: Should be a hash
+            //return new DelegateEnumerableAsync<T, T>(enumerable,
+            //    async (enumeratorAsync, enumeratorDestination, moved, ended) =>
+            //    {
+            //        if (!await enumeratorAsync.MoveNextAsync())
+            //            return ended();
+            //        var current = enumeratorAsync.Current;
+            //        while (accumulation.Contains(selectKey(current)))
+            //        {
+            //            if (!await enumeratorAsync.MoveNextAsync())
+            //                return ended();
+            //            current = enumeratorAsync.Current;
+            //        }
+            //        accumulation = accumulation.Append(selectKey(current)).ToArray();
+            //        return moved(current);
+            //    });
         }
 
         public static IEnumerableAsync<T> Take<T>(this IEnumerableAsync<T> enumerable, int count)
@@ -174,67 +175,72 @@ namespace EastFive.Linq.Async
             Func<TItem, TRange> max,
             Func<TRange, TRange, IEnumerable<TResult>> range)
         {
-            var enumerators = enumerables
-                .Select((enumerable, index) => index.PairWithValue(enumerable.GetEnumerator()))
-                .ToDictionary();
 
-            var tasks = enumerators
-                .Select(enumerator => enumerator.Key.PairWithValue(enumerator.Value.MoveNextAsync()))
-                .ToArray();
+            throw new NotImplementedException();
 
-            return Yield<T>(
-                async (yieldReturn, yieldBreak) =>
-                {
-                    while (true)
-                    {
-                        var finishedTaskKvp = await GetCompletedTaskIndex<bool>(tasks);
-                        var finishedTaskIndex = finishedTaskKvp.Key;
-                        var moved = finishedTaskKvp.Value;
-                        var enumerator = enumerators[finishedTaskIndex];
-                        tasks = tasks.Where(task => task.Key != finishedTaskIndex).ToArray();
-                        if (moved)
-                        {
-                            var current = enumerator.Current;
-                            tasks = tasks.Append(finishedTaskIndex.PairWithValue(enumerators[finishedTaskIndex].MoveNextAsync())).ToArray();
-                            return yieldReturn(current);
-                        }
-                        if (!tasks.Any())
-                            return yieldBreak;
-                    }
-                });
+            //var enumerators = enumerables
+            //    .Select((enumerable, index) => index.PairWithValue(enumerable.GetEnumerator()))
+            //    .ToDictionary();
+
+            //var tasks = enumerators
+            //    .Select(enumerator => enumerator.Key.PairWithValue(enumerator.Value.MoveNextAsync()))
+            //    .ToArray();
+
+            //return Yield<T>(
+            //    async (yieldReturn, yieldBreak) =>
+            //    {
+            //        while (true)
+            //        {
+            //            var finishedTaskKvp = await GetCompletedTaskIndex<bool>(tasks);
+            //            var finishedTaskIndex = finishedTaskKvp.Key;
+            //            var moved = finishedTaskKvp.Value;
+            //            var enumerator = enumerators[finishedTaskIndex];
+            //            tasks = tasks.Where(task => task.Key != finishedTaskIndex).ToArray();
+            //            if (moved)
+            //            {
+            //                var current = enumerator.Current;
+            //                tasks = tasks.Append(finishedTaskIndex.PairWithValue(enumerators[finishedTaskIndex].MoveNextAsync())).ToArray();
+            //                return yieldReturn(current);
+            //            }
+            //            if (!tasks.Any())
+            //                return yieldBreak;
+            //        }
+            //    });
         }
         
         public static IEnumerableAsync<TItem> Compress<TItem>(this IEnumerableAsync<TItem> enumerables,
             Func<TItem, TItem, IEnumerableAsync<TItem>> compressor)
         {
-            var enumerators = enumerables
-                .Select((enumerable, index) => index.PairWithValue(enumerable.GetEnumerator()))
-                .ToDictionary();
+            throw new NotImplementedException();
 
-            var tasks = enumerators
-                .Select(enumerator => enumerator.Key.PairWithValue(enumerator.Value.MoveNextAsync()))
-                .ToArray();
+            //var enumerators = enumerables
+            //    .Select((enumerable, index) => index.PairWithValue(enumerable.GetEnumerator()))
+            //    .ToDictionary();
 
-            return Yield<T>(
-                async (yieldReturn, yieldBreak) =>
-                {
-                    while (true)
-                    {
-                        var finishedTaskKvp = await GetCompletedTaskIndex<bool>(tasks);
-                        var finishedTaskIndex = finishedTaskKvp.Key;
-                        var moved = finishedTaskKvp.Value;
-                        var enumerator = enumerators[finishedTaskIndex];
-                        tasks = tasks.Where(task => task.Key != finishedTaskIndex).ToArray();
-                        if (moved)
-                        {
-                            var current = enumerator.Current;
-                            tasks = tasks.Append(finishedTaskIndex.PairWithValue(enumerators[finishedTaskIndex].MoveNextAsync())).ToArray();
-                            return yieldReturn(current);
-                        }
-                        if (!tasks.Any())
-                            return yieldBreak;
-                    }
-                });
+            //var tasks = enumerators
+            //    .Select(enumerator => enumerator.Key.PairWithValue(enumerator.Value.MoveNextAsync()))
+            //    .ToArray();
+
+            //return Yield<T>(
+            //    async (yieldReturn, yieldBreak) =>
+            //    {
+            //        while (true)
+            //        {
+            //            var finishedTaskKvp = await GetCompletedTaskIndex<bool>(tasks);
+            //            var finishedTaskIndex = finishedTaskKvp.Key;
+            //            var moved = finishedTaskKvp.Value;
+            //            var enumerator = enumerators[finishedTaskIndex];
+            //            tasks = tasks.Where(task => task.Key != finishedTaskIndex).ToArray();
+            //            if (moved)
+            //            {
+            //                var current = enumerator.Current;
+            //                tasks = tasks.Append(finishedTaskIndex.PairWithValue(enumerators[finishedTaskIndex].MoveNextAsync())).ToArray();
+            //                return yieldReturn(current);
+            //            }
+            //            if (!tasks.Any())
+            //                return yieldBreak;
+            //        }
+            //    });
         }
 
         public static IEnumerableAsync<T> SelectMany<T>(this IEnumerable<IEnumerableAsync<T>> enumerables)
