@@ -35,6 +35,13 @@ namespace EastFive
         Func<TType> value { get; }
     }
 
+    public interface IRefs<TType>
+    {
+        Guid[] ids { get; }
+
+        Linq.Async.IEnumerableAsync<TType> Values { get; }
+    }
+
     public struct Ref<TType> : IRef<TType>
         where TType : struct
     {

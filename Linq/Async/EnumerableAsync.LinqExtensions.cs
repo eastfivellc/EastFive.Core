@@ -195,6 +195,26 @@ namespace EastFive.Linq.Async
                     return moved(next);
                 });
         }
+        
+        public static IEnumerableAsync<T> Aggregate<T>(this IEnumerableAsync<T> enumerable)
+        {
+            var accumulation = new T[] { }; // TODO: Should be a hash
+            return new DelegateEnumerableAsync<T, T>(enumerable,
+                async (enumeratorAsync, enumeratorDestination, moved, ended) =>
+                {
+                    if (!await enumeratorAsync.MoveNextAsync())
+                        return ended();
+                    var current = enumeratorAsync.Current;
+                    while (accumulation.Contains(current))
+                    {
+                        if (!await enumeratorAsync.MoveNextAsync())
+                            return ended();
+                        current = enumeratorAsync.Current;
+                    }
+                    accumulation = accumulation.Append(current).ToArray();
+                    return moved(current);
+                });
+        }
 
         private abstract class LinqEnumerableAsync<T, TSource> : IEnumerableAsync<T>
         {

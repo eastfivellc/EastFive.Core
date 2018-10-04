@@ -148,5 +148,21 @@ namespace EastFive.Linq.Async
                     return yieldReturn(value);
                 });
         }
+
+        public static IEnumerableAsync<TItem> AsyncEnumerable<TItem>(this IEnumerable<TItem> enumerable)
+        {
+            enumerable.GetEnumerator();
+            return Yield<TItem>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    if (count == 0)
+                        return yieldBreak;
+                    count--;
+                    var index = start;
+                    start++;
+                    var value = await generateFunction(index);
+                    return yieldReturn(value);
+                });
+        }
     }
 }
