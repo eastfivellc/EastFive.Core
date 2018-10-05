@@ -7,6 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace EastFive.Linq.Async
@@ -54,6 +55,9 @@ namespace EastFive.Linq.Async
             return new DelegateEnumerableAsync<TResult, T>(enumerable,
                 async (enumeratorAsync, enumeratorDestination, moved, ended) =>
                 {
+                    if (enumeratorAsync.IsDefaultOrNull())
+                        return ended();
+
                     if (!await enumeratorAsync.MoveNextAsync())
                         return ended();
                     var current = enumeratorAsync.Current;
@@ -98,7 +102,7 @@ namespace EastFive.Linq.Async
             var items = await enumerable.ToArrayAsync();
             return items.OrderBy(ranking);
         }
-        
+
         public static Task<TResult> MinimumAsync<TItem, TRank, TResult>(this IEnumerableAsync<TItem> enumerable,
                 Func<TItem, TRank> getRank,
             Func<TItem, TResult> onOne,
@@ -173,7 +177,7 @@ namespace EastFive.Linq.Async
                     return moved(current);
                 });
         }
-        
+
         public static IEnumerableAsync<T> Distinct<T, TKey>(this IEnumerableAsync<T> enumerable, Func<T, TKey> selectKey)
         {
             var accumulation = new TKey[] { }; // TODO: Should be a hash
@@ -191,6 +195,75 @@ namespace EastFive.Linq.Async
                     }
                     accumulation = accumulation.Append(selectKey(current)).ToArray();
                     return moved(current);
+                });
+        }
+
+        public static IEnumerableAsync<T[]> Segments<T>(this IEnumerableAsync<T> enumerable, int segmentSize)
+        {
+            var segmentIndex = 0;
+            var segment = new T[segmentSize];
+            var enumerator = enumerable.GetEnumerator();
+            return Yield<T[]>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    // Works with nullification below to prevent double failed moveNexts
+                    if (segment.IsDefaultOrNull())
+                        return yieldBreak;
+
+                    while (segmentIndex < segmentSize)
+                    {
+                        if (!await enumerator.MoveNextAsync())
+                        {
+                            var subseg = segment.Take(segmentIndex).ToArray();
+                            segment = null; // Ensure failed MoveNext is only called once.
+                            if (!subseg.Any())
+                                return yieldBreak;
+
+                            segmentIndex = 0;
+                            return yieldReturn(subseg);
+                        }
+                        segment[segmentIndex] = enumerator.Current;
+                    }
+                    segmentIndex++;
+                    return yieldReturn(segment);
+                });
+        }
+
+        private static async Task BatchAsync<T>(this IEnumerableAsync<T> enumerable,
+            List<T> cache, ManualResetEvent mutex)
+        {
+            var enumerator = enumerable.GetEnumerator();
+            while(await enumerator.MoveNextAsync())
+            {
+                lock(cache)
+                {
+                    cache.Add(enumerator.Current);
+                    mutex.Set();
+                }
+            }
+            mutex.Set();
+        }
+
+        public static IEnumerableAsync<T[]> Batch<T>(this IEnumerableAsync<T> enumerable)
+        {
+            var segment = new List<T>();
+            var mutex = new ManualResetEvent(false);
+            var segmentTask = enumerable.BatchAsync(segment, mutex);
+            return Yield<T[]>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    mutex.WaitOne();
+                    lock (segment)
+                    {
+                        var nextSegment = segment.ToArray();
+                        if (nextSegment.Any())
+                        {
+                            segment.Clear();
+                            return yieldReturn(nextSegment);
+                        }
+                    }
+                    await segmentTask;
+                    return yieldBreak;
                 });
         }
 
@@ -391,6 +464,9 @@ namespace EastFive.Linq.Async
             return new DelegateEnumerableAsync<T, Task<T>>(enumerable,
                 async (enumeratorAsync, enumeratorDestination, moved, ended) =>
                 {
+                    if (enumeratorAsync.IsDefaultOrNull())
+                        return ended();
+
                     if (!await enumeratorAsync.MoveNextAsync())
                         return ended();
                     var next = await enumeratorAsync.Current;
@@ -450,11 +526,15 @@ namespace EastFive.Linq.Async
                 Func<IEnumeratorAsync<TSource>, IEnumeratorAsync<T>, Func<T, object>, Func<object>, Task<object>> moveNext)
                 : base(enumerableAsync)
             {
+                if (moveNext.IsDefaultOrNull())
+                    throw new ArgumentNullException("moveNext");
                 this.MoveNext = moveNext;
             }
 
             protected async override Task<TResult> MoveNextAsync<TResult>(IEnumeratorAsync<TSource> enumeratorAsync, IEnumeratorAsync<T> enumeratorDestination, Func<T, TResult> moved, Func<TResult> ended)
             {
+                if (MoveNext.IsDefaultOrNull())
+                    throw new ArgumentNullException("moveNext");
                 return (TResult)(await MoveNext(enumeratorAsync, enumeratorDestination, (x) => moved(x), () => ended()));
             }
         }

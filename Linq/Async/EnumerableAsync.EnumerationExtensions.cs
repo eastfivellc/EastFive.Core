@@ -37,7 +37,7 @@ namespace EastFive.Linq.Async
             }
             return new StepEnumerable<T>(firstStep);
         }
-        
+
         public static async Task<T[]> ToArrayAsync<T>(this IEnumerableAsync<T> enumerableAsync)
         {
             var enumerable = await enumerableAsync.Async();
