@@ -44,6 +44,20 @@ namespace EastFive.Linq.Async
             return enumerable.ToArray();
         }
 
+        public static IEnumerableAsync<T> JoinTask<T>(this IEnumerableAsync<T> enumerableAsync,
+            Task task)
+        {
+            var enumerator = enumerableAsync.GetEnumerator();
+            return EnumerableAsync.Yield<T>(
+                async (next, last) =>
+                {
+                    if (await enumerator.MoveNextAsync())
+                        return next(enumerator.Current);
+                    await task;
+                    return last;
+                });
+        }
+
         private struct Step<T>
         {
             public Step<T>?[] steps;

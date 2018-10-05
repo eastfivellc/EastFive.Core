@@ -459,6 +459,33 @@ namespace EastFive.Linq.Async
             return tcs.Task;
         }
 
+
+
+        public static IEnumerableAsync<TResult> Zip<T1, T2, TResult>(this IEnumerableAsync<T1> items1, 
+            IEnumerableAsync<T2> items2, Func<T1, T2, TResult> zipper)
+        {
+            var enumerator1 = items1.GetEnumerator();
+            var enumerator2 = items2.GetEnumerator();
+            return Yield<TResult>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    var moved1Task = enumerator1.MoveNextAsync();
+                    var moved2Task = enumerator2.MoveNextAsync();
+                    var moved1 = await moved1Task;
+                    if(!moved1)
+                        return yieldBreak;
+
+                    var moved2 = await moved2Task;
+                    if (!moved2)
+                        return yieldBreak;
+
+                    var value1 = enumerator1.Current;
+                    var value2 = enumerator2.Current;
+                    var zipped = zipper(value1, value2);
+                    return yieldReturn(zipped);
+                });
+        }
+
         public static IEnumerableAsync<T> Await<T>(this IEnumerableAsync<Task<T>> enumerable)
         {
             return new DelegateEnumerableAsync<T, Task<T>>(enumerable,
