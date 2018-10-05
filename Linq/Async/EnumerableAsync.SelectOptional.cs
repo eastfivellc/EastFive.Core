@@ -105,19 +105,20 @@ namespace EastFive.Linq.Async
             return selections;
         }
 
-        public static Task<TResult> SelectOptionalAsync<TItem, TSelect, TResult>(this IEnumerableAsync<TItem> enumerable,
+        public static IEnumerableAsync<TSelect> SelectOptionalAsync<TItem, TSelect, TResult>(this IEnumerableAsync<TItem> enumerable,
             Func<TItem,
                 Func<TSelect, ISelectionResult<TSelect>>,
                 Func<ISelectionResult<TSelect>>,
-                Task<ISelectionResult<TSelect>>> selectionAsync,
-            Func<TSelect[], TResult> aggregation)
+                Task<ISelectionResult<TSelect>>> selectionAsync)
         {
-            return enumerable.SelectOptionalAsync<TItem, TSelect, int, TResult>(1,
-                (item, carryUpdated, next, skip) => selectionAsync(item,
-                    (selected) => next(selected, carryUpdated),
-                    () => skip(carryUpdated)),
-                (TSelect[] selectedItems, int carryFinal) =>
-                    aggregation(selectedItems));
+            return enumerable
+                .Select(
+                    (item) => selectionAsync(item,
+                        (selected) => new Selection<TSelect>(selected),
+                        () => new SelectionSkipped<TSelect>()))
+                .Await()
+                .Where(select => select.HasValue)
+                .Select(select => select.Value);
         }
 
         public static Task<TResult> SelectOptionalAsync<TItem, TSelect, TCarry1, TCarry2, TResult>(this IEnumerableAsync<TItem> enumerable,

@@ -43,6 +43,7 @@ namespace EastFive.Linq.Async
 
                 public async Task<bool> HasNext(Func<IYieldResult<T>, bool> onMore, Func<bool> onEnd)
                 {
+                    Task<IYieldResult<T>> internalFetch;
                     lock(this)
                     {
                         if (!this.hasFeched)
@@ -55,13 +56,20 @@ namespace EastFive.Linq.Async
                                 new YieldBreak());
                             this.hasFeched = true;
                         }
+                        internalFetch = this.fetch;
                     }
 
-                    var yieldResult = await this.fetch;
-                    var isTerminal =(yieldResult is YieldBreak);
-                    if (isTerminal)
-                        return onEnd();
-                    return onMore(yieldResult);
+                    try
+                    {
+                        var yieldResult = await internalFetch;
+                        var isTerminal = (yieldResult is YieldBreak);
+                        if (isTerminal)
+                            return onEnd();
+                        return onMore(yieldResult);
+                    }catch (Exception ex)
+                    {
+                        throw ex;
+                    }
                 }
 
                 private struct YieldBreak : IYieldResult<T>
@@ -131,6 +139,59 @@ namespace EastFive.Linq.Async
             YieldDelegateAsync<T> generateFunction)
         {
             return new YieldEnumerable<T>(generateFunction);
+        }
+
+        private struct YieldResultBatch<TItem> : IYieldResult<TItem[]>
+        {
+            public YieldResultBatch(TItem [] value)
+            {
+                this.Value = value;
+            }
+
+            public TItem[] Value  {get; private set;}
+
+            public Task<bool> HasNext(Func<IYieldResult<TItem[]>, bool> onMore, Func<bool> onEnd)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        private struct YieldBreakBatch<TItem> : IYieldResult<TItem[]>
+        {
+            public TItem[] Value { get; private set; }
+
+            public Task<bool> HasNext(Func<IYieldResult<TItem[]>, bool> onMore, Func<bool> onEnd)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public static IEnumerableAsync<T> YieldBatch<T>(
+            YieldDelegateAsync<T[]> generateFunction)
+        {
+            var index = 0;
+            var segment = new T[] { };
+            var yieldBreakSegment = new YieldBreakBatch<T>();
+            return Yield<T>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    if (segment.Length <= index)
+                    {
+                        var yieldResult = await generateFunction(
+                            (nextSegment) =>
+                            {
+                                return new YieldResultBatch<T>(nextSegment);
+                            },
+                            yieldBreakSegment);
+                        if (yieldResult == yieldBreak)
+                            return yieldBreak;
+                        segment = yieldResult.Value;
+                        index = 0;
+                    }
+                    var value = segment[index];
+                    index++;
+                    return yieldReturn(value);
+                });
         }
 
         public static IEnumerableAsync<T> Range<T>(int start, int count,
