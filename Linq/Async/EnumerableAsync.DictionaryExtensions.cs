@@ -69,7 +69,7 @@ namespace EastFive.Linq.Async
                     async (element, next) =>
                     {
                         var elementKey = this.keySelector(element);
-                        if (element.Equals(key))
+                        if (elementKey.Equals(key))
                             return onValue(this.valueSelector(element));
                         return await next();
                     },

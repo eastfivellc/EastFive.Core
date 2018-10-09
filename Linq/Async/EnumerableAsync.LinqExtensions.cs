@@ -84,16 +84,20 @@ namespace EastFive.Linq.Async
             return FirstInnerAsync(enumerator, onOne, onNone);
         }
 
-        private static async Task<TResult> FirstInnerAsync<T, TResult>(IEnumeratorAsync<T> enumerator,
+        private static Task<TResult> FirstInnerAsync<T, TResult>(IEnumeratorAsync<T> enumerator,
             Func<T, Func<Task<TResult>>, Task<TResult>> onOne,
             Func<TResult> onNone)
         {
-            while (await enumerator.MoveNextAsync())
-            {
-                return await onOne(enumerator.Current,
-                    () => FirstInnerAsync(enumerator, onOne, onNone));
-            }
-            return onNone();
+            Func<Task<TResult>>[] doNexts = new Func<Task<TResult>>[1];
+            doNexts[0] =
+                async () =>
+                {
+                    if (!await enumerator.MoveNextAsync())
+                        return onNone();
+                    return await onOne(enumerator.Current,
+                        doNexts[0]);
+                };
+            return doNexts[0]();
         }
 
         public static async Task<IOrderedEnumerable<TItem>> OrderByAsync<TItem, TRank>(this IEnumerableAsync<TItem> enumerable,
@@ -372,6 +376,12 @@ namespace EastFive.Linq.Async
                 });
         }
 
+
+        public static IEnumerableAsync<TItem> SelectMany<TItem>(this IEnumerableAsync<IEnumerable<TItem>> enumerables)
+        {
+            return enumerables.SelectMany<IEnumerable<TItem>, TItem>(x => x);
+        }
+        
         public static IEnumerableAsync<TResult> SelectMany<T, TResult>(this IEnumerableAsync<T> enumerables, Func<T, IEnumerable<TResult>> selectMany)
         {
             var enumerator = enumerables.GetEnumerator();
