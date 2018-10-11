@@ -260,6 +260,7 @@ namespace EastFive.Linq.Async
                     lock (segment)
                     {
                         var nextSegment = segment.ToArray();
+                        mutex.Reset();
                         if (nextSegment.Any())
                         {
                             segment.Clear();
@@ -269,6 +270,12 @@ namespace EastFive.Linq.Async
                     await segmentTask;
                     return yieldBreak;
                 });
+        }
+        
+        public static IEnumerableAsync<T> Prespool<T>(this IEnumerableAsync<T> items)
+        {
+            // TODO: Match batch use this instead of this using Batch.
+            return items.Batch().SelectMany();
         }
 
         public static IEnumerableAsync<TResult> Range<TItem, TRange, TResult>(this IEnumerableAsync<TItem> enumerables,

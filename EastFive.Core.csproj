@@ -76,6 +76,7 @@
     <Compile Include="Linq\Async\EnumerableAsync.cs" />
     <Compile Include="Linq\Async\EnumerableAsync.EnumerationExtensions.cs" />
     <Compile Include="Linq\Async\EnumerableAsync.DictionaryExtensions.cs" />
+    <Compile Include="Linq\Async\EnumerableAsync.Throttling.cs" />
     <Compile Include="Linq\Async\EnumerableAsync.GroupExtensions.cs" />
     <Compile Include="Linq\Async\EnumerableAsync.SelectOptional.cs" />
     <Compile Include="Linq\Async\IDictionaryAsync.cs" />

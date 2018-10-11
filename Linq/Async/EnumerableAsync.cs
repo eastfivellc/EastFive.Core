@@ -152,7 +152,7 @@ namespace EastFive.Linq.Async
 
             public Task<bool> HasNext(Func<IYieldResult<TItem[]>, bool> onMore, Func<bool> onEnd)
             {
-                throw new NotImplementedException();
+                return onMore(this).ToTask();
             }
         }
 
@@ -162,7 +162,7 @@ namespace EastFive.Linq.Async
 
             public Task<bool> HasNext(Func<IYieldResult<TItem[]>, bool> onMore, Func<bool> onEnd)
             {
-                throw new NotImplementedException();
+                return onEnd().ToTask();
             }
         }
 
@@ -183,10 +183,16 @@ namespace EastFive.Linq.Async
                                 return new YieldResultBatch<T>(nextSegment);
                             },
                             yieldBreakSegment);
-                        if (yieldResult == yieldBreak)
+                        var moreData = await yieldResult.HasNext(
+                            nextSegment =>
+                            {
+                                segment = nextSegment.Value;
+                                index = 0;
+                                return true;
+                            },
+                            () => false);
+                        if (!moreData)
                             return yieldBreak;
-                        segment = yieldResult.Value;
-                        index = 0;
                     }
                     var value = segment[index];
                     index++;
