@@ -14,25 +14,142 @@ using BlackBarLabs;
 
 namespace EastFive.Linq.Async
 {
-    public interface IManagePerformance<T>
+    public interface IManagePerformance<TResult>
     {
-
+        Task<TResult> Manage(Func<Task<TResult>> criticalSection);
     }
-
+    
     public static partial class EnumerableAsync
     {
-
-
-        private class PerformanceManager<T> : IManagePerformance<T>
+        private class PerformanceManager<TResult> : IManagePerformance<TResult>
         {
+            private List<Timing> timings = new List<Timing>();
+            private Queue<ManualResetEvent> workQueue = new Queue<ManualResetEvent>();
+            private List<ManualResetEvent> concurrentThreads = new List<ManualResetEvent>();
+            private DateTime epoch = DateTime.UtcNow;
+            private double predictor = 0.0;
+            private Random rand = new Random();
 
+            public async Task<TResult> Manage(Func<Task<TResult>> criticalSection)
+            {
+                ManualResetEvent mutex;
+                lock (timings)
+                {
+                    var concurrencyEmpty = !concurrentThreads.Any();
+                    mutex = new ManualResetEvent(concurrencyEmpty);
+                    workQueue.Enqueue(mutex);
+                }
+
+                mutex.WaitOne();
+
+                lock (timings)
+                {
+                    concurrentThreads.Add(mutex);
+                }
+
+                var when = (DateTime.UtcNow - epoch);
+                var stopWatch = new System.Diagnostics.Stopwatch();
+                stopWatch.Start();
+
+                var task = criticalSection();
+
+                await task.ContinueWith(
+                    (taskCompleted) =>
+                    {
+                        stopWatch.Stop();
+                        lock(timings)
+                        {
+                            var concurrentEnd = concurrentThreads.Count;
+                            concurrentThreads.Remove(mutex);
+                            var durationTicks = stopWatch.Elapsed.Ticks / concurrentEnd;
+                            timings.Add(
+                                new Timing
+                                {
+                                    duration = TimeSpan.FromTicks(durationTicks),
+                                    when = when,
+                                });
+
+
+                            var averageDuration = timings.Average(timing => timing.duration.Ticks);
+                            var predictorChange = (durationTicks < averageDuration) ?
+                                (1.0 - predictor) / 2.0
+                                :
+                                (-1.0 - predictor) / 2.0;
+                            var predictorChangeWeighted = predictorChange / ((double)timings.Count);
+                            predictor = predictorChangeWeighted;
+
+                            // Ensure this ContinueWith block gets called again
+                            if (!concurrentThreads.Any())
+                            {
+                                if (!workQueue.Any())
+                                    return;
+                                var nextEntry = workQueue.Dequeue();
+                                nextEntry.Set();
+                            }
+
+                            // Launch more tasks
+                            while(true)
+                            {
+                                if (!workQueue.Any())
+                                    break;
+
+                                var randomValueZeroCentered = (rand.NextDouble() * 2.0) - 1.0;
+                                if (randomValueZeroCentered > predictor)
+                                    break;
+
+                                var nextEntry = workQueue.Dequeue();
+                                nextEntry.Set();
+                            }
+                        }
+                    }, TaskContinuationOptions.ExecuteSynchronously);
+                return await task;
+            }
         }
 
-        public static IEnumerableAsync<TSource> ThrottleBegin<TSource, TResult>(this IEnumerable<TSource> enumerable,
-            out IManagePerformance<TResult> performanceManager)
+        private class UnthrottledPerformanceManager<TResult> : IManagePerformance<TResult>
         {
-            performanceManager = new PerformanceManager<TResult>();
-            return enumerable.Select(item => item.AsTask()).AsyncEnumerable();
+            public Task<TResult> Manage(Func<Task<TResult>> criticalSection)
+            {
+                return criticalSection();
+            }
+        }
+
+        public static IManagePerformance<T> GetDefaultIfNull<T>(this IManagePerformance<T> performanceManagerMaybe)
+        {
+            if (performanceManagerMaybe.IsDefaultOrNull())
+                return new UnthrottledPerformanceManager<T>();
+
+            return performanceManagerMaybe;
+        }
+
+        private class CastedPerformanceManager<TSource, TConverted> : IManagePerformance<TConverted>
+        {
+            private IManagePerformance<TSource> sourceManager;
+            private Func<TConverted, TSource> cast;
+
+            public CastedPerformanceManager(IManagePerformance<TSource> sourceManager, Func<TConverted, TSource> cast)
+            {
+                this.sourceManager = sourceManager;
+                this.cast = cast;
+            }
+
+            public async Task<TConverted> Manage(Func<Task<TConverted>> criticalSection)
+            {
+                var storage = default(TConverted);
+                var result2 = await sourceManager.Manage(
+                    async () =>
+                    {
+                        storage = await criticalSection();
+                        var r1 = cast(storage);
+                        return r1;
+                    });
+                return storage;
+            }
+        }
+
+        public static IManagePerformance<TConverted> CastManager<TSource, TConverted>(this IManagePerformance<TSource> performanceManager1, Func<TConverted, TSource> cast)
+        {
+            return new CastedPerformanceManager<TSource, TConverted>(performanceManager1, cast);
         }
 
         private struct Timing
@@ -47,19 +164,23 @@ namespace EastFive.Linq.Async
             public ManualResetEvent hasValue;
         }
 
-        private class ThrottleScheduler : TaskScheduler
+        private class ThrottleScheduler<T> : TaskScheduler
         {
             private Dictionary<int, List<Timing>> timings;
+            private List<Task<T>> tasks;
             Random rand = new Random();
-
+            
             private int delegatesQueuedOrRunning;
             [ThreadStatic]
             private static bool _currentThreadIsProcessingItems;
             private readonly LinkedList<Task> _tasks = new LinkedList<Task>(); // protected by lock(_tasks)
 
+            
+
             public ThrottleScheduler(int v)
             {
                 this.timings = new Dictionary<int, List<Timing>>();
+                this.tasks = new List<Task<T>>();
             }
 
             protected int MaxDegreeOfParallelism
@@ -87,6 +208,21 @@ namespace EastFive.Linq.Async
 
                         return Math.Max(1, max);
                     }
+                }
+            }
+
+            protected int ActiveParallelism
+            {
+                get
+                {
+                    return this.tasks
+                        .Where(task =>
+                            task.Status == TaskStatus.Created ||
+                            task.Status == TaskStatus.Running ||
+                            task.Status == TaskStatus.WaitingForActivation ||
+                            task.Status == TaskStatus.WaitingForChildrenToComplete ||
+                            task.Status == TaskStatus.WaitingToRun)
+                        .Count();
                 }
             }
 
@@ -140,9 +276,8 @@ namespace EastFive.Linq.Async
                 lock (_tasks)
                 {
                     _tasks.AddLast(task);
-                    if (delegatesQueuedOrRunning < MaxDegreeOfParallelism)
+                    if (this.ActiveParallelism <= this.MaxDegreeOfParallelism) // delegatesQueuedOrRunning < MaxDegreeOfParallelism)
                     {
-                        ++delegatesQueuedOrRunning;
                         NotifyThreadPoolOfPendingWork();
                     }
                 }
@@ -212,62 +347,72 @@ namespace EastFive.Linq.Async
                     return _tasks.Remove(task);
                 }
             }
+
+            internal void AddTask(Task<T> task)
+            {
+                this.tasks.Add(task);
+            }
         }
 
-        public static IEnumerableAsync<TResult> Throttle<TSource, TResult>(this IEnumerable<TSource> enumerable, Func<TSource, TResult> selectKey,
+        public static IEnumerable<TResult> Throttle<TSource, TResult, TThrottle>(this IEnumerable<TSource> enumerable,
+            Func<TSource, IManagePerformance<TThrottle>, TResult> selectKey,
+            int initialBandwidth = 1)
+        {
+            var throttler = new PerformanceManager<TThrottle>();
+            return enumerable
+                .Select(item => selectKey(item, throttler));
+        }
+
+        public static IEnumerableAsync<TResult> ThrottleOld<TSource, TResult>(this IEnumerable<TSource> enumerable, Func<TSource, Task<TResult>> selectKey,
             int initialBandwidth = 1)
         {
             return enumerable.Select(item => item.AsTask()).AsyncEnumerable().Throttle(selectKey, initialBandwidth);
         }
 
-        public static IEnumerableAsync<TResult> Throttle<TSource, TResult>(this IEnumerableAsync<TSource> enumerable, Func<TSource, TResult> selectKey,
+        public static IEnumerableAsync<TResult> Throttle<TSource, TResult>(this IEnumerableAsync<TSource> enumerable, Func<TSource, Task<TResult>> selectKey,
             int initialBandwidth = 1)
         {
             var sequentializor = new object();
             var taskParallelCount = 0;
             var epoch = DateTime.UtcNow;
             
-            var scheduler = new ThrottleScheduler(2);
+            var scheduler = new ThrottleScheduler<TResult>(2);
             // Create a TaskFactory and pass it our custom scheduler. 
             TaskFactory factory = new TaskFactory(scheduler);
-            TaskFactory factoryInner = new TaskFactory();
             CancellationTokenSource cts = new CancellationTokenSource();
             
             return enumerable
                 .Select(
-                    async input =>
-                    {
-                        return await await factory.StartNew<Task<TResult>>(
-                            async () =>
+                    async input => await await factory.StartNew(
+                        () =>
+                        {
+                            int taskParallelCountStart;
+                            lock (sequentializor)
                             {
-                                int taskParallelCountStart;
-                                lock (sequentializor)
-                                {
-                                    taskParallelCount++;
-                                    taskParallelCountStart = taskParallelCount;
-                                }
+                                taskParallelCount++;
+                                taskParallelCountStart = taskParallelCount;
+                            }
 
-                                var stopWatch = new System.Diagnostics.Stopwatch();
-                                var when = (DateTime.UtcNow - epoch);
-                                stopWatch.Start();
-                                var task = factoryInner.StartNew(() => selectKey(input));
-                                var output = await task;
-                                stopWatch.Stop();
-                                lock (sequentializor)
+                            var stopWatch = new System.Diagnostics.Stopwatch();
+                            var when = (DateTime.UtcNow - epoch);
+                            stopWatch.Start();
+                            var output = selectKey(input);
+                            scheduler.AddTask(output);
+                            stopWatch.Stop();
+                            lock (sequentializor)
+                            {
+                                var taskParallelCountEnd = taskParallelCount;
+                                taskParallelCount--;
+                                var timing = new Timing
                                 {
-                                    var taskParallelCountEnd = taskParallelCount;
-                                    taskParallelCount--;
-                                    var timing = new Timing
-                                    {
-                                        when = when,
-                                        duration = stopWatch.Elapsed,
-                                    };
-                                    var taskParallelCountAverage = (int)(((taskParallelCountStart + taskParallelCountEnd) * 0.5) + 0.5);
-                                    scheduler.AddTiming(taskParallelCountAverage, timing);
-                                }
-                                return output;
-                            }, cts.Token);
-                    })
+                                    when = when,
+                                    duration = stopWatch.Elapsed,
+                                };
+                                var taskParallelCountAverage = (int)(((taskParallelCountStart + taskParallelCountEnd) * 0.5) + 0.5);
+                                scheduler.AddTiming(taskParallelCountAverage, timing);
+                            }
+                            return output;
+                        }, cts.Token))
               .Await();
 
         }
