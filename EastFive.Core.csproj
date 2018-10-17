@@ -118,6 +118,7 @@
     <Compile Include="Structs\RecursiveDictionary.cs" />
     <Compile Include="Structs\RecursiveTuples.cs" />
     <Compile Include="Text\StringDistance.cs" />
+    <Compile Include="Threading\ThreadingExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

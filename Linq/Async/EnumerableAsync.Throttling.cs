@@ -29,35 +29,62 @@ namespace EastFive.Linq.Async
             private DateTime epoch = DateTime.UtcNow;
             private double predictor = 0.0;
             private Random rand = new Random();
+            private bool readyForMore = true;
+
+            public int Concurrency
+            {
+                get
+                {
+                    lock(timings)
+                    {
+                        if(readyForMore)
+                            return concurrentThreads.Count + 1;
+                        return concurrentThreads.Count;
+                    }
+                }
+            }
 
             public async Task<TResult> Manage(Func<Task<TResult>> criticalSection)
             {
+                var id = Guid.NewGuid();
+                Console.WriteLine($"{id}:Management requested");
                 ManualResetEvent mutex;
+                bool runImmediately;
                 lock (timings)
                 {
                     var concurrencyEmpty = !concurrentThreads.Any();
-                    mutex = new ManualResetEvent(concurrencyEmpty);
-                    workQueue.Enqueue(mutex);
+                    runImmediately = concurrencyEmpty || readyForMore;
+                    readyForMore = false; // Keep task  from piling in without updated values
+                    mutex = new ManualResetEvent(runImmediately);
+                    if (runImmediately)
+                        concurrentThreads.Add(mutex);
                 }
 
-                mutex.WaitOne();
-
-                lock (timings)
+                if (!runImmediately)
                 {
-                    concurrentThreads.Add(mutex);
+                    workQueue.Enqueue(mutex);
+                    mutex.WaitOne();
+                    lock(timings)
+                    {
+                        concurrentThreads.Add(mutex);
+                    }
                 }
 
+
+                Console.WriteLine($"{id}:Activated");
+                
                 var when = (DateTime.UtcNow - epoch);
                 var stopWatch = new System.Diagnostics.Stopwatch();
                 stopWatch.Start();
 
                 var task = criticalSection();
-
-                await task.ContinueWith(
+                var continuationTask = task.ContinueWith(
                     (taskCompleted) =>
                     {
                         stopWatch.Stop();
-                        lock(timings)
+
+                        Console.WriteLine($"{id}:Completed");
+                        lock (timings)
                         {
                             var concurrentEnd = concurrentThreads.Count;
                             concurrentThreads.Remove(mutex);
@@ -71,18 +98,32 @@ namespace EastFive.Linq.Async
 
 
                             var averageDuration = timings.Average(timing => timing.duration.Ticks);
-                            var predictorChange = (durationTicks < averageDuration) ?
-                                (1.0 - predictor) / 2.0
-                                :
-                                (-1.0 - predictor) / 2.0;
-                            var predictorChangeWeighted = predictorChange / ((double)timings.Count);
-                            predictor = predictorChangeWeighted;
+                            var stayChangeCourse = (durationTicks <= averageDuration);
+                            
 
+                            var predictorChange = stayChangeCourse?
+                                (predictor >= 0?
+                                    (1.0 - predictor) / 2.0
+                                    :
+                                    (-1.0 - predictor) / 2.0)
+                                :
+                                (predictor > 0?
+                                    -0.1
+                                    :
+                                    0.1);
+
+                            var predictorChangeWeighted = predictorChange * 0.1;
+                            Console.WriteLine($"{id} [{stayChangeCourse}]({durationTicks} <= {averageDuration}) | Predictor {predictor + predictorChangeWeighted} = {predictor} + {predictorChangeWeighted} | {concurrentThreads.Count}");
+                            predictor = predictor + predictorChangeWeighted;
+                            
                             // Ensure this ContinueWith block gets called again
                             if (!concurrentThreads.Any())
                             {
                                 if (!workQueue.Any())
+                                {
+                                    readyForMore = true;
                                     return;
+                                }
                                 var nextEntry = workQueue.Dequeue();
                                 nextEntry.Set();
                             }
@@ -91,18 +132,48 @@ namespace EastFive.Linq.Async
                             while(true)
                             {
                                 if (!workQueue.Any())
+                                {
+                                    readyForMore = true;
                                     break;
+                                }
 
-                                var randomValueZeroCentered = (rand.NextDouble() * 2.0) - 1.0;
-                                if (randomValueZeroCentered > predictor)
-                                    break;
+                                var randomValueZeroCentered =  (rand.NextDouble() * 2.0) - 1.0;
+                                if (randomValueZeroCentered < predictor)
+                                {
+                                    var nextEntry = workQueue.Dequeue();
+                                    nextEntry.Set();
+                                    continue;
+                                }
 
-                                var nextEntry = workQueue.Dequeue();
-                                nextEntry.Set();
+                                readyForMore = false;
+                                break;
                             }
                         }
                     }, TaskContinuationOptions.ExecuteSynchronously);
-                return await task;
+
+                try
+                {
+                    await continuationTask;
+                    return await task;
+                } catch(Exception ex)
+                {
+                    Console.WriteLine($"EXCEPTION: {ex.Message}");
+
+                    concurrentThreads.Remove(mutex);
+
+                    // Ensure this ContinueWith block gets called again
+                    if (!concurrentThreads.Any())
+                    {
+                        if (!workQueue.Any())
+                        {
+                            readyForMore = true;
+                            return default(TResult);
+                        }
+                        var nextEntry = workQueue.Dequeue();
+                        nextEntry.Set();
+                    }
+                    return default(TResult);
+                }
             }
         }
 
@@ -354,13 +425,82 @@ namespace EastFive.Linq.Async
             }
         }
 
-        public static IEnumerable<TResult> Throttle<TSource, TResult, TThrottle>(this IEnumerable<TSource> enumerable,
-            Func<TSource, IManagePerformance<TThrottle>, TResult> selectKey,
+        public static IEnumerableAsync<TResult> Throttle<TSource, TResult, TThrottle>(this IEnumerable<TSource> enumerable,
+            Func<TSource, IManagePerformance<TThrottle>, Task<TResult>> selectKey,
             int initialBandwidth = 1)
         {
             var throttler = new PerformanceManager<TThrottle>();
+            var runList = new List<Task>();
+            var listOfTasks = enumerable
+                .Select(
+                    item =>
+                    {
+                        if (runList.Count < (throttler.Concurrency * 3))
+                        {
+                            var task = new Task<TResult>[1];
+                            var block = new ManualResetEvent(false);
+                            task[0] = Task.Run(
+                                () =>
+                                {
+                                    var nextTask = selectKey(item, throttler);
+                                    block.WaitOne();
+                                    runList.Remove(task[0]);
+                                    return nextTask;
+                                });
+                            runList.Add(task[0]);
+                            block.Set();
+                            return task[0];
+                        }
+                        return selectKey(item, throttler);
+                    });
+            return listOfTasks
+                .AsyncEnumerable();
+        }
+
+        /// <summary>
+        /// Read remarks.
+        /// </summary>
+        /// <typeparam name="TSource"></typeparam>
+        /// <typeparam name="TResult"></typeparam>
+        /// <typeparam name="TThrottle"></typeparam>
+        /// <param name="enumerable"></param>
+        /// <param name="selectKey"></param>
+        /// <param name="initialBandwidth"></param>
+        /// <param name="tag"></param>
+        /// <returns></returns>
+        /// <remarks>
+        /// Throttling will be working sequentially and have no effect
+        /// unless the calling method reads the tasks in returned enumeration faster than the tasks' Results are awaited.
+        /// As an example, be sure to call a method such as Prespool, Batch, Array, etc before calling Await after calling Throttle</remarks>
+        public static IEnumerableAsync<Task<TResult>> Throttle<TSource, TResult, TThrottle>(this IEnumerableAsync<TSource> enumerable,
+            Func<TSource, IManagePerformance<TThrottle>, Task<TResult>> selectKey,
+            int initialBandwidth = 1,
+            string tag = default(string))
+        {
+            var throttler = new PerformanceManager<TThrottle>();
+            var runList = new List<Task>();
             return enumerable
-                .Select(item => selectKey(item, throttler));
+                .Select(
+                    item =>
+                    {
+                        if (runList.Count < (throttler.Concurrency * 3))
+                        {
+                            var task = new Task<TResult>[1];
+                            var block = new ManualResetEvent(false);
+                            task[0] = Task.Run(
+                                () =>
+                                {
+                                    var nextTask = selectKey(item, throttler);
+                                    block.WaitOne();
+                                    runList.Remove(task[0]);
+                                    return nextTask;
+                                });
+                            runList.Add(task[0]);
+                            block.Set();
+                            return task[0];
+                        }
+                        return selectKey(item, throttler);
+                    }, tag);
         }
 
         public static IEnumerableAsync<TResult> ThrottleOld<TSource, TResult>(this IEnumerable<TSource> enumerable, Func<TSource, Task<TResult>> selectKey,

@@ -50,19 +50,36 @@ namespace EastFive.Linq.Async
                 });
         }
 
-        public static IEnumerableAsync<TResult> Select<T, TResult>(this IEnumerableAsync<T> enumerable, Func<T, TResult> selection)
+        public static IEnumerableAsync<TResult> Select<T, TResult>(this IEnumerableAsync<T> enumerable, Func<T, TResult> selection,
+            string tag = default(string))
         {
             return new DelegateEnumerableAsync<TResult, T>(enumerable,
                 async (enumeratorAsync, enumeratorDestination, moved, ended) =>
                 {
+                    if (!tag.IsNullOrWhiteSpace())
+                        Console.WriteLine($"Select[{tag}]:START BLOCK");
                     if (enumeratorAsync.IsDefaultOrNull())
                         return ended();
 
+                    if (!tag.IsNullOrWhiteSpace())
+                        Console.WriteLine($"Select[{tag}]:Calling MoveNextAsync.");
                     if (!await enumeratorAsync.MoveNextAsync())
+                    {
+                        if (!tag.IsNullOrWhiteSpace())
+                            Console.WriteLine($"Select[{tag}]:COMPLETE");
                         return ended();
+                    }
                     var current = enumeratorAsync.Current;
+                    if (!tag.IsNullOrWhiteSpace())
+                        Console.WriteLine($"Select[{tag}]:Begin transform");
                     var next = selection(current);
-                    return moved(next);
+                    if (!tag.IsNullOrWhiteSpace())
+                        Console.WriteLine($"Select[{tag}]:Ended transform");
+
+                    var result = moved(next);
+                    if (!tag.IsNullOrWhiteSpace())
+                        Console.WriteLine($"Select[{tag}]:END BLOCK");
+                    return result;
                 });
         }
 
@@ -234,48 +251,73 @@ namespace EastFive.Linq.Async
         }
 
         private static async Task BatchAsync<T>(this IEnumerableAsync<T> enumerable,
-            List<T> cache, ManualResetEvent mutex)
+            List<T> cache, EventWaitHandle moved, EventWaitHandle complete,
+            string diagnosticsTag = default(string))
         {
             var enumerator = enumerable.GetEnumerator();
-            while(await enumerator.MoveNextAsync())
+
+            Func<Task<bool>> getMoveNext =
+                diagnosticsTag.IsNullOrWhiteSpace()?
+                    (Func<Task<bool>>)(() => enumerator.MoveNextAsync())
+                    :
+                    (Func<Task<bool>>)(async () =>
+                    {
+                        Console.WriteLine($"BatchAsync[{diagnosticsTag}]:Moving");
+                        var success = await enumerator.MoveNextAsync();
+                        Console.WriteLine($"BatchAsync[{diagnosticsTag}]:Moved");
+                        return success;
+                    });
+
+            while(await getMoveNext())
             {
-                lock(cache)
+                if(!diagnosticsTag.IsNullOrWhiteSpace())
+                    Console.WriteLine($"BatchAsync[{diagnosticsTag}]:Adding Value");
+                lock (cache)
                 {
                     cache.Add(enumerator.Current);
-                    mutex.Set();
+                    moved.Set();
                 }
+                if (!diagnosticsTag.IsNullOrWhiteSpace())
+                    Console.WriteLine($"BatchAsync[{diagnosticsTag}]:Added Value");
             }
-            mutex.Set();
+            moved.Set();
+            complete.Set();
+            if (!diagnosticsTag.IsNullOrWhiteSpace())
+                Console.WriteLine($"BatchAsync[{diagnosticsTag}]:Completed");
         }
 
-        public static IEnumerableAsync<T[]> Batch<T>(this IEnumerableAsync<T> enumerable)
+        public static IEnumerableAsync<T[]> Batch<T>(this IEnumerableAsync<T> enumerable, string diagnosticsTag = default(string))
         {
             var segment = new List<T>();
-            var mutex = new ManualResetEvent(false);
-            var segmentTask = enumerable.BatchAsync(segment, mutex);
+            var moved = new AutoResetEvent(false);
+            var complete = new ManualResetEvent(false);
+            var segmentTask = enumerable.BatchAsync(segment, moved, complete, diagnosticsTag);
             return Yield<T[]>(
                 async (yieldReturn, yieldBreak) =>
                 {
-                    mutex.WaitOne();
-                    lock (segment)
+                    while (!complete.WaitOne(0))
                     {
-                        var nextSegment = segment.ToArray();
-                        mutex.Reset();
-                        if (nextSegment.Any())
+                        moved.WaitOne();
+                        lock (segment)
                         {
-                            segment.Clear();
-                            return yieldReturn(nextSegment);
+                            var nextSegment = segment.ToArray();
+                            if (nextSegment.Any())
+                            {
+                                segment.Clear();
+                                return yieldReturn(nextSegment);
+                            }
                         }
                     }
+
                     await segmentTask;
                     return yieldBreak;
                 });
         }
         
-        public static IEnumerableAsync<T> Prespool<T>(this IEnumerableAsync<T> items)
+        public static IEnumerableAsync<T> Prespool<T>(this IEnumerableAsync<T> items, string diagnosticsTag = default(string))
         {
             // TODO: Match batch use this instead of this using Batch.
-            return items.Batch().SelectMany();
+            return items.Batch(diagnosticsTag).SelectMany();
         }
 
         public static IEnumerableAsync<TResult> Range<TItem, TRange, TResult>(this IEnumerableAsync<TItem> enumerables,
@@ -503,19 +545,42 @@ namespace EastFive.Linq.Async
                 });
         }
 
-        public static IEnumerableAsync<T> Await<T>(this IEnumerableAsync<Task<T>> enumerable)
+        public static IEnumerableAsync<T> Await<T>(this IEnumerableAsync<Task<T>> enumerable, string tag = default(string))
         {
-            return new DelegateEnumerableAsync<T, Task<T>>(enumerable,
-                async (enumeratorAsync, enumeratorDestination, moved, ended) =>
+            var enumerator = enumerable.GetEnumerator();
+            return Yield<T>(
+                async (yieldReturn, yieldBreak) =>
                 {
-                    if (enumeratorAsync.IsDefaultOrNull())
-                        return ended();
+                    if (!tag.IsNullOrWhiteSpace())
+                        Console.WriteLine($"Await[{tag}]:Requesting next");
 
-                    if (!await enumeratorAsync.MoveNextAsync())
-                        return ended();
-                    var next = await enumeratorAsync.Current;
-                    return moved(next);
+                    if (!await enumerator.MoveNextAsync())
+                    {
+                        if (!tag.IsNullOrWhiteSpace())
+                            Console.WriteLine($"Await[{tag}]:Completed");
+                        return yieldBreak;
+                    }
+
+                    if (!tag.IsNullOrWhiteSpace())
+                        Console.WriteLine($"Await[{tag}]:Awaiting value next");
+                    var next = await enumerator.Current;
+                    
+                    if (!tag.IsNullOrWhiteSpace())
+                        Console.WriteLine($"Await[{tag}]:Yielding value");
+                    return yieldReturn(next);
                 });
+
+            //return new DelegateEnumerableAsync<T, Task<T>>(enumerable,
+            //    async (enumeratorAsync, enumeratorDestination, moved, ended) =>
+            //    {
+            //        if (enumeratorAsync.IsDefaultOrNull())
+            //            return ended();
+
+            //        if (!await enumeratorAsync.MoveNextAsync())
+            //            return ended();
+            //        var next = await enumeratorAsync.Current;
+            //        return moved(next);
+            //    });
         }
         
         public static IEnumerableAsync<T> Aggregate<T>(this IEnumerableAsync<T> enumerable)
