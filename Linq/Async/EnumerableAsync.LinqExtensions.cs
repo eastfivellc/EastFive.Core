@@ -545,6 +545,24 @@ namespace EastFive.Linq.Async
                 });
         }
 
+        public static IEnumerableAsync<T> FoldTask<T>(this Task<IEnumerableAsync<T>> enumerable, string tag = default(string))
+        {
+            var enumerator = default(IEnumeratorAsync<T>);
+            return Yield<T>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    if(enumerator.IsDefaultOrNull())
+                        enumerator = (await enumerable).GetEnumerator();
+                    
+                    if (!await enumerator.MoveNextAsync())
+                        return yieldBreak;
+
+                    var next = enumerator.Current;
+                    return yieldReturn(next);
+                });
+        }
+        
+
         public static IEnumerableAsync<T> Await<T>(this IEnumerableAsync<Task<T>> enumerable, string tag = default(string))
         {
             var enumerator = enumerable.GetEnumerator();

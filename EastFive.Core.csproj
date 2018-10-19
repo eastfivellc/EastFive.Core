@@ -46,6 +46,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Analytics\IProvideAnalytics.cs" />
     <Compile Include="Async\EnumerableAsync.cs" />
     <Compile Include="Async\EnumerableNonAsync.cs" />
     <Compile Include="Async\EnumeratorNonAsync.cs" />
