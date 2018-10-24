@@ -1,7 +1,9 @@
 ﻿using BlackBarLabs;
 using BlackBarLabs.Extensions;
+using EastFive.Analytics;
 using EastFive.Collections.Generic;
 using EastFive.Extensions;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -51,36 +53,46 @@ namespace EastFive.Linq.Async
         }
 
         public static IEnumerableAsync<TResult> Select<T, TResult>(this IEnumerableAsync<T> enumerable, Func<T, TResult> selection,
-            string tag = default(string))
+            ILogger log = default(ILogger))
         {
-            return new DelegateEnumerableAsync<TResult, T>(enumerable,
+            var selectId = Guid.NewGuid();
+            var logScope = log.CreateScope($"Select[{selectId}]");
+            var eventId = 1;
+            var selected = new DelegateEnumerableAsync<TResult, T>(enumerable,
                 async (enumeratorAsync, enumeratorDestination, moved, ended) =>
                 {
-                    if (!tag.IsNullOrWhiteSpace())
-                        Console.WriteLine($"Select[{tag}]:START BLOCK");
-                    if (enumeratorAsync.IsDefaultOrNull())
-                        return ended();
-
-                    if (!tag.IsNullOrWhiteSpace())
-                        Console.WriteLine($"Select[{tag}]:Calling MoveNextAsync.");
-                    if (!await enumeratorAsync.MoveNextAsync())
+                    using (log.BeginScope($"Select[{selectId}/{eventId++}]"))
                     {
-                        if (!tag.IsNullOrWhiteSpace())
-                            Console.WriteLine($"Select[{tag}]:COMPLETE");
-                        return ended();
-                    }
-                    var current = enumeratorAsync.Current;
-                    if (!tag.IsNullOrWhiteSpace())
-                        Console.WriteLine($"Select[{tag}]:Begin transform");
-                    var next = selection(current);
-                    if (!tag.IsNullOrWhiteSpace())
-                        Console.WriteLine($"Select[{tag}]:Ended transform");
+                        log.Trace($"START BLOCK");
+                        if (enumeratorAsync.IsDefaultOrNull())
+                            return ended();
 
-                    var result = moved(next);
-                    if (!tag.IsNullOrWhiteSpace())
-                        Console.WriteLine($"Select[{tag}]:END BLOCK");
-                    return result;
+                        log.Trace($"Calling MoveNextAsync.");
+                        if (!await enumeratorAsync.MoveNextAsync())
+                        {
+                            log.Trace($"COMPLETE");
+                            return ended();
+                        }
+                        var current = enumeratorAsync.Current;
+
+                        log.Trace($"Begin transform");
+                        var next = selection(current);
+                        log.Trace($"Ended transform");
+
+                        var result = moved(next);
+                        log.Trace($"END BLOCK");
+                        return result;
+                    }
                 });
+            if (log.IsDefaultOrNull())
+                return selected;
+
+            return selected
+                .OnComplete(
+                    items =>
+                    {
+                        logScope.Dispose();
+                    });
         }
 
         public static async Task<TResult> FirstAsync<T, TResult>(this IEnumerableAsync<T> enumerable,

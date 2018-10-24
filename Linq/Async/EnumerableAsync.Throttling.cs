@@ -11,6 +11,8 @@ using EastFive.Collections;
 using EastFive.Collections.Generic;
 using EastFive.Linq;
 using BlackBarLabs;
+using Microsoft.Extensions.Logging;
+using EastFive.Analytics;
 
 namespace EastFive.Linq.Async
 {
@@ -475,32 +477,41 @@ namespace EastFive.Linq.Async
         public static IEnumerableAsync<Task<TResult>> Throttle<TSource, TResult, TThrottle>(this IEnumerableAsync<TSource> enumerable,
             Func<TSource, IManagePerformance<TThrottle>, Task<TResult>> selectKey,
             int initialBandwidth = 1,
-            string tag = default(string))
+            ILogger log = default(ILogger))
         {
             var throttler = new PerformanceManager<TThrottle>();
             var runList = new List<Task>();
-            return enumerable
-                .Select(
-                    item =>
-                    {
-                        if (runList.Count < (throttler.Concurrency * 3))
+            var logScope = log.CreateScope(throttler);
+            var throttledResults = enumerable
+                    .Select(
+                        item =>
                         {
-                            var task = new Task<TResult>[1];
-                            var block = new ManualResetEvent(false);
-                            task[0] = Task.Run(
-                                () =>
-                                {
-                                    var nextTask = selectKey(item, throttler);
-                                    block.WaitOne();
-                                    runList.Remove(task[0]);
-                                    return nextTask;
-                                });
-                            runList.Add(task[0]);
-                            block.Set();
-                            return task[0];
-                        }
-                        return selectKey(item, throttler);
-                    }, tag);
+                            if (runList.Count < (throttler.Concurrency * 3))
+                            {
+                                var task = new Task<TResult>[1];
+                                var block = new ManualResetEvent(false);
+                                task[0] = Task.Run(
+                                    () =>
+                                    {
+                                        var nextTask = selectKey(item, throttler);
+                                        block.WaitOne();
+                                        runList.Remove(task[0]);
+                                        return nextTask;
+                                    });
+                                runList.Add(task[0]);
+                                block.Set();
+                                return task[0];
+                            }
+                            return selectKey(item, throttler);
+                        }, log);
+            if (log.IsDefaultOrNull())
+                return throttledResults;
+            return throttledResults
+                .OnComplete<Task<TResult>>(
+                    (Task<TResult>[] items) =>
+                    {
+                        logScope.Dispose();
+                    });
         }
 
         public static IEnumerableAsync<TResult> ThrottleOld<TSource, TResult>(this IEnumerable<TSource> enumerable, Func<TSource, Task<TResult>> selectKey,
