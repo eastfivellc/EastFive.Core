@@ -1,4 +1,5 @@
-﻿using EastFive.Threading;
+﻿using EastFive.Collections.Generic;
+using EastFive.Threading;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -44,6 +45,12 @@ namespace EastFive.Linq.Async
         {
             var enumerable = await enumerableAsync.Async();
             return enumerable.ToArray();
+        }
+
+        public static async Task<IDictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue>(this IEnumerableAsync<KeyValuePair<TKey, TValue>> enumerableAsync)
+        {
+            var enumerable = await enumerableAsync.Async();
+            return enumerable.ToDictionary();
         }
 
         public static IEnumerableAsync<T> JoinTask<T>(this IEnumerableAsync<T> enumerableAsync,
