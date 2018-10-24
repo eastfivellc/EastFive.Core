@@ -11,7 +11,6 @@ using EastFive.Collections;
 using EastFive.Collections.Generic;
 using EastFive.Linq;
 using BlackBarLabs;
-using Microsoft.Extensions.Logging;
 using EastFive.Analytics;
 
 namespace EastFive.Linq.Async
@@ -471,9 +470,11 @@ namespace EastFive.Linq.Async
         /// <param name="tag"></param>
         /// <returns></returns>
         /// <remarks>
-        /// Throttling will be working sequentially and have no effect
-        /// unless the calling method reads the tasks in returned enumeration faster than the tasks' Results are awaited.
-        /// As an example, be sure to call a method such as Prespool, Batch, Array, etc before calling Await after calling Throttle</remarks>
+        /// Throttling can only slow down iteration. Throttling cannot accelerate/force iteration. Therefore, unless the 
+        /// calling method requests the tasks in the returned enumeration faster than the tasks' Results are awaited,
+        /// the iteration will be sequention and Throttle will have a negligable effect. More specifically, 
+        /// be sure to call a method such as Prespool, Batch, Array, etc before calling Await on the throttled IEnumerableAsync<Task<TResult>>.
+        /// </remarks>
         public static IEnumerableAsync<Task<TResult>> Throttle<TSource, TResult, TThrottle>(this IEnumerableAsync<TSource> enumerable,
             Func<TSource, IManagePerformance<TThrottle>, Task<TResult>> selectKey,
             int initialBandwidth = 1,
@@ -481,12 +482,12 @@ namespace EastFive.Linq.Async
         {
             var throttler = new PerformanceManager<TThrottle>();
             var runList = new List<Task>();
-            var logScope = log.CreateScope(throttler);
+            var logScope = log.CreateScope($"Throttle[{Guid.NewGuid()}]");
             var throttledResults = enumerable
                     .Select(
                         item =>
                         {
-                            if (runList.Count < (throttler.Concurrency * 3))
+                            if (runList.Count < (throttler.Concurrency * 2))
                             {
                                 var task = new Task<TResult>[1];
                                 var block = new ManualResetEvent(false);
@@ -503,23 +504,10 @@ namespace EastFive.Linq.Async
                                 return task[0];
                             }
                             return selectKey(item, throttler);
-                        }, log);
-            if (log.IsDefaultOrNull())
-                return throttledResults;
-            return throttledResults
-                .OnComplete<Task<TResult>>(
-                    (Task<TResult>[] items) =>
-                    {
-                        logScope.Dispose();
-                    });
+                        }, logScope);
+            return throttledResults;
         }
-
-        public static IEnumerableAsync<TResult> ThrottleOld<TSource, TResult>(this IEnumerable<TSource> enumerable, Func<TSource, Task<TResult>> selectKey,
-            int initialBandwidth = 1)
-        {
-            return enumerable.Select(item => item.AsTask()).AsyncEnumerable().Throttle(selectKey, initialBandwidth);
-        }
-
+        
         public static IEnumerableAsync<TResult> Throttle<TSource, TResult>(this IEnumerableAsync<TSource> enumerable, Func<TSource, Task<TResult>> selectKey,
             int initialBandwidth = 1)
         {

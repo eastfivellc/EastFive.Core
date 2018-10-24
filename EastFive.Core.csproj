@@ -47,6 +47,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Analytics\IProvideAnalytics.cs" />
+    <Compile Include="Analytics\ILogger.cs" />
+    <Compile Include="Analytics\LoggingExtensions.cs" />
+    <Compile Include="Analytics\ScopedLogger.cs" />
     <Compile Include="Async\EnumerableAsync.cs" />
     <Compile Include="Async\EnumerableNonAsync.cs" />
     <Compile Include="Async\EnumeratorNonAsync.cs" />

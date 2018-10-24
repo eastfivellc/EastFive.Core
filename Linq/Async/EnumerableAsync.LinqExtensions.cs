@@ -3,7 +3,6 @@ using BlackBarLabs.Extensions;
 using EastFive.Analytics;
 using EastFive.Collections.Generic;
 using EastFive.Extensions;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -56,43 +55,34 @@ namespace EastFive.Linq.Async
             ILogger log = default(ILogger))
         {
             var selectId = Guid.NewGuid();
-            var logScope = log.CreateScope($"Select[{selectId}]");
+            var logSelect = log.CreateScope($"Select[{selectId}]");
             var eventId = 1;
             var selected = new DelegateEnumerableAsync<TResult, T>(enumerable,
                 async (enumeratorAsync, enumeratorDestination, moved, ended) =>
                 {
-                    using (log.BeginScope($"Select[{selectId}/{eventId++}]"))
+                    var logItem = logSelect.CreateScope($"Select[{selectId}/{eventId++}]");
+                    logItem.Trace($"START BLOCK");
+                    if (enumeratorAsync.IsDefaultOrNull())
+                        return ended();
+
+                    logItem.Trace($"Calling MoveNextAsync.");
+                    if (!await enumeratorAsync.MoveNextAsync())
                     {
-                        log.Trace($"START BLOCK");
-                        if (enumeratorAsync.IsDefaultOrNull())
-                            return ended();
-
-                        log.Trace($"Calling MoveNextAsync.");
-                        if (!await enumeratorAsync.MoveNextAsync())
-                        {
-                            log.Trace($"COMPLETE");
-                            return ended();
-                        }
-                        var current = enumeratorAsync.Current;
-
-                        log.Trace($"Begin transform");
-                        var next = selection(current);
-                        log.Trace($"Ended transform");
-
-                        var result = moved(next);
-                        log.Trace($"END BLOCK");
-                        return result;
+                        logItem.Trace($"COMPLETE");
+                        return ended();
                     }
-                });
-            if (log.IsDefaultOrNull())
-                return selected;
+                    var current = enumeratorAsync.Current;
 
-            return selected
-                .OnComplete(
-                    items =>
-                    {
-                        logScope.Dispose();
-                    });
+                    logItem.Trace($"Begin transform");
+                    var next = selection(current);
+                    logItem.Trace($"Ended transform");
+
+                    var result = moved(next);
+                    logItem.Trace($"END BLOCK");
+                    return result;
+                });
+
+            return selected;
         }
 
         public static async Task<TResult> FirstAsync<T, TResult>(this IEnumerableAsync<T> enumerable,

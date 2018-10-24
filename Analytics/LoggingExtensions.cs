@@ -3,55 +3,16 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using EastFive.Extensions;
-using Microsoft.Extensions.Logging;
 
 namespace EastFive.Analytics
 {
     public static class LoggingExtensions
     {
-        public interface IScope<TResult>
+        public static ILogger CreateScope(this ILogger logger, string state)
         {
-            TResult Result { get; }
-        }
-
-        private class Disposable<TResult> : IScope<TResult>, IDisposable
-        {
-            public TResult result;
-            internal Disposable(TResult result)
-            {
-                this.result = result;
-            }
-
-            public TResult Result => result;
-
-            public void Dispose()
-            {
-            }
-        }
-
-        public static TResult Scope<TState, TResult>(this ILogger logger, TState state,
-            Func<Func<TResult, IScope<TResult>>, IScope<TResult>> onScoped = 
-                default(Func<Func<TResult, IScope<TResult>>, IScope<TResult>>))
-        {
-            var disposal = logger.IsDefault()?
-                default(IDisposable)
-                :
-                logger.BeginScope<TState>(state);
-            
-            return onScoped(
-                (result) =>
-                {
-                    if (!disposal.IsDefaultOrNull())
-                        disposal.Dispose();
-                    return new Disposable<TResult>(result);
-                }).Result;
-        }
-
-        public static IDisposable CreateScope<TState>(this ILogger logger, TState state)
-        {
-            if (logger.IsDefault())
-                return new Disposable<TState>(state);
-            return logger.BeginScope(state);
+            if (!logger.IsDefault())
+                return new ScopedLogger(state, logger);
+            return logger;
         }
 
         public static void Information(this ILogger logger, string message)
