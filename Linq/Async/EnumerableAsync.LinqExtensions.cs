@@ -60,7 +60,7 @@ namespace EastFive.Linq.Async
             var selected = new DelegateEnumerableAsync<TResult, T>(enumerable,
                 async (enumeratorAsync, enumeratorDestination, moved, ended) =>
                 {
-                    var logItem = logSelect.CreateScope($"Select[{selectId}/{eventId++}]");
+                    var logItem = logSelect.CreateScope($"Item[{eventId++}]");
                     logItem.Trace($"START BLOCK");
                     if (enumeratorAsync.IsDefaultOrNull())
                         return ended();
@@ -122,32 +122,25 @@ namespace EastFive.Linq.Async
         public static async Task<IOrderedEnumerable<TItem>> OrderByAsync<TItem, TRank>(this IEnumerableAsync<TItem> enumerable,
             Func<TItem, TRank> ranking)
         {
-            var items = await enumerable.ToArrayAsync();
+            var items = await enumerable.Async();
             return items.OrderBy(ranking);
         }
 
-        public static Task<TResult> MinimumAsync<TItem, TRank, TResult>(this IEnumerableAsync<TItem> enumerable,
-                Func<TItem, TRank> getRank,
+        public static async Task<TResult> SelectOneAsync<TItem, TResult>(this IEnumerableAsync<TItem> enumerable,
+                Func<TItem, TItem, TItem> select,
             Func<TItem, TResult> onOne,
             Func<TResult> onNone)
         {
-            throw new NotImplementedException();
-            //var accumulation = new TKey[] { }; // TODO: Should be a hash
-            //return new DelegateEnumerableAsync<T, T>(enumerable,
-            //    async (enumeratorAsync, enumeratorDestination, moved, ended) =>
-            //    {
-            //        if (!await enumeratorAsync.MoveNextAsync())
-            //            return ended();
-            //        var current = enumeratorAsync.Current;
-            //        while (accumulation.Contains(selectKey(current)))
-            //        {
-            //            if (!await enumeratorAsync.MoveNextAsync())
-            //                return ended();
-            //            current = enumeratorAsync.Current;
-            //        }
-            //        accumulation = accumulation.Append(selectKey(current)).ToArray();
-            //        return moved(current);
-            //    });
+            var enumerator = enumerable.GetEnumerator();
+            if (!await enumerator.MoveNextAsync())
+                return onNone();
+            var selected = enumerator.Current;
+            while(await enumerator.MoveNextAsync())
+            {
+                var challenger = enumerator.Current;
+                selected = select(selected, challenger);
+            }
+            return onOne(selected);
         }
 
         public static IEnumerableAsync<T> Take<T>(this IEnumerableAsync<T> enumerable, int count)
@@ -476,6 +469,39 @@ namespace EastFive.Linq.Async
                                 return yieldBreak;
 
                             enumeratorInner = selectMany(enumerator.Current).GetEnumerator();
+                            if (!await enumeratorInner.MoveNextAsync())
+                                continue;
+                        }
+                        return yieldReturn(enumeratorInner.Current);
+                    }
+                });
+        }
+
+        public static IEnumerableAsync<T> Concat<T>(this IEnumerableAsync<T> enumerable1, IEnumerableAsync<T> enumerable2)
+        {
+            return (new IEnumerableAsync<T> []
+            {
+                enumerable1,
+                enumerable2,
+            })
+            .AsyncConcat();
+        }
+
+        public static IEnumerableAsync<T> AsyncConcat<T>(this IEnumerable<IEnumerableAsync<T>> enumerables)
+        {
+            var enumerator = enumerables.GetEnumerator();
+            var enumeratorInner = default(IEnumeratorAsync<T>);
+            return Yield<T>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    while (true)
+                    {
+                        if (enumeratorInner.IsDefaultOrNull() || (!await enumeratorInner.MoveNextAsync()))
+                        {
+                            if (!enumerator.MoveNext())
+                                return yieldBreak;
+
+                            enumeratorInner = enumerator.Current.GetEnumerator();
                             if (!await enumeratorInner.MoveNextAsync())
                                 continue;
                         }
