@@ -45,7 +45,7 @@ namespace EastFive.Net.Http
         protected bool IsNoCache(HttpRequestMessage message)
         {
             return message.Properties.ContainsKey(PropertyNoCache) &&
-                message.Properties[PropertyNoCache] == PropertyValueNoCache;
+                ((string)message.Properties[PropertyNoCache]) == PropertyValueNoCache;
         }
     }
     

@@ -224,7 +224,7 @@ namespace EastFive.Linq.Async
                 {
                     count++;
                     if (items.Length == count)
-                        return yieldBreak;
+                        return await yieldBreak.AsTask();
 
                     var item = items[count];
                     return yieldReturn(item);
