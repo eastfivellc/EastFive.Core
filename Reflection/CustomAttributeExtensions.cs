@@ -78,6 +78,18 @@ namespace EastFive
             return onHasAttribute(attributes.First());
         }
 
+        public static TAttribute GetCustomAttribute<TAttribute>(this MemberInfo obj,
+            bool inherit = false)
+            where TAttribute : System.Attribute
+        {
+            var attributesUncast = obj.GetCustomAttributes(typeof(TAttribute), inherit);
+            //var attributes = attributesUncast.Select(attrib => attrib as TAttribute).ToArray();
+            var attributes = attributesUncast.Cast<TAttribute>().ToArray();
+            if (!attributes.Any())
+                throw new Exception("Attribute not found.");
+            return (attributes.First());
+        }
+
         public static T[] GetCustomAttributes<T>(this MethodInfo method, bool inherit = false)
             where T : class
         {

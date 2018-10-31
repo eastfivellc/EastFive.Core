@@ -11,7 +11,7 @@ namespace BlackBarLabs.Collections.Async
 {
     public static class LinqExtensions
     {
-        public static async Task ForAllAsync<T>(this IEnumerableAsync<T> items, T action)
+        public static async Task ForAllAsync<T>(this IEnumerableAsyncOld<T> items, T action)
         {
             var iterator = items.GetIterator();
             await iterator.IterateAsync(action);
@@ -112,64 +112,7 @@ namespace BlackBarLabs.Collections.Async
             var invokedExpression = Expression.Lambda<Func<TDelegate, Task>>(blockWithReturnExpression, methodExpression);
             return invokedExpression;
         }
-
-        public static IEnumerableAsync<T> PrespoolAsync<T>(this IEnumerableAsync<T> items)
-        {
-            var iterator = items.GetIterator();
-            var queue = new ConcurrentQueue<Func<T, Task>>();
-            var totalExpression = GetTotalExpression<T>();
-            var basicExpression = totalExpression(queue);
-            var iterationTask = iterator.IterateAsync(basicExpression);
-            return EnumerableAsync.YieldAsync<T>(
-                async (yieldAsync) =>
-                {
-                    while(!iterationTask.IsCompleted ||
-                        queue.Count() > 0)
-                    {
-                        Func<T, Task> callback;
-                        if (queue.TryDequeue(out callback))
-                            await callback(yieldAsync);
-                    }
-                });
-        }
-
-        public static async Task<bool> FirstAsync<T>(this IEnumerableAsync<T> items, T action)
-        {
-            var enumerator = items.GetEnumerator();
-            return await enumerator.MoveNextAsync(action);
-        }
-
-        public static IEnumerableAsync<T> TakeAsync<T>(this IEnumerableAsync<T> items, int limit)
-        {
-            YieldCallbackAsync<T> yieldAsync = async yield =>
-            {
-                using (var enumerator = items.GetEnumerator())
-                {
-                    while (limit > 0 && await enumerator.MoveNextAsync(yield))
-                    {
-                        limit--;
-                    }
-                }
-            };
-            return new EnumerableAsync<T>(yieldAsync);
-        }
-
-        public async static Task ForYield<T>(this IEnumerable<T> items, Func<T, Task> yieldAsync)
-        {
-            foreach(var item in items)
-            {
-                await yieldAsync.Invoke(item);
-            }
-        }
-
-        public static IEnumerableAsync<Func<T, Task>> AsEnumerableAsync<T>(this IEnumerable<T> items)
-        {
-            return EnumerableAsync.YieldAsync<Func<T, Task>>(
-                async (yieldAsync) =>
-                {
-                    await items.ForYield(yieldAsync);
-                });
-        }
+        
 
         #region ToDictionary
 
@@ -202,7 +145,7 @@ namespace BlackBarLabs.Collections.Async
         #region ToEnumerable
 
         public static IEnumerable<TResult> ToEnumerable<TDelegateItems, TDelegateConvert, TResult>(
-            this IEnumerableAsync<TDelegateItems> items,
+            this IEnumerableAsyncOld<TDelegateItems> items,
             TDelegateConvert convert)
         {
             var iterator = items.GetEnumerable<TResult, TDelegateConvert>(convert);
@@ -210,7 +153,7 @@ namespace BlackBarLabs.Collections.Async
         }
         
         public static IEnumerable<TResult> ToEnumerable<TDelegateItems, T1, TResult>(
-            this IEnumerableAsync<TDelegateItems> items,
+            this IEnumerableAsyncOld<TDelegateItems> items,
             Func<T1, TResult> convert)
         {
             var iterator = items.GetEnumerable<TResult, Func<T1, TResult>>(convert);
@@ -218,7 +161,7 @@ namespace BlackBarLabs.Collections.Async
         }
 
         public static IEnumerable<TResult> ToEnumerable<TDelegateItems, T1, T2, TResult>(
-            this IEnumerableAsync<TDelegateItems> items,
+            this IEnumerableAsyncOld<TDelegateItems> items,
             Func<T1, T2, TResult> convert)
         {
             var iterator = items.GetEnumerable<TResult, Func<T1, T2, TResult>>(convert);
@@ -226,7 +169,7 @@ namespace BlackBarLabs.Collections.Async
         }
 
         public static IEnumerable<TResult> ToEnumerable<TDelegateItems, T1, T2, T3, TResult>(
-            this IEnumerableAsync<TDelegateItems> items,
+            this IEnumerableAsyncOld<TDelegateItems> items,
             Func<T1, T2, T3, TResult> convert)
         {
             var iterator = items.GetEnumerable<TResult, Func<T1, T2, T3, TResult>>(convert);
@@ -234,7 +177,7 @@ namespace BlackBarLabs.Collections.Async
         }
 
         public static IEnumerable<TResult> ToEnumerable<TDelegateItems, T1, T2, T3, T4, TResult>(
-            this IEnumerableAsync<TDelegateItems> items,
+            this IEnumerableAsyncOld<TDelegateItems> items,
             Func<T1, T2, T3, T4, TResult> convert)
         {
             var iterator = items.GetEnumerable<TResult, Func<T1, T2, T3, T4, TResult>>(convert);
@@ -242,7 +185,7 @@ namespace BlackBarLabs.Collections.Async
         }
 
         public static IEnumerable<TResult> ToEnumerable<TDelegateItems, T1, T2, T3, T4, T5, TResult>(
-            this IEnumerableAsync<TDelegateItems> items,
+            this IEnumerableAsyncOld<TDelegateItems> items,
             Func<T1, T2, T3, T4, T5, TResult> convert)
         {
             var iterator = items.GetEnumerable<TResult, Func<T1, T2, T3, T4, T5, TResult>>(convert);
@@ -250,7 +193,7 @@ namespace BlackBarLabs.Collections.Async
         }
 
         public static IEnumerable<TResult> ToEnumerable<TDelegateItems, T1, T2, T3, T4, T5, T6, TResult>(
-            this IEnumerableAsync<TDelegateItems> items,
+            this IEnumerableAsyncOld<TDelegateItems> items,
             Func<T1, T2, T3, T4, T5, T6, TResult> convert)
         {
             var iterator = items.GetEnumerable<TResult, Func<T1, T2, T3, T4, T5, T6, TResult>>(convert);
@@ -258,7 +201,7 @@ namespace BlackBarLabs.Collections.Async
         }
 
         public static IEnumerable<TResult> ToEnumerable<TDelegateItems, T1, T2, T3, T4, T5, T6, T7, TResult>(
-            this IEnumerableAsync<TDelegateItems> items,
+            this IEnumerableAsyncOld<TDelegateItems> items,
             Func<T1, T2, T3, T4, T5, T6, T7, TResult> convert)
         {
             var iterator = items.GetEnumerable<TResult, Func<T1, T2, T3, T4, T5, T6, T7, TResult>>(convert);
@@ -266,7 +209,7 @@ namespace BlackBarLabs.Collections.Async
         }
 
         public static IEnumerable<TResult> ToEnumerable<TDelegateItems, T1, T2, T3, T4, T5, T6, T7, T8, TResult>(
-         this IEnumerableAsync<TDelegateItems> items,
+         this IEnumerableAsyncOld<TDelegateItems> items,
          Func<T1, T2, T3, T4, T5, T6, T7, T8, TResult> convert)
         {
             var iterator = items.GetEnumerable<TResult, Func<T1, T2, T3, T4, T5, T6, T7, T8, TResult>>(convert);
@@ -274,7 +217,7 @@ namespace BlackBarLabs.Collections.Async
         }
 
         public static IEnumerable<TResult> ToEnumerable<TDelegateItems, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TResult>(
-            this IEnumerableAsync<TDelegateItems> items,
+            this IEnumerableAsyncOld<TDelegateItems> items,
             Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TResult> convert)
         {
             var iterator = items.GetEnumerable<TResult, Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TResult>>(convert);
@@ -282,7 +225,7 @@ namespace BlackBarLabs.Collections.Async
         }
 
         public static IEnumerable<TResult> ToEnumerable<TDelegateItems, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TResult>(
-            this IEnumerableAsync<TDelegateItems> items,
+            this IEnumerableAsyncOld<TDelegateItems> items,
             Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TResult> convert)
         {
             var iterator = items.GetEnumerable<TResult, Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TResult>>(convert);
@@ -290,7 +233,7 @@ namespace BlackBarLabs.Collections.Async
         }
 
         public static IEnumerable<TResult> ToEnumerable<TDelegateItems, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TResult>(
-            this IEnumerableAsync<TDelegateItems> items,
+            this IEnumerableAsyncOld<TDelegateItems> items,
             Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TResult> convert)
         {
             var iterator = items.GetEnumerable<TResult, Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TResult>>(convert);
@@ -298,7 +241,7 @@ namespace BlackBarLabs.Collections.Async
         }
 
         public static IEnumerable<TResult> ToEnumerable<TDelegateItems, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TResult>(
-            this IEnumerableAsync<TDelegateItems> items,
+            this IEnumerableAsyncOld<TDelegateItems> items,
             Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TResult> convert)
         {
             var iterator = items.GetEnumerable<TResult, Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TResult>>(convert);
@@ -306,7 +249,7 @@ namespace BlackBarLabs.Collections.Async
         }
 
         public static IEnumerable<TResult> ToEnumerable<TDelegateItems, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TResult>(
-           this IEnumerableAsync<TDelegateItems> items,
+           this IEnumerableAsyncOld<TDelegateItems> items,
            Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TResult> convert)
         {
             var iterator = items.GetEnumerable<TResult, Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TResult>>(convert);
@@ -315,7 +258,7 @@ namespace BlackBarLabs.Collections.Async
 
 
         public static IEnumerable<TResult> ToEnumerable<TDelegateItems, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, TResult>(
-           this IEnumerableAsync<TDelegateItems> items,
+           this IEnumerableAsyncOld<TDelegateItems> items,
            Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, TResult> convert)
         {
             var iterator = items.GetEnumerable<TResult, Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, TResult>>(convert);
@@ -323,7 +266,7 @@ namespace BlackBarLabs.Collections.Async
         }
 
         public static IEnumerable<TResult> ToEnumerable<TDelegateItems, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, TResult>(
-          this IEnumerableAsync<TDelegateItems> items,
+          this IEnumerableAsyncOld<TDelegateItems> items,
           Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, TResult> convert)
         {
             var iterator = items.GetEnumerable<TResult, Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, TResult>>(convert);
@@ -331,7 +274,7 @@ namespace BlackBarLabs.Collections.Async
         }
 
         public static IEnumerable<TResult> ToEnumerable<TDelegateItems, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, TResult>(
-         this IEnumerableAsync<TDelegateItems> items,
+         this IEnumerableAsyncOld<TDelegateItems> items,
          Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, TResult> convert)
         {
             var iterator = items.GetEnumerable<TResult, Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, TResult>>(convert);

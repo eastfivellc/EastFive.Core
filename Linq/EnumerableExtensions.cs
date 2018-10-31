@@ -518,6 +518,44 @@ namespace EastFive.Linq
             }
         }
 
+        public interface ISelected<T>
+        {
+            bool HasValue { get; }
+            T Value { get; }
+        }
+
+        public struct SelectedValue<T> : ISelected<T>
+        {
+            public SelectedValue(bool x)
+            {
+                this.HasValue = false;
+                this.Value = default(T);
+            }
+
+            public SelectedValue(T nextItem)
+            {
+                this.HasValue = true;
+                this.Value = nextItem;
+            }
+
+            public bool HasValue {get; private set;}
+
+            public T Value { get; private set; }
+        }
+
+        public static IEnumerable<TResult> SelectOptional<TItem, TResult>(this IEnumerable<TItem> items,
+            Func<TItem, Func<TResult, ISelected<TResult>>, Func<ISelected<TResult>>, ISelected<TResult>> callback)
+        {
+            foreach (var item in items)
+            {
+                var nextValue = callback(item,
+                    (nextItem) => new SelectedValue<TResult>(nextItem),
+                    () => new SelectedValue<TResult>(false));
+                if (nextValue.HasValue)
+                    yield return nextValue.Value;
+            }
+        }
+
         public static IEnumerable<TItem> OrderWith<TCarry, TItem>(this IEnumerable<TItem> items,
             TCarry carry, Func<TCarry, TItem, bool> selectNextItem, Func<TItem, TCarry> selectNextCarry)
         {

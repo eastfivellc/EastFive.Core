@@ -132,6 +132,15 @@ namespace EastFive.Collections.Generic
             return dictionary.Where(kvp => keys.Contains(kvp.Key)).ToDictionary();
         }
         
+        public static IDictionary<TKey, TValueResult> IntersectKeys<TKey, TValue1, TValue2, TValueResult>(this IDictionary<TKey, TValue1> dictionary1,
+                IDictionary<TKey, TValue2> dictionary2,
+                Func<TValue1, TValue2, TValueResult> selector)
+        {
+            return dictionary1
+                .Where(kvp => dictionary2.ContainsKey(kvp.Key))
+                .Select(kvp => kvp.Key.PairWithValue(selector(kvp.Value, dictionary2[kvp.Key])))
+                .ToDictionary();
+        }
 
         public static TResult WhereKey<TKey, TValue, TResult>(this IDictionary<TKey, TValue> dictionary,
                 Func<KeyValuePair<TKey, TValue>, bool> predicate,

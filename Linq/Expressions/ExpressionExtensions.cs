@@ -94,38 +94,78 @@ namespace EastFive.Linq.Expressions
                 .Zip(
                     body.Method.GetParameters(),
                     (arg, paramInfo) => paramInfo.PairWithValue(arg))
-                .Select(argument => argument.Key.PairWithValue(ResolveMemberExpression(argument.Value)))
+                .Select(argument => argument.Key.PairWithValue(Resolve(argument.Value)))
                 .ToArray();
             return values;
         }
 
-        private static object ResolveMemberExpression(Expression expression)
+        /// <summary>
+        /// Attempt to resolve the value of the expression without compiling and invoking the expression.
+        /// </summary>
+        /// <remarks>
+        /// This method will compile and invoke the expression,
+        /// or a subset of the expression, 
+        /// if it fails to resolve it with other means.
+        /// Methods called by the expression will be invoked.
+        /// </remarks>
+        /// <param name="expression"></param>
+        /// <returns></returns>
+        public static object Resolve(this Expression expression)
         {
             if (expression is MemberExpression)
-                return GetMemberExpressionValue((MemberExpression)expression);
+            {
+                var memberExpression = expression as MemberExpression;
+                var memberObject = memberExpression.Expression.Resolve();
+                var memberOfObjectAccessed = memberObject.GetType().GetField(memberExpression.Member.Name);
+                var memberValue = memberOfObjectAccessed.GetValue(memberObject);
+                return memberValue;
+            }
 
             if (expression is UnaryExpression)
-                // if casting is involved, Expression is not x => x.FieldName but x => Convert(x.Fieldname)
-                return GetMemberExpressionValue((MemberExpression)((UnaryExpression)expression).Operand);
+            {
+                // if casting is involved, Expression is not value but Convert(value)
+                var unaryExpression = expression as UnaryExpression;
+                // or possibly some other method than convert, either way, just get the method
+                var unaryMethod = unaryExpression.Method;
+                // and ensure it's static and only has one parameter
+                if(unaryMethod.IsStatic && unaryMethod.GetParameters().Length == 1)
+                {
+                    var operandValue = unaryExpression.Operand.Resolve();
+                    try
+                    {
+                        var convertedValue = unaryExpression.Method.Invoke(null, new object[] { operandValue });
+                        return convertedValue;
+                    } catch(Exception ex)
+                    {
+                        ex.GetType();
+                    }
+                }
+                // otherwise more work is required to call it.
+                
+            }
+
+            if (expression is ConstantExpression)
+            {
+                var constantExpression = expression as ConstantExpression;
+                var constantValue = constantExpression.Value;
+                return constantValue;
+            }
 
             var value = Expression.Lambda(expression).Compile().DynamicInvoke();
             return value;
         }
-
-        private static object GetMemberExpressionValue(MemberExpression exp)
+        
+        public static TResult GetAssignment<TObject, TResult>(this Expression<Action<TObject>> expression,
+            Func<MemberInfo, object, TResult> onAssignmentResolved,
+            Func<string, TResult> onFailure = default(Func<string, TResult>))
         {
-            // expression is ConstantExpression or FieldExpression
-            if (exp.Expression is ConstantExpression)
-                return (((ConstantExpression)exp.Expression).Value)
-                        .GetType()
-                        .GetField(exp.Member.Name)
-                        .GetValue(((ConstantExpression)exp.Expression).Value);
+            var body = expression.Body;
+            var methodCall = body as MethodCallExpression;
 
-            if (exp.Expression is MemberExpression)
-                return GetMemberExpressionValue((MemberExpression)exp.Expression);
-
-            var value = Expression.Lambda(exp.Expression).Compile().DynamicInvoke();
-            return value;
+            var memberInfo = (methodCall.Arguments[0] as MemberExpression).Member;
+            var valueResolved = methodCall.Arguments[1].Resolve();
+            
+            return onAssignmentResolved(memberInfo, valueResolved);
         }
     }
 }

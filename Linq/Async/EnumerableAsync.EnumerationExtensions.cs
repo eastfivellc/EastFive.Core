@@ -1,8 +1,11 @@
-﻿using System;
+﻿using EastFive.Collections.Generic;
+using EastFive.Threading;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace EastFive.Linq.Async
@@ -13,16 +16,6 @@ namespace EastFive.Linq.Async
         {
             var enumerator = enumerable.GetEnumerator();
             return enumerator.MoveNextAsync();
-        }
-
-        public static async Task<TResult> FirstAsync<T, TResult>(this IEnumerableAsync<T> enumerable,
-            Func<T, TResult> onOne,
-            Func<TResult> onNone)
-        {
-            var enumerator = enumerable.GetEnumerator();
-            if (!await enumerator.MoveNextAsync())
-                return onNone();
-            return onOne(enumerator.Current);
         }
 
         public static async Task<IEnumerable<T>> Async<T>(this IEnumerableAsync<T> enumerable)
@@ -47,11 +40,110 @@ namespace EastFive.Linq.Async
             }
             return new StepEnumerable<T>(firstStep);
         }
-        
+
         public static async Task<T[]> ToArrayAsync<T>(this IEnumerableAsync<T> enumerableAsync)
         {
             var enumerable = await enumerableAsync.Async();
             return enumerable.ToArray();
+        }
+
+        public static async Task<IDictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue>(this IEnumerableAsync<KeyValuePair<TKey, TValue>> enumerableAsync)
+        {
+            var enumerable = await enumerableAsync.Async();
+            return enumerable.ToDictionary();
+        }
+
+        public static IEnumerableAsync<T> JoinTask<T>(this IEnumerableAsync<T> enumerableAsync,
+            Task task,
+            string tag = default(string))
+        {
+            var enumerator = enumerableAsync.GetEnumerator();
+            return EnumerableAsync.Yield<T>(
+                async (next, last) =>
+                {
+                    //if (!tag.IsNullOrWhiteSpace())
+                    //    Console.WriteLine($"Join[{tag}] MoveNextAsync.");
+                    if (await enumerator.MoveNextAsync())
+                    {
+                        //if (!tag.IsNullOrWhiteSpace())
+                        //    Console.WriteLine($"Join[{tag}] Passthrough on value.");
+                        return next(enumerator.Current);
+                    }
+
+                    if (!tag.IsNullOrWhiteSpace())
+                        Console.WriteLine($"Join[{tag}] Joining Task.");
+                    await task;
+                    if (!tag.IsNullOrWhiteSpace())
+                        Console.WriteLine($"Join[{tag}] Complete.");
+
+                    return last;
+                });
+        }
+        
+        public static IEnumerableAsync<T> OnComplete<T>(this IEnumerableAsync<T> enumerableAsync,
+            Action<T[]> onComplete,
+            string tag = default(string))
+        {
+            var enumerator = enumerableAsync.GetEnumerator();
+            var stack = new Stack<T>();
+            return EnumerableAsync.Yield<T>(
+                async (next, last) =>
+                {
+                    //if (!tag.IsNullOrWhiteSpace())
+                    //    Console.WriteLine($"Join[{tag}] MoveNextAsync.");
+                    if (await enumerator.MoveNextAsync())
+                    {
+                        var current = enumerator.Current;
+                        //if (!tag.IsNullOrWhiteSpace())
+                        //    Console.WriteLine($"Join[{tag}] Passthrough on value.");
+                        stack.Push(current);
+                        return next(current);
+                    }
+
+                    var allValues = stack.ToArray();
+                    if (!tag.IsNullOrWhiteSpace())
+                        Console.WriteLine($"OnComplete[{tag}] Accumulated `{allValues.Length}` Values.");
+                    onComplete(allValues);
+                    if (!tag.IsNullOrWhiteSpace())
+                        Console.WriteLine($"OnComplete[{tag}] Complete.");
+
+                    return last;
+                });
+        }
+
+        private class CompleteAllMutex<T>
+        {
+            public EventWaitHandle mutex;
+            public T[] values;
+        }
+
+        public static void OnCompleteAll<T>(this IEnumerable<IEnumerableAsync<T>> enumerableAsyncs,
+            Action<T[][]> onComplete,
+            string tag = default(string))
+        {
+            var mutexes = enumerableAsyncs
+                .Select(
+                    enumerableAsync =>
+                    {
+                        var s = new CompleteAllMutex<T>
+                        {
+                            mutex = new ManualResetEvent(false),
+                            values = default(T[]),
+                        };
+                        enumerableAsync.OnComplete(
+                            (values) =>
+                            {
+                                s.values = values;
+                                s.mutex.Set();
+                            });
+                        return s;
+                    })
+                .ToArray();
+
+            mutexes.Select(mutex => mutex.mutex).WaitAll();
+
+            var allValuess = mutexes.Select(mutex => mutex.values).ToArray();
+            onComplete(allValuess);
         }
 
         private struct Step<T>
