@@ -119,6 +119,15 @@ namespace EastFive.Linq.Async
             return doNexts[0]();
         }
 
+        public static IEnumerableAsync<T> Empty<T>()
+        {
+            return EnumerableAsync.Yield<T>(
+                (yeildReturn, yieldBreak) =>
+                {
+                    return yieldBreak.AsTask();
+                });
+        }
+
         public static async Task<IOrderedEnumerable<TItem>> OrderByAsync<TItem, TRank>(this IEnumerableAsync<TItem> enumerable,
             Func<TItem, TRank> ranking)
         {
