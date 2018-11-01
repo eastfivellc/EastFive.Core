@@ -68,7 +68,8 @@ namespace EastFive.Linq.Async
                         return onMore(yieldResult);
                     }catch (Exception ex)
                     {
-                        throw ex;
+                        ex.GetType();// suppress warning
+                        throw;
                     }
                 }
 
