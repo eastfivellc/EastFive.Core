@@ -95,15 +95,36 @@ namespace EastFive.Linq.Async
             return onNone();
         }
 
-        public static Task<TResult> FirstMatchAsync<T, TResult>(this IEnumerableAsync<T> enumerable,
+        public static async Task<TResult> FirstMatchAsync<T, TResult>(this IEnumerableAsync<T> enumerable,
+            Func<T, Func<TResult>, TResult> onOne,
+            Func<TResult> onNone)
+        {
+            var enumerator = enumerable.GetEnumerator();
+            while (await enumerator.MoveNextAsync())
+            {
+                var item = enumerator.Current;
+                var calledForNext = false;
+                var oneResult = onOne(item,
+                    () =>
+                    {
+                        calledForNext = true;
+                        return default(TResult);
+                    });
+                if (!calledForNext)
+                    return oneResult;
+            }
+            return onNone();
+        }
+
+        public static Task<TResult> FirstAsyncMatchAsync<T, TResult>(this IEnumerableAsync<T> enumerable,
             Func<T, Func<Task<TResult>>, Task<TResult>> onOne,
             Func<TResult> onNone)
         {
             var enumerator = enumerable.GetEnumerator();
-            return FirstInnerAsync(enumerator, onOne, onNone);
+            return FirstAsyncInnerAsync(enumerator, onOne, onNone);
         }
 
-        private static Task<TResult> FirstInnerAsync<T, TResult>(IEnumeratorAsync<T> enumerator,
+        private static Task<TResult> FirstAsyncInnerAsync<T, TResult>(IEnumeratorAsync<T> enumerator,
             Func<T, Func<Task<TResult>>, Task<TResult>> onOne,
             Func<TResult> onNone)
         {
