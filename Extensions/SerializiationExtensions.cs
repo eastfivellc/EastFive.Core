@@ -238,6 +238,30 @@ namespace EastFive.Serialization
 
         #endregion
 
+        #region Enums
+
+        public static T[] ToEnumsFromByteArray<T>(this byte [] byteArrayOfEnums)
+        {
+            return byteArrayOfEnums
+                .ToStringsFromUTF8ByteArray()
+                .Select(enumName => (T)Enum.Parse(typeof(T), enumName))
+                .ToArray();
+        }
+
+        public static byte[] ToByteArrayOfEnums<T>(this IEnumerable<T> enums) where T : struct, IConvertible // TODO: When we switch to C# 7.3 : System.Enum
+        {
+            if (!typeof(T).IsEnum)
+            {
+                throw new ArgumentException("T must be an enumerated type");
+            }
+            return enums
+                .NullToEmpty()
+                .Select(enumValue => Enum.GetName(typeof(T), enumValue))
+                .ToUTF8ByteArrayOfStrings();
+        }
+
+        #endregion
+
         public static byte[] ToByteArray<TKey, TValue>(this IDictionary<TKey, TValue> obj,
             Func<TKey, byte[]> keyConverter, Func<TValue, byte[]> valueConverter)
         {
