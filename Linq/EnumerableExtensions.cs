@@ -75,7 +75,7 @@ namespace EastFive.Linq
         
         public static IEnumerable<T> Append<T>(this IEnumerable<T> items, T item)
         {
-            return items.Concat(new T[] { item });
+            return items.NullToEmpty().Concat(new T[] { item });
         }
 
         public static IEnumerable<T> AppendIf<T>(this IEnumerable<T> items, T item, bool condition)
