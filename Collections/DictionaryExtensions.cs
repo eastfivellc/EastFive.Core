@@ -1,6 +1,7 @@
 ﻿using BlackBarLabs.Collections.Generic;
 using BlackBarLabs.Extensions;
 using BlackBarLabs.Linq;
+using EastFive.Extensions;
 using EastFive.Linq;
 using System;
 using System.Collections.Generic;
@@ -12,6 +13,13 @@ namespace EastFive.Collections.Generic
     {
         public static IDictionary<TKey, TValue> AddOrReplace<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, TValue value)
         {
+            if(dictionary.IsDefaultOrNull())
+            {
+                return new Dictionary<TKey, TValue>()
+                {
+                    { key, value }
+                };
+            }
             if (dictionary.ContainsKey(key))
             {
                 dictionary[key] = value;
