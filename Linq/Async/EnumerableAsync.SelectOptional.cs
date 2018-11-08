@@ -76,6 +76,51 @@ namespace EastFive.Linq.Async
             return aggregation(aggregatedItems, carry);
         }
 
+        public static IEnumerableAsync<TSelect> SelectAsyncOptional<TItem, TSelect>(this IEnumerableAsync<TItem> enumerable,
+            Func<TItem, Func<TSelect, ISelectionResult<TSelect>>, Func<ISelectionResult<TSelect>>, Task<ISelectionResult<TSelect>>> selection)
+        {
+            var enumerator = enumerable.GetEnumerator();
+            var selections = EnumerableAsync.Yield<TSelect>(
+                async (yieldAsync, yieldBreak) =>
+                {
+                    while (true)
+                    {
+                        if (!await enumerator.MoveNextAsync())
+                            return yieldBreak;
+
+                        var item = enumerator.Current;
+                        var selectionResult = await selection(item,
+                            (selected) =>
+                            {
+                                return new Selection<TSelect>(selected);
+                            },
+                            () =>
+                            {
+                                return new SelectionSkipped<TSelect>();
+                            });
+                        if (selectionResult.HasValue)
+                            return yieldAsync(selectionResult.Value);
+                    }
+                });
+            return selections;
+        }
+
+        public static IEnumerableAsync<TSelect> SelectOptionalAsync<TItem, TSelect, TResult>(this IEnumerableAsync<TItem> enumerable,
+            Func<TItem,
+                Func<TSelect, ISelectionResult<TSelect>>,
+                Func<ISelectionResult<TSelect>>,
+                Task<ISelectionResult<TSelect>>> selectionAsync)
+        {
+            return enumerable
+                .Select(
+                    (item) => selectionAsync(item,
+                        (selected) => new Selection<TSelect>(selected),
+                        () => new SelectionSkipped<TSelect>()))
+                .Await()
+                .Where(select => select.HasValue)
+                .Select(select => select.Value);
+        }
+
         public static Task<TResult> SelectOptionalAsync<TItem, TSelect, TCarry1, TCarry2, TResult>(this IEnumerableAsync<TItem> enumerable,
             TCarry1 carry1, TCarry2 carry2,
             Func<TItem, TCarry1, TCarry2, 

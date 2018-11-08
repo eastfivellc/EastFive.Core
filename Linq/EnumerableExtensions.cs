@@ -75,7 +75,7 @@ namespace EastFive.Linq
         
         public static IEnumerable<T> Append<T>(this IEnumerable<T> items, T item)
         {
-            return items.Concat(new T[] { item });
+            return items.NullToEmpty().Concat(new T[] { item });
         }
 
         public static IEnumerable<T> AppendIf<T>(this IEnumerable<T> items, T item, bool condition)
@@ -515,6 +515,44 @@ namespace EastFive.Linq
                             :
                             end();
                     });
+            }
+        }
+
+        public interface ISelected<T>
+        {
+            bool HasValue { get; }
+            T Value { get; }
+        }
+
+        public struct SelectedValue<T> : ISelected<T>
+        {
+            public SelectedValue(bool x)
+            {
+                this.HasValue = false;
+                this.Value = default(T);
+            }
+
+            public SelectedValue(T nextItem)
+            {
+                this.HasValue = true;
+                this.Value = nextItem;
+            }
+
+            public bool HasValue {get; private set;}
+
+            public T Value { get; private set; }
+        }
+
+        public static IEnumerable<TResult> SelectOptional<TItem, TResult>(this IEnumerable<TItem> items,
+            Func<TItem, Func<TResult, ISelected<TResult>>, Func<ISelected<TResult>>, ISelected<TResult>> callback)
+        {
+            foreach (var item in items)
+            {
+                var nextValue = callback(item,
+                    (nextItem) => new SelectedValue<TResult>(nextItem),
+                    () => new SelectedValue<TResult>(false));
+                if (nextValue.HasValue)
+                    yield return nextValue.Value;
             }
         }
 

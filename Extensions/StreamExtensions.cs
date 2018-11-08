@@ -41,6 +41,15 @@ namespace EastFive
             return result;
         }
 
+        public static string Md5Checksum(this byte[] stream)
+        {
+            var hash = new MD5CryptoServiceProvider().ComputeHash(stream);
+            var result = hash.Select(hex => hex.ToString("X2"))
+                .Join("")
+                .ToUpper();
+            return result;
+        }
+
         public static string ReadAsString(this Stream stream, 
             Encoding encoding = default(Encoding))
         {

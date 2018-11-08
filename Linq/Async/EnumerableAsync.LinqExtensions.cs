@@ -1,5 +1,6 @@
 ﻿using BlackBarLabs;
 using BlackBarLabs.Extensions;
+using EastFive.Analytics;
 using EastFive.Collections.Generic;
 using EastFive.Extensions;
 using System;
@@ -7,6 +8,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace EastFive.Linq.Async
@@ -31,38 +33,144 @@ namespace EastFive.Linq.Async
                 });
         }
 
-        public static IEnumerableAsync<TResult> Select<T, TResult>(this IEnumerableAsync<T> enumerable, Func<T, TResult> selection)
+        public static IEnumerableAsync<T> AsyncWhere<T>(this IEnumerableAsync<T> enumerable, Func<T, Task<bool>> predicate)
         {
-            return new DelegateEnumerableAsync<TResult, T>(enumerable,
+            return new DelegateEnumerableAsync<T, T>(enumerable,
                 async (enumeratorAsync, enumeratorDestination, moved, ended) =>
                 {
                     if (!await enumeratorAsync.MoveNextAsync())
                         return ended();
                     var current = enumeratorAsync.Current;
-                    var next = selection(current);
-                    return moved(next);
+                    while (!await predicate(current))
+                    {
+                        if (!await enumeratorAsync.MoveNextAsync())
+                            return ended();
+                        current = enumeratorAsync.Current;
+                    }
+                    return moved(current);
                 });
         }
 
+        public static IEnumerableAsync<TResult> Select<T, TResult>(this IEnumerableAsync<T> enumerable, Func<T, TResult> selection,
+            ILogger log = default(ILogger))
+        {
+            var selectId = Guid.NewGuid();
+            var logSelect = log.CreateScope($"Select[{selectId}]");
+            var eventId = 1;
+            var selected = new DelegateEnumerableAsync<TResult, T>(enumerable,
+                async (enumeratorAsync, enumeratorDestination, moved, ended) =>
+                {
+                    var logItem = logSelect.CreateScope($"Item[{eventId++}]");
+                    logItem.Trace($"START BLOCK");
+                    if (enumeratorAsync.IsDefaultOrNull())
+                        return ended();
 
-        public static Task<TResult> FirstAsync<T, TResult>(this IEnumerableAsync<T> enumerable,
+                    logItem.Trace($"Calling MoveNextAsync.");
+                    if (!await enumeratorAsync.MoveNextAsync())
+                    {
+                        logItem.Trace($"COMPLETE");
+                        return ended();
+                    }
+                    var current = enumeratorAsync.Current;
+
+                    logItem.Trace($"Begin transform");
+                    var next = selection(current);
+                    logItem.Trace($"Ended transform");
+
+                    var result = moved(next);
+                    logItem.Trace($"END BLOCK");
+                    return result;
+                });
+
+            return selected;
+        }
+
+        public static async Task<TResult> FirstAsync<T, TResult>(this IEnumerableAsync<T> enumerable,
+            Func<T, TResult> onOne,
+            Func<TResult> onNone)
+        {
+            var enumerator = enumerable.GetEnumerator();
+            if (await enumerator.MoveNextAsync())
+                return onOne(enumerator.Current);
+            return onNone();
+        }
+
+        public static async Task<TResult> FirstMatchAsync<T, TResult>(this IEnumerableAsync<T> enumerable,
+            Func<T, Func<TResult>, TResult> onOne,
+            Func<TResult> onNone)
+        {
+            var enumerator = enumerable.GetEnumerator();
+            while (await enumerator.MoveNextAsync())
+            {
+                var item = enumerator.Current;
+                var calledForNext = false;
+                var oneResult = onOne(item,
+                    () =>
+                    {
+                        calledForNext = true;
+                        return default(TResult);
+                    });
+                if (!calledForNext)
+                    return oneResult;
+            }
+            return onNone();
+        }
+
+        public static Task<TResult> FirstAsyncMatchAsync<T, TResult>(this IEnumerableAsync<T> enumerable,
             Func<T, Func<Task<TResult>>, Task<TResult>> onOne,
             Func<TResult> onNone)
         {
             var enumerator = enumerable.GetEnumerator();
-            return FirstInnerAsync(enumerator, onOne, onNone);
+            return FirstAsyncInnerAsync(enumerator, onOne, onNone);
         }
 
-        private static async Task<TResult> FirstInnerAsync<T, TResult>(IEnumeratorAsync<T> enumerator,
+        private static Task<TResult> FirstAsyncInnerAsync<T, TResult>(IEnumeratorAsync<T> enumerator,
             Func<T, Func<Task<TResult>>, Task<TResult>> onOne,
             Func<TResult> onNone)
         {
-            while (await enumerator.MoveNextAsync())
+            Func<Task<TResult>>[] doNexts = new Func<Task<TResult>>[1];
+            doNexts[0] =
+                async () =>
+                {
+                    if (!await enumerator.MoveNextAsync())
+                        return onNone();
+                    return await onOne(enumerator.Current,
+                        doNexts[0]);
+                };
+            return doNexts[0]();
+        }
+
+        public static IEnumerableAsync<T> Empty<T>()
+        {
+            return EnumerableAsync.Yield<T>(
+                (yeildReturn, yieldBreak) =>
+                {
+                    return yieldBreak.AsTask();
+                });
+        }
+
+        public static async Task<IOrderedEnumerable<TItem>> OrderByAsync<TItem, TRank>(this IEnumerableAsync<TItem> enumerable,
+            Func<TItem, TRank> ranking)
+        {
+            var items = await enumerable.Async();
+            return items.OrderBy(ranking);
+        }
+
+        public static async Task<TResult> SelectOneAsync<TItem, TResult>(this IEnumerableAsync<TItem> enumerable,
+                Func<TItem, TItem, TItem> select,
+            Func<TItem, TResult> onOne,
+            Func<TResult> onNone)
+        {
+            var enumerator = enumerable.GetEnumerator();
+            if (!await enumerator.MoveNextAsync())
+                return onNone();
+            var selected = enumerator.Current;
+            while(await enumerator.MoveNextAsync())
             {
-                return await onOne(enumerator.Current,
-                    () => FirstInnerAsync(enumerator, onOne, onNone));
+                var challenger = enumerator.Current;
+                selected = select(selected, challenger);
             }
-            return onNone();
+            return onOne(selected);
         }
 
         public static IEnumerableAsync<T> Take<T>(this IEnumerableAsync<T> enumerable, int count)
@@ -115,7 +223,201 @@ namespace EastFive.Linq.Async
                     return moved(current);
                 });
         }
+
+        public static IEnumerableAsync<T> Distinct<T, TKey>(this IEnumerableAsync<T> enumerable, Func<T, TKey> selectKey)
+        {
+            var accumulation = new TKey[] { }; // TODO: Should be a hash
+            return new DelegateEnumerableAsync<T, T>(enumerable,
+                async (enumeratorAsync, enumeratorDestination, moved, ended) =>
+                {
+                    if (!await enumeratorAsync.MoveNextAsync())
+                        return ended();
+                    var current = enumeratorAsync.Current;
+                    while (accumulation.Contains(selectKey(current)))
+                    {
+                        if (!await enumeratorAsync.MoveNextAsync())
+                            return ended();
+                        current = enumeratorAsync.Current;
+                    }
+                    accumulation = accumulation.Append(selectKey(current)).ToArray();
+                    return moved(current);
+                });
+        }
+
+        public static IEnumerableAsync<T[]> Segments<T>(this IEnumerableAsync<T> enumerable, int segmentSize)
+        {
+            var segmentIndex = 0;
+            var segment = new T[segmentSize];
+            var enumerator = enumerable.GetEnumerator();
+            return Yield<T[]>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    // Works with nullification below to prevent double failed moveNexts
+                    if (segment.IsDefaultOrNull())
+                        return yieldBreak;
+
+                    while (segmentIndex < segmentSize)
+                    {
+                        if (!await enumerator.MoveNextAsync())
+                        {
+                            var subseg = segment.Take(segmentIndex).ToArray();
+                            segment = null; // Ensure failed MoveNext is only called once.
+                            if (!subseg.Any())
+                                return yieldBreak;
+
+                            segmentIndex = 0;
+                            return yieldReturn(subseg);
+                        }
+                        segment[segmentIndex] = enumerator.Current;
+                    }
+                    segmentIndex++;
+                    return yieldReturn(segment);
+                });
+        }
+
+        private static async Task BatchAsync<T>(this IEnumerableAsync<T> enumerable,
+            List<T> cache, EventWaitHandle moved, EventWaitHandle complete,
+            string diagnosticsTag = default(string))
+        {
+            var enumerator = enumerable.GetEnumerator();
+
+            Func<Task<bool>> getMoveNext =
+                diagnosticsTag.IsNullOrWhiteSpace()?
+                    (Func<Task<bool>>)(() => enumerator.MoveNextAsync())
+                    :
+                    (Func<Task<bool>>)(async () =>
+                    {
+                        Console.WriteLine($"BatchAsync[{diagnosticsTag}]:Moving");
+                        var success = await enumerator.MoveNextAsync();
+                        Console.WriteLine($"BatchAsync[{diagnosticsTag}]:Moved");
+                        return success;
+                    });
+
+            while(await getMoveNext())
+            {
+                if(!diagnosticsTag.IsNullOrWhiteSpace())
+                    Console.WriteLine($"BatchAsync[{diagnosticsTag}]:Adding Value");
+                lock (cache)
+                {
+                    cache.Add(enumerator.Current);
+                    moved.Set();
+                }
+                if (!diagnosticsTag.IsNullOrWhiteSpace())
+                    Console.WriteLine($"BatchAsync[{diagnosticsTag}]:Added Value");
+            }
+            moved.Set();
+            complete.Set();
+            if (!diagnosticsTag.IsNullOrWhiteSpace())
+                Console.WriteLine($"BatchAsync[{diagnosticsTag}]:Completed");
+        }
+
+        public static IEnumerableAsync<T[]> Batch<T>(this IEnumerableAsync<T> enumerable, string diagnosticsTag = default(string))
+        {
+            var segment = new List<T>();
+            var moved = new AutoResetEvent(false);
+            var complete = new ManualResetEvent(false);
+            var segmentTask = enumerable.BatchAsync(segment, moved, complete, diagnosticsTag);
+            return Yield<T[]>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    while (!complete.WaitOne(0))
+                    {
+                        moved.WaitOne();
+                        lock (segment)
+                        {
+                            var nextSegment = segment.ToArray();
+                            if (nextSegment.Any())
+                            {
+                                segment.Clear();
+                                return yieldReturn(nextSegment);
+                            }
+                        }
+                    }
+
+                    await segmentTask;
+                    return yieldBreak;
+                });
+        }
         
+        public static IEnumerableAsync<T> Prespool<T>(this IEnumerableAsync<T> items, string diagnosticsTag = default(string))
+        {
+            // TODO: Match batch use this instead of this using Batch.
+            return items.Batch(diagnosticsTag).SelectMany();
+        }
+
+        public static IEnumerableAsync<TResult> Range<TItem, TRange, TResult>(this IEnumerableAsync<TItem> enumerables,
+            Func<TItem, TRange> min,
+            Func<TItem, TRange> max,
+            Func<TRange, TRange, IEnumerable<TResult>> range)
+        {
+
+            throw new NotImplementedException();
+
+            //var enumerators = enumerables
+            //    .Select((enumerable, index) => index.PairWithValue(enumerable.GetEnumerator()))
+            //    .ToDictionary();
+
+            //var tasks = enumerators
+            //    .Select(enumerator => enumerator.Key.PairWithValue(enumerator.Value.MoveNextAsync()))
+            //    .ToArray();
+
+            //return Yield<T>(
+            //    async (yieldReturn, yieldBreak) =>
+            //    {
+            //        while (true)
+            //        {
+            //            var finishedTaskKvp = await GetCompletedTaskIndex<bool>(tasks);
+            //            var finishedTaskIndex = finishedTaskKvp.Key;
+            //            var moved = finishedTaskKvp.Value;
+            //            var enumerator = enumerators[finishedTaskIndex];
+            //            tasks = tasks.Where(task => task.Key != finishedTaskIndex).ToArray();
+            //            if (moved)
+            //            {
+            //                var current = enumerator.Current;
+            //                tasks = tasks.Append(finishedTaskIndex.PairWithValue(enumerators[finishedTaskIndex].MoveNextAsync())).ToArray();
+            //                return yieldReturn(current);
+            //            }
+            //            if (!tasks.Any())
+            //                return yieldBreak;
+            //        }
+            //    });
+        }
+        
+        public static IEnumerableAsync<TItem> Compress<TItem>(this IEnumerableAsync<TItem> enumerables,
+            Func<TItem, TItem, IEnumerableAsync<TItem>> compressor)
+        {
+            throw new NotImplementedException();
+
+            //var enumerators = enumerables
+            //    .Select((enumerable, index) => index.PairWithValue(enumerable.GetEnumerator()))
+            //    .ToDictionary();
+
+            //var tasks = enumerators
+            //    .Select(enumerator => enumerator.Key.PairWithValue(enumerator.Value.MoveNextAsync()))
+            //    .ToArray();
+
+            //return Yield<T>(
+            //    async (yieldReturn, yieldBreak) =>
+            //    {
+            //        while (true)
+            //        {
+            //            var finishedTaskKvp = await GetCompletedTaskIndex<bool>(tasks);
+            //            var finishedTaskIndex = finishedTaskKvp.Key;
+            //            var moved = finishedTaskKvp.Value;
+            //            var enumerator = enumerators[finishedTaskIndex];
+            //            tasks = tasks.Where(task => task.Key != finishedTaskIndex).ToArray();
+            //            if (moved)
+            //            {
+            //                var current = enumerator.Current;
+            //                tasks = tasks.Append(finishedTaskIndex.PairWithValue(enumerators[finishedTaskIndex].MoveNextAsync())).ToArray();
+            //                return yieldReturn(current);
+            //            }
+            //            if (!tasks.Any())
+            //                return yieldBreak;
+            //        }
+            //    });
+        }
+
         public static IEnumerableAsync<T> SelectMany<T>(this IEnumerable<IEnumerableAsync<T>> enumerables)
         {
             var enumerators = enumerables
@@ -175,12 +477,7 @@ namespace EastFive.Linq.Async
                     }
                 });
         }
-
-        public static IEnumerableAsync<T> SelectAsyncMany<T>(this IEnumerableAsync<IEnumerableAsync<T>> enumerables)
-        {
-            return enumerables.SelectAsyncMany(items => items);
-        }
-
+        
         public static IEnumerableAsync<TResult> SelectAsyncMany<T, TResult>(this IEnumerableAsync<T> enumerables, Func<T, IEnumerableAsync<TResult>> selectMany)
         {
             var enumerator = enumerables.GetEnumerator();
@@ -203,7 +500,12 @@ namespace EastFive.Linq.Async
                     }
                 });
         }
-
+        
+        public static IEnumerableAsync<T> SelectAsyncMany<T>(this IEnumerableAsync<IEnumerableAsync<T>> enumerables)
+        {
+            return enumerables.SelectAsyncMany(items => items);
+        }
+        
         public static IEnumerableAsync<T> Concat<T>(this IEnumerableAsync<T> enumerable1, IEnumerableAsync<T> enumerable2)
         {
             return (new IEnumerableAsync<T> []
@@ -236,7 +538,7 @@ namespace EastFive.Linq.Async
                     }
                 });
         }
-
+        
         public static IEnumerableAsync<T> Append<T>(this IEnumerableAsync<T> enumerable1, T enumerable2)
         {
             return (new IEnumerableAsync<T>[]
@@ -310,15 +612,106 @@ namespace EastFive.Linq.Async
             return tcs.Task;
         }
 
-        public static IEnumerableAsync<T> Await<T>(this IEnumerableAsync<Task<T>> enumerable)
+
+
+        public static IEnumerableAsync<TResult> Zip<T1, T2, TResult>(this IEnumerableAsync<T1> items1, 
+            IEnumerableAsync<T2> items2, Func<T1, T2, TResult> zipper)
         {
-            return new DelegateEnumerableAsync<T, Task<T>>(enumerable,
+            var enumerator1 = items1.GetEnumerator();
+            var enumerator2 = items2.GetEnumerator();
+            return Yield<TResult>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    var moved1Task = enumerator1.MoveNextAsync();
+                    var moved2Task = enumerator2.MoveNextAsync();
+                    var moved1 = await moved1Task;
+                    if(!moved1)
+                        return yieldBreak;
+
+                    var moved2 = await moved2Task;
+                    if (!moved2)
+                        return yieldBreak;
+
+                    var value1 = enumerator1.Current;
+                    var value2 = enumerator2.Current;
+                    var zipped = zipper(value1, value2);
+                    return yieldReturn(zipped);
+                });
+        }
+
+        public static IEnumerableAsync<T> FoldTask<T>(this Task<IEnumerableAsync<T>> enumerable, string tag = default(string))
+        {
+            var enumerator = default(IEnumeratorAsync<T>);
+            return Yield<T>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    if(enumerator.IsDefaultOrNull())
+                        enumerator = (await enumerable).GetEnumerator();
+                    
+                    if (!await enumerator.MoveNextAsync())
+                        return yieldBreak;
+
+                    var next = enumerator.Current;
+                    return yieldReturn(next);
+                });
+        }
+        
+
+        public static IEnumerableAsync<T> Await<T>(this IEnumerableAsync<Task<T>> enumerable, string tag = default(string))
+        {
+            var enumerator = enumerable.GetEnumerator();
+            return Yield<T>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    if (!tag.IsNullOrWhiteSpace())
+                        Console.WriteLine($"Await[{tag}]:Requesting next");
+
+                    if (!await enumerator.MoveNextAsync())
+                    {
+                        if (!tag.IsNullOrWhiteSpace())
+                            Console.WriteLine($"Await[{tag}]:Completed");
+                        return yieldBreak;
+                    }
+
+                    if (!tag.IsNullOrWhiteSpace())
+                        Console.WriteLine($"Await[{tag}]:Awaiting value next");
+                    var next = await enumerator.Current;
+                    
+                    if (!tag.IsNullOrWhiteSpace())
+                        Console.WriteLine($"Await[{tag}]:Yielding value");
+                    return yieldReturn(next);
+                });
+
+            //return new DelegateEnumerableAsync<T, Task<T>>(enumerable,
+            //    async (enumeratorAsync, enumeratorDestination, moved, ended) =>
+            //    {
+            //        if (enumeratorAsync.IsDefaultOrNull())
+            //            return ended();
+
+            //        if (!await enumeratorAsync.MoveNextAsync())
+            //            return ended();
+            //        var next = await enumeratorAsync.Current;
+            //        return moved(next);
+            //    });
+        }
+        
+        public static IEnumerableAsync<T> Aggregate<T>(this IEnumerableAsync<T> enumerable)
+        {
+            var accumulation = new T[] { }; // TODO: Should be a hash
+            return new DelegateEnumerableAsync<T, T>(enumerable,
                 async (enumeratorAsync, enumeratorDestination, moved, ended) =>
                 {
                     if (!await enumeratorAsync.MoveNextAsync())
                         return ended();
-                    var next = await enumeratorAsync.Current;
-                    return moved(next);
+                    var current = enumeratorAsync.Current;
+                    while (accumulation.Contains(current))
+                    {
+                        if (!await enumeratorAsync.MoveNextAsync())
+                            return ended();
+                        current = enumeratorAsync.Current;
+                    }
+                    accumulation = accumulation.Append(current).ToArray();
+                    return moved(current);
                 });
         }
 
@@ -374,11 +767,15 @@ namespace EastFive.Linq.Async
                 Func<IEnumeratorAsync<TSource>, IEnumeratorAsync<T>, Func<T, object>, Func<object>, Task<object>> moveNext)
                 : base(enumerableAsync)
             {
+                if (moveNext.IsDefaultOrNull())
+                    throw new ArgumentNullException("moveNext");
                 this.MoveNext = moveNext;
             }
 
             protected async override Task<TResult> MoveNextAsync<TResult>(IEnumeratorAsync<TSource> enumeratorAsync, IEnumeratorAsync<T> enumeratorDestination, Func<T, TResult> moved, Func<TResult> ended)
             {
+                if (MoveNext.IsDefaultOrNull())
+                    throw new ArgumentNullException("moveNext");
                 return (TResult)(await MoveNext(enumeratorAsync, enumeratorDestination, (x) => moved(x), () => ended()));
             }
         }

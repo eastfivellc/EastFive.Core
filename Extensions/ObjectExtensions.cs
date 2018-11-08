@@ -39,6 +39,11 @@ namespace EastFive.Extensions
             return new KeyValuePair<TKey, TValue>(key, value);
         }
 
+        public static Task<T> AsTask<T>(this T value)
+        {
+            return Task.FromResult(value);
+        }
+
         public static T? AsOptional<T>(this T value)
             where T : struct
         {

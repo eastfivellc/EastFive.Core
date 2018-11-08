@@ -4,9 +4,21 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using BlackBarLabs.Extensions;
+using EastFive.Extensions;
 
 namespace EastFive
 {
+    public class ResultCaseNotHandledException : Exception
+    {
+        public ResultCaseNotHandledException(string caseName, ArgumentNullException innerException)
+            : base($"Unhandled result case `{caseName}`", innerException)
+        {
+            this.CaseName = caseName;
+        }
+
+        public string CaseName { get; set; }
+    }
+
     public static class FuncExtensions
     {
         [DebuggerStepThrough]
@@ -14,7 +26,24 @@ namespace EastFive
         [DebuggerStepperBoundary]
         public static Func<Task<T>> AsAsyncFunc<T>(this Func<T> value)
         {
-            return () => value().ToTask();
+            return () => value.InvokeNotDefault().ToTask();
+        }
+
+        public static T InvokeNotDefault<T>(this Func<T> func)
+        {
+            if (!func.IsDefault())
+                return func();
+
+            try
+            {
+                return func.Invoke();
+            } catch(ArgumentNullException ex)
+            {
+                var st = ex.StackTrace;
+                var resultCaseEx = new ResultCaseNotHandledException(st, ex);
+                resultCaseEx.CaseName = st;
+                throw resultCaseEx;
+            }
         }
 
         [DebuggerStepThrough]
