@@ -147,7 +147,133 @@ namespace EastFive.Linq.Async
                     }
                 });
         }
+        
+        public static IEnumerableAsync<TItem> SelectMany<TItem>(this IEnumerableAsync<IEnumerable<TItem>> enumerables)
+        {
+            return enumerables.SelectMany<IEnumerable<TItem>, TItem>(x => x);
+        }
+        
+        public static IEnumerableAsync<TResult> SelectMany<T, TResult>(this IEnumerableAsync<T> enumerables, Func<T, IEnumerable<TResult>> selectMany)
+        {
+            var enumerator = enumerables.GetEnumerator();
+            var enumeratorInner = default(IEnumerator<TResult>);
+            return Yield<TResult>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    while (true)
+                    {
+                        if (enumeratorInner.IsDefaultOrNull() || (!enumeratorInner.MoveNext()))
+                        {
+                            if (!await enumerator.MoveNextAsync())
+                                return yieldBreak;
 
+                            enumeratorInner = selectMany(enumerator.Current).GetEnumerator();
+                            if (!enumeratorInner.MoveNext())
+                                continue;
+                        }
+                        return yieldReturn(enumeratorInner.Current);
+                    }
+                });
+        }
+
+        public static IEnumerableAsync<T> SelectAsyncMany<T>(this IEnumerableAsync<IEnumerableAsync<T>> enumerables)
+        {
+            return enumerables.SelectAsyncMany(items => items);
+        }
+
+        public static IEnumerableAsync<TResult> SelectAsyncMany<T, TResult>(this IEnumerableAsync<T> enumerables, Func<T, IEnumerableAsync<TResult>> selectMany)
+        {
+            var enumerator = enumerables.GetEnumerator();
+            var enumeratorInner = default(IEnumeratorAsync<TResult>);
+            return Yield<TResult>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    while (true)
+                    {
+                        if (enumeratorInner.IsDefaultOrNull() || (!await enumeratorInner.MoveNextAsync()))
+                        {
+                            if (!await enumerator.MoveNextAsync())
+                                return yieldBreak;
+
+                            enumeratorInner = selectMany(enumerator.Current).GetEnumerator();
+                            if (!await enumeratorInner.MoveNextAsync())
+                                continue;
+                        }
+                        return yieldReturn(enumeratorInner.Current);
+                    }
+                });
+        }
+
+        public static IEnumerableAsync<T> Concat<T>(this IEnumerableAsync<T> enumerable1, IEnumerableAsync<T> enumerable2)
+        {
+            return (new IEnumerableAsync<T> []
+            {
+                enumerable1,
+                enumerable2,
+            })
+            .AsyncConcat();
+        }
+
+        public static IEnumerableAsync<T> AsyncConcat<T>(this IEnumerable<IEnumerableAsync<T>> enumerables)
+        {
+            var enumerator = enumerables.GetEnumerator();
+            var enumeratorInner = default(IEnumeratorAsync<T>);
+            return Yield<T>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    while (true)
+                    {
+                        if (enumeratorInner.IsDefaultOrNull() || (!await enumeratorInner.MoveNextAsync()))
+                        {
+                            if (!enumerator.MoveNext())
+                                return yieldBreak;
+
+                            enumeratorInner = enumerator.Current.GetEnumerator();
+                            if (!await enumeratorInner.MoveNextAsync())
+                                continue;
+                        }
+                        return yieldReturn(enumeratorInner.Current);
+                    }
+                });
+        }
+
+        public static IEnumerableAsync<T> Append<T>(this IEnumerableAsync<T> enumerable1, T enumerable2)
+        {
+            return (new IEnumerableAsync<T>[]
+            {
+                enumerable1,
+                enumerable2.EnumerableAsyncStart(),
+            })
+            .AsyncConcat();
+        }
+
+        public static IEnumerableAsync<T> AsyncAppend<T>(this IEnumerableAsync<T> enumerable1, Task<T> enumerable2)
+        {
+            return (new IEnumerableAsync<T>[]
+            {
+                enumerable1,
+                enumerable2.AsEnumerable(),
+            })
+            .AsyncConcat();
+        }
+
+        public static IEnumerableAsync<T> AppendOptional<T>(this IEnumerableAsync<T> enumerableAsync,
+            Func<Func<T, IEnumerableAsync<T>>, Func<IEnumerableAsync<T>>, IEnumerableAsync<T>> appendOptional)
+        {
+            return appendOptional(
+                (item) => enumerableAsync.Append(item),
+                () => enumerableAsync);
+        }
+
+        public static IEnumerableAsync<T> AppendAsyncOptional<T>(this IEnumerableAsync<T> enumerableAsync,
+            Func<Func<T, IEnumerableAsync<T>>, Func<IEnumerableAsync<T>>, Task<IEnumerableAsync<T>>> appendOptionalAsync)
+        {
+            return appendOptionalAsync(
+                (item) => enumerableAsync.Append(item),
+                () => enumerableAsync)
+                .FoldTask();
+        }
+        
         public static Task<KeyValuePair<int, T>> GetCompletedTaskIndex<T>(this IEnumerable<KeyValuePair<int, Task<T>>> tasks)
         {
             var tcs = new TaskCompletionSource<KeyValuePair<int, T>>();

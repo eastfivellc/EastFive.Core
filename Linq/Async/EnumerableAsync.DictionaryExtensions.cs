@@ -91,5 +91,15 @@ namespace EastFive.Linq.Async
                 (kvp) => kvp.Value);
         }
 
+        public static IEnumerableAsync<TKey> SelectKeys<TKey, TValue>(this IEnumerableAsync<KeyValuePair<TKey, TValue>> enumerable)
+        {
+            return enumerable.Select(kvp => kvp.Key);
+        }
+
+        public static IEnumerableAsync<TValue> SelectValues<TKey, TValue>(this IEnumerableAsync<KeyValuePair<TKey, TValue>> enumerable)
+        {
+            return enumerable.Select(kvp => kvp.Value);
+        }
+
     }
 }

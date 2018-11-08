@@ -148,5 +148,110 @@ namespace EastFive.Linq.Async
                     return yieldReturn(value);
                 });
         }
+        public static IEnumerableAsync<T> From<T>(params T[] items)
+        {
+            var count = -1;
+            return Yield<T>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    count++;
+                    if (items.Length == count)
+                        return await yieldBreak.ToTask();
+
+                    var item = items[count];
+                    return yieldReturn(item);
+                });
+        }
+
+        public static IEnumerableAsync<TItem> AsyncEnumerable<TItem>(this IEnumerable<Task<TItem>> items)
+        {
+            var enumerator = items.GetEnumerator();
+            return Yield<TItem>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    if (!enumerator.MoveNext())
+                        return yieldBreak;
+
+                    var current = await enumerator.Current;
+                    return yieldReturn(current);
+                });
+        }
+
+        public static IEnumerableAsync<TItem> EnumerableAsyncStart<TItem>(this TItem item)
+        {
+            bool yielded = false;
+            return Yield<TItem>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    if (!yielded)
+                    {
+                        yielded = true;
+                        return yieldReturn(item);
+                    }
+                    return await yieldBreak.ToTask();
+                });
+        }
+
+        public static IEnumerableAsync<TItem> AsEnumerable<TItem>(this Task<TItem> itemTask)
+        {
+            bool yielded = false;
+            return Yield<TItem>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    if (!yielded)
+                    {
+                        yielded = true;
+                        var item = await itemTask;
+                        return yieldReturn(item);
+                    }
+                    return yieldBreak;
+                });
+        }
+
+        public interface ISelected<T>
+        {
+            bool HasValue { get; }
+            T Value { get; }
+        }
+
+        public struct SelectedValue<T> : ISelected<T>
+        {
+            public SelectedValue(bool x)
+            {
+                this.HasValue = false;
+                this.Value = default(T);
+            }
+
+            public SelectedValue(T nextItem)
+            {
+                this.HasValue = true;
+                this.Value = nextItem;
+            }
+
+            public bool HasValue { get; private set; }
+
+            public T Value { get; private set; }
+        }
+        
+        public static IEnumerableAsync<TResult> SelectAsyncOptional<TItem, TResult>(this IEnumerable<TItem> items,
+            Func<TItem, Func<TResult, ISelected<TResult>>, Func<ISelected<TResult>>, Task<ISelected<TResult>>> callback)
+        {
+            var enumerator = items.GetEnumerator();
+            return Yield<TResult>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    while (enumerator.MoveNext())
+                    {
+                        var item = enumerator.Current;
+
+                        var nextValue = await callback(item,
+                            (nextItem) => new SelectedValue<TResult>(nextItem),
+                            () => new SelectedValue<TResult>(false));
+                        if (nextValue.HasValue)
+                            return yieldReturn(nextValue.Value);
+                    }
+                    return yieldBreak;
+                });
+        }
     }
 }
