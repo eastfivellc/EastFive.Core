@@ -13,23 +13,22 @@ namespace EastFive
         Guid id { get; }
     }
 
-    public interface IRefBase<TType>
+    public interface IRefBase : IReferenceable
     {
         Guid id { get; }
         
-        Task<TResult> ValueAsync<TResult>(
-            Func<TType, TResult> valueCallback);
+        Task ResolveAsync();
 
         bool resolved { get; }
     }
 
-    public interface IRef<TType> : IRefBase<TType>
+    public interface IRef<TType> : IRefBase
         where TType : struct
     {
         TType? value { get; }
     }
 
-    public interface IRefObj<TType> : IRefBase<TType>
+    public interface IRefObj<TType> : IRefBase
         where TType : class
     {
         Func<TType> value { get; }
@@ -59,15 +58,13 @@ namespace EastFive
 
         public TType? value { get; set; }
         
-        public async Task<TResult> ValueAsync<TResult>(
-            Func<TType, TResult> valueCallback)
+        public async Task ResolveAsync()
         {
             if (value.HasValue)
-                return valueCallback(value.Value);
-
+                return;
+            
             this.value = await valueTask;
             this.resolved = true;
-            return valueCallback(value.Value);
         }
 
         public bool resolved { get; set; }

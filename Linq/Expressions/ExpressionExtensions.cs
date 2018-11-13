@@ -88,6 +88,20 @@ namespace EastFive.Linq.Expressions
             obj = (T)objUnboxed;
         }
 
+        public static Type GetMemberType(this MemberInfo memberInfo)
+        {
+            switch (memberInfo.MemberType)
+            {
+                case MemberTypes.Field:
+                    return ((FieldInfo)memberInfo).FieldType;
+                case MemberTypes.Property:
+                    return ((PropertyInfo)memberInfo).PropertyType;
+                default:
+                    throw new ArgumentException($"memberInfo of type '{memberInfo.MemberType}' which is unsupported");
+            }
+        }
+
+
         public static KeyValuePair<ParameterInfo, object>[] ResolveArgs(this MethodCallExpression body)
         {
             var values = body.Arguments

@@ -36,7 +36,15 @@ namespace EastFive.Collections.Generic
 
         public static Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> kvpItems)
         {
-            return kvpItems.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            return kvpItems.ToDictionary(
+                kvp =>
+                {
+                    return kvp.Key;
+                },
+                kvp =>
+                {
+                    return kvp.Value;
+                });
         }
 
         public static TResult ToDictionary<TKey, TValue, TKeyDictionary, TValueDictionary, TResult>(this IEnumerable<KeyValuePair<TKey, TValue>> kvpItems,

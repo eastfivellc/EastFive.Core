@@ -17,7 +17,7 @@ namespace BlackBarLabs.Extensions // Make user force extensions because this aff
         {
             yield return onlyItem;
         }
-        
+
         public static Task<T> ToTask<T>(this T value)
         {
             return Task.FromResult(value);
@@ -34,6 +34,13 @@ namespace EastFive.Extensions
 {
     public static class ObjectExtensions
     {
+        public static IEnumerable<T> AsEnumerable<T>(this T firstItem,
+            Func<T, IEnumerable<T>, Func<T, IEnumerable<T>>, IEnumerable<T>> nextItem
+                = default(Func<T, IEnumerable<T>, Func<T, IEnumerable<T>>, IEnumerable<T>>))
+        {
+            throw new NotImplementedException();
+        }
+
         public static KeyValuePair<TKey, TValue> PairWithKey<TKey, TValue>(this TValue value, TKey key)
         {
             return new KeyValuePair<TKey, TValue>(key, value);
@@ -96,6 +103,14 @@ namespace EastFive.Extensions
                 next = () => value,
             };
         }
+
+        public static TResult RecurseWithValue<TItem, TIndex, TResult>(this TItem key, TIndex index,
+            Func<TItem, TIndex, Func<TItem, TIndex, TResult>, TResult> value)
+        {
+            return value(key, index,
+                (itemNext, indexNext) => RecurseWithValue(itemNext, indexNext, value));
+        }
+
         public static IDictionary<TKey, TValue> AsDictionary<TKey, TValue>(this KeyValuePair<TKey, TValue> onlyItem)
         {
             return onlyItem.AsEnumerable().ToDictionary();
