@@ -58,7 +58,7 @@ namespace EastFive
             }
         }
 
-        private static Type GetClrType(this string type)
+        public static Type GetClrType(this string type)
         {
             if (type.ToLower() == "string")
                 return typeof (string);
@@ -82,6 +82,27 @@ namespace EastFive
                 return typeof (bool);
             if (type.ToLower() == "boolean")
                 return typeof (bool);
+            throw new InvalidDataException($"Type {type} not supported");
+        }
+
+        public static string GetClrString(this Type type)
+        {
+            if (type == typeof(string))
+                return "string";
+            if (type == typeof(int))
+                return "int";
+            if (type == typeof(long))
+                return "int";
+            if (type == typeof(Int32))
+                return "int";
+            if (type == typeof(decimal))
+                return "number";
+            if (type == typeof(double))
+                return "number";
+            if (type == typeof(float))
+                return "number";
+            if (type == typeof(bool))
+                return "boolean";
             throw new InvalidDataException($"Type {type} not supported");
         }
 

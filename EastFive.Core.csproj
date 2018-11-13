@@ -115,6 +115,7 @@
     <Compile Include="Reflection\CustomAttributeExtensions.cs" />
     <Compile Include="Reflection\ObjectBuilder.cs" />
     <Compile Include="Reflection\ReflectionExtensions.cs" />
+    <Compile Include="SecureGuid.cs" />
     <Compile Include="Settable.cs" />
     <Compile Include="Structs\Optional.cs" />
     <Compile Include="Structs\RecursiveDictionary.cs" />
