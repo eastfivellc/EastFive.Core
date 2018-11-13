@@ -133,7 +133,7 @@ namespace EastFive.Collections.Generic
 
         public static IEnumerable<TKey> SelectKeys<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> dictionary)
         {
-            return dictionary.Select(kvp => kvp.Key);
+            return dictionary.NullToEmpty().Select(kvp => kvp.Key);
         }
 
         public static IEnumerable<TResult> SelectKeys<TKey, TValue, TResult>(this IEnumerable<KeyValuePair<TKey, TValue>> dictionary,
