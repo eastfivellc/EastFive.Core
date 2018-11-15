@@ -63,6 +63,8 @@
     <Compile Include="Async\IEnumerableAsync.cs" />
     <Compile Include="Async\IEnumeratorAsync.cs" />
     <Compile Include="Async\LinqExtensions.cs" />
+    <Compile Include="Async\Transactions\ITransactionResult.cs" />
+    <Compile Include="Async\Transactions\TransactionExtensions.cs" />
     <Compile Include="Extensions\ConditionalExtensions.cs" />
     <Compile Include="Extensions\EnumExtensions.cs" />
     <Compile Include="Extensions\FuncExtensions.cs" />

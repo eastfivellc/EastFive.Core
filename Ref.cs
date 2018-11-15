@@ -34,10 +34,13 @@ namespace EastFive
         Func<TType> value { get; }
     }
 
-    public interface IRefs<TType>
+    public interface IReferences
     {
         Guid[] ids { get; }
+    }
 
+    public interface IRefs<TType> : IReferences
+    {
         Linq.Async.IEnumerableAsync<TType> Values { get; }
     }
 

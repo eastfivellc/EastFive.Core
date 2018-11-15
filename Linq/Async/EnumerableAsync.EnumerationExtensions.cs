@@ -47,6 +47,14 @@ namespace EastFive.Linq.Async
             return enumerable.ToArray();
         }
 
+        public static async Task<TResult> ToArrayAsync<T, TResult>(this IEnumerableAsync<T> enumerableAsync,
+            Func<T[], TResult> onComplete)
+        {
+            var enumerable = await enumerableAsync.Async();
+            var items = enumerable.ToArray();
+            return onComplete(items);
+        }
+
         public static async Task<IDictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue>(this IEnumerableAsync<KeyValuePair<TKey, TValue>> enumerableAsync)
         {
             var enumerable = await enumerableAsync.Async();

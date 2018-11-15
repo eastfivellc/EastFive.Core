@@ -1,4 +1,5 @@
-﻿using System;
+﻿using EastFive.Extensions;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -32,7 +33,7 @@ namespace EastFive.Reflection
             return values.ToArray();
         }
 
-        public static object ResolveMemberExpression(this Expression expression)
+        public static object ResolveExpression(this Expression expression)
         {
             if (expression is MemberExpression)
             {
@@ -99,6 +100,35 @@ namespace EastFive.Reflection
             }
 
             throw new NotImplementedException();
+        }
+
+        public static IEnumerable<KeyValuePair<object, object>> DictionaryKeyValuePairs(this object dictionary)
+        {
+            if (!dictionary.GetType().IsSubClassOfGeneric(typeof(IDictionary<,>)))
+                throw new ArgumentException($"{dictionary.GetType().FullName} is not of type IDictionary<>");
+
+            foreach (var kvpObj in (dictionary as System.Collections.IEnumerable))
+            {
+                var kvpType = kvpObj.GetType();
+                var keyProperty = kvpType.GetProperty("Key");
+                var keyValue = keyProperty.GetValue(kvpObj);
+                var valueProperty = kvpObj.GetType().GetProperty("Value");
+                var valueValue = valueProperty.GetValue(kvpObj);
+                yield return valueValue.PairWithKey(keyValue);
+            }
+        }
+        
+        public static object Cast(this IEnumerable<object> values, Type castTo)
+        {
+            //var list = new List<object>(values);
+            //list.Add(x);
+            var listOfTypeType = typeof(List<>).MakeGenericType(castTo);
+            var addMethod = listOfTypeType.GetMethod("Add");
+            var instance = Activator.CreateInstance(listOfTypeType);
+            foreach (var value in values)
+                addMethod.Invoke(instance, new object[] { value });
+            var array = listOfTypeType.GetMethod("ToArray").Invoke(instance, new object[] { });
+            return array;
         }
     }
 }

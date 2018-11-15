@@ -38,7 +38,7 @@ namespace EastFive.Extensions
             Func<T, IEnumerable<T>, Func<T, IEnumerable<T>>, IEnumerable<T>> nextItem
                 = default(Func<T, IEnumerable<T>, Func<T, IEnumerable<T>>, IEnumerable<T>>))
         {
-            throw new NotImplementedException();
+            yield return firstItem;
         }
 
         public static KeyValuePair<TKey, TValue> PairWithKey<TKey, TValue>(this TValue value, TKey key)
