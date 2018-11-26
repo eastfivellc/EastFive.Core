@@ -21,10 +21,10 @@ namespace EastFive.Linq.Async
         public static Task<bool> ContainsAsync<T>(this IEnumerableAsync<T> enumerable, Func<T, bool> isMatchFunc)
         {
             return enumerable.FirstMatchAsync(
-                (item, next) =>
+                (item, match, next) =>
                 {
                     if (isMatchFunc(item))
-                        return true;
+                        return match(true);
                     return next();
                 },
                 () => false);

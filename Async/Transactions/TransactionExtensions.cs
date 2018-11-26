@@ -63,24 +63,29 @@ namespace EastFive.Async
                 .AsyncEnumerable();
             return await await transactionAsyncResults
                 .FirstMatchAsync(
-                    (tr, next) =>
+                    (tr, match, next) =>
                     {
-                        return tr.Success(
+                        return tr.Success<EnumerableAsync.IFirstMatchResult<Task<T>>>(
                             () => next(),
-                            async (result) =>
+                            (result) =>
                             {
-                                return await await transactionAsyncResults
-                                    .Select(
-                                        trr =>
-                                        {
-                                            return trr.RollbackAsync();
-                                        })
-                                    .ToArrayAsync(
-                                        async (rollbacks) =>
-                                        {
-                                            await rollbacks.WhenAllAsync();
-                                            return result;
-                                        });
+                                async Task<T> DoIt()
+                                {
+                                    var tresult = await await transactionAsyncResults
+                                        .Select(
+                                            trr =>
+                                            {
+                                                return trr.RollbackAsync();
+                                            })
+                                        .ToArrayAsync(
+                                            async (rollbacks) =>
+                                            {
+                                                await rollbacks.WhenAllAsync();
+                                                return result;
+                                            });
+                                    return tresult;
+                                }
+                                return match(DoIt());
                             });
                     },
                     () => onCompleteSuccess().AsTask());
