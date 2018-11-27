@@ -132,7 +132,7 @@ namespace EastFive.Linq.Async
                     {
                         return new FirstMatchResultNext<TResult>();
                     });
-                if (!oneResult.Matched)
+                if (oneResult.Matched)
                     return oneResult.Result;
             }
             return onNone();
