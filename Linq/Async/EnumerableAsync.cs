@@ -357,5 +357,22 @@ namespace EastFive.Linq.Async
                     return yieldBreak;
                 });
         }
+
+        public static IEnumerableAsync<T> AsyncWhere<T>(this IEnumerable<T> items, Func<T, Task<bool>> predicate)
+        {
+            var enumerator = items.GetEnumerator();
+            return Yield<T>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    while (enumerator.MoveNext())
+                    {
+                        var item = enumerator.Current;
+                        var match = await predicate(item);
+                        if (match)
+                            return yieldReturn(item);
+                    }
+                    return yieldBreak;
+                });
+        }
     }
 }

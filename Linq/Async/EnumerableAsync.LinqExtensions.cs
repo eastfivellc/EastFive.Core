@@ -106,23 +106,45 @@ namespace EastFive.Linq.Async
             return onNone();
         }
 
+        public interface IFirstMatchResult<T>
+        {
+            bool Matched { get; }
+            T Result { get; }
+        }
+
+        private class FirstMatchResultMatch<T> : IFirstMatchResult<T>
+        {
+            public bool Matched { get { return true; } }
+
+            public T Result { get; set; }
+        }
+
+        private class FirstMatchResultNext<T> : IFirstMatchResult<T>
+        {
+            public bool Matched { get { return false; } }
+
+            public T Result => throw new NotImplementedException();
+        }
+
         public static async Task<TResult> FirstMatchAsync<T, TResult>(this IEnumerableAsync<T> enumerable,
-            Func<T, Func<TResult>, TResult> onOne,
+            Func<T, Func<TResult, IFirstMatchResult<TResult>>, Func<IFirstMatchResult<TResult>>, IFirstMatchResult<TResult>> onOne,
             Func<TResult> onNone)
         {
             var enumerator = enumerable.GetEnumerator();
             while (await enumerator.MoveNextAsync())
             {
                 var item = enumerator.Current;
-                var calledForNext = false;
                 var oneResult = onOne(item,
+                    (value) => new FirstMatchResultMatch<TResult>
+                    {
+                        Result = value,
+                    },
                     () =>
                     {
-                        calledForNext = true;
-                        return default(TResult);
+                        return new FirstMatchResultNext<TResult>();
                     });
-                if (!calledForNext)
-                    return oneResult;
+                if (oneResult.Matched)
+                    return oneResult.Result;
             }
             return onNone();
         }
@@ -429,38 +451,118 @@ namespace EastFive.Linq.Async
             //    });
         }
 
-        public static IEnumerableAsync<T> SelectMany<T>(this IEnumerable<IEnumerableAsync<T>> enumerables)
+        public static IEnumerableAsync<T> SelectMany<T>(this IEnumerable<IEnumerableAsync<T>> enumerables,
+            bool sequential = false)
         {
-            var enumerators = enumerables
-                .Select((enumerable, index) => index.PairWithValue(enumerable.GetEnumerator()))
-                .ToDictionary();
+            if (sequential)
+                return SelectManySequential(enumerables);
+            return SelectManyNonSequential(enumerables);
+        }
 
-            var tasks = enumerators
-                .Select(enumerator => enumerator.Key.PairWithValue(enumerator.Value.MoveNextAsync()))
-                .ToArray();
-
+        private static IEnumerableAsync<T> SelectManySequential<T>(IEnumerable<IEnumerableAsync<T>> enumerables)
+        {
+            var enumerator = enumerables.GetEnumerator();
+            var enumeratorInner = default(IEnumeratorAsync<T>);
             return Yield<T>(
                 async (yieldReturn, yieldBreak) =>
                 {
                     while (true)
                     {
-                        var finishedTaskKvp = await GetCompletedTaskIndex<bool>(tasks);
-                        var finishedTaskIndex = finishedTaskKvp.Key;
-                        var moved = finishedTaskKvp.Value;
-                        var enumerator = enumerators[finishedTaskIndex];
-                        tasks = tasks.Where(task => task.Key != finishedTaskIndex).ToArray();
-                        if (moved)
+                        if (enumeratorInner.IsDefaultOrNull() || (!await enumeratorInner.MoveNextAsync()))
                         {
-                            var current = enumerator.Current;
-                            tasks = tasks.Append(finishedTaskIndex.PairWithValue(enumerators[finishedTaskIndex].MoveNextAsync())).ToArray();
-                            return yieldReturn(current);
+                            if (!enumerator.MoveNext())
+                                return yieldBreak;
                         }
-                        if (!tasks.Any())
-                            return yieldBreak;
+
+                        enumeratorInner = enumerator.Current.GetEnumerator();
+                        if (!await enumeratorInner.MoveNextAsync())
+                            continue;
+
+                        return yieldReturn(enumeratorInner.Current);
                     }
                 });
         }
-        
+
+        private static IEnumerableAsync<T> SelectManyNonSequential<T>(IEnumerable<IEnumerableAsync<T>> enumerables)
+        {
+            var allTask = new List<Task<KeyValuePair<bool, T>>>();
+            var allTaskLock = new object();
+            var taskGenerator = enumerables
+                .Select(
+                    enumerable =>
+                    {
+                        var enumerator = enumerable.GetEnumerator();
+                        async Task<KeyValuePair<bool, T>> NextTask()
+                        {
+                            var moved = await enumerator.MoveNextAsync();
+                            if (!moved)
+                                return default(T).PairWithKey(false);
+
+                            lock (allTaskLock)
+                            {
+                                allTask.Add(NextTask());
+                            }
+                            var current = enumerator.Current;
+                            return current.PairWithKey(true);
+                        }
+                        lock (allTaskLock)
+                        {
+                            allTask.Add(NextTask());
+                        }
+                        return enumerator;
+                    })
+                 .GetEnumerator();
+
+            var generating = true;
+            return Yield<T>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    async Task<KeyValuePair<bool, T>> YieldValueAsync(Task<KeyValuePair<bool, T>> task)
+                    {
+                        var result = await task;
+                        lock (allTaskLock)
+                        {
+                            allTask.Remove(task);
+                        }
+                        return result;
+                    }
+
+                    while (true)
+                    {
+                        Task<KeyValuePair<bool, T>>[] tasks;
+                        lock (allTaskLock)
+                        {
+                            tasks = allTask.ToArray();
+                        }
+                        
+                        foreach (var task in tasks)
+                        {
+                            if (task.Status != TaskStatus.RanToCompletion)
+                                continue;
+
+                            var result = await YieldValueAsync(task);
+                            if (result.Key)
+                                return yieldReturn(result.Value);
+                        }
+
+                        if (generating)
+                        {
+                            if (!taskGenerator.MoveNext())
+                                generating = false;
+                            continue;
+                        }
+
+                        if (!tasks.Any())
+                            return yieldBreak;
+
+                        var nextTask = tasks.GetFirstSuccessfulTask();
+                        var next = await YieldValueAsync(nextTask);
+                        if (next.Key)
+                            return yieldReturn(next.Value);
+                    }
+                });
+        }
+
         public static IEnumerableAsync<TItem> SelectMany<TItem>(this IEnumerableAsync<IEnumerable<TItem>> enumerables)
         {
             return enumerables.SelectMany<IEnumerable<TItem>, TItem>(x => x);
@@ -611,14 +713,15 @@ namespace EastFive.Linq.Async
             int remainingTasks = tasks.Count();
             foreach (var task in tasks)
             {
-                task.ContinueWith(t =>
-                {
-                    if (task.Status == TaskStatus.RanToCompletion)
-                        tcs.TrySetResult(t.Result);
-                    else if (System.Threading.Interlocked.Decrement(ref remainingTasks) == 0)
-                        tcs.SetException(new AggregateException(
-                            tasks.SelectMany(t2 => t2.Exception?.InnerExceptions ?? Enumerable.Empty<Exception>())));
-                });
+                task.ContinueWith(
+                    t =>
+                    {
+                        if (task.Status == TaskStatus.RanToCompletion)
+                            tcs.TrySetResult(t.Result);
+                        else if (System.Threading.Interlocked.Decrement(ref remainingTasks) == 0)
+                            tcs.SetException(new AggregateException(
+                                tasks.SelectMany(t2 => t2.Exception?.InnerExceptions ?? Enumerable.Empty<Exception>())));
+                    });
             }
             return tcs.Task;
         }
