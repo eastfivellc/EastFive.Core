@@ -129,7 +129,10 @@ namespace EastFive.Linq.Expressions
             if (expression is MemberExpression)
             {
                 var memberExpression = expression as MemberExpression;
-                var memberObject = memberExpression.Expression.Resolve();
+                var memberObject = memberExpression.Expression.IsDefaultOrNull()?
+                    memberExpression.Resolve()
+                    :
+                    memberExpression.Expression.Resolve();
                 //var memberOfObjectAccessed = memberObject.GetType().GetField(memberExpression.Member.Name);
                 //var memberValue = memberOfObjectAccessed.GetValue(memberObject);
                 var memberValue = memberExpression.Member.GetValue(memberObject);
