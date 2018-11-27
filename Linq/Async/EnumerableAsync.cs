@@ -246,7 +246,25 @@ namespace EastFive.Linq.Async
                 });
         }
 
-        public static IEnumerableAsync<TItem> EnumerableAsyncStart<TItem>(this TItem item)
+        public interface IEnumerableAsyncStartResult<T>
+        {
+            bool HasValue { get; }
+            T Value { get; }
+        }
+
+        private class EnumerableAsyncStartResult<T> : IEnumerableAsyncStartResult<T>
+        {
+            public bool HasValue { get; set; }
+
+            public T Value { get; set; }
+        }
+
+        public delegate Task<IEnumerableAsyncStartResult<TItem>> EnumerableAsyncStartDelegate<TItem>(TItem item,
+            Func<TItem, IEnumerableAsyncStartResult<TItem>> onValue,
+            Func<IEnumerableAsyncStartResult<TItem>> onNoNextValue);
+
+        public static IEnumerableAsync<TItem> EnumerableAsyncStart<TItem>(this TItem item,
+            EnumerableAsyncStartDelegate<TItem> next = default(EnumerableAsyncStartDelegate<TItem>))
         {
             bool yielded = false;
             return Yield<TItem>(
@@ -257,7 +275,24 @@ namespace EastFive.Linq.Async
                         yielded = true;
                         return yieldReturn(item);
                     }
-                    return await yieldBreak.ToTask();
+                    if(next.IsDefaultOrNull())
+                        return yieldBreak;
+
+                    var startResult = await next(item,
+                        (v) => new EnumerableAsyncStartResult<TItem>
+                        {
+                            Value = v,
+                            HasValue = true,
+                        },
+                        () => new EnumerableAsyncStartResult<TItem>
+                        {
+                            HasValue = false,
+                        });
+                    if(!startResult.HasValue)
+                        return yieldBreak;
+
+                    item = startResult.Value;
+                    return yieldReturn(item);
                 });
         }
 

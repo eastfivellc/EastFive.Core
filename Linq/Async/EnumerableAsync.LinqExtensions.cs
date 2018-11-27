@@ -85,6 +85,17 @@ namespace EastFive.Linq.Async
             return selected;
         }
 
+        public static async Task<long> CountAsync<T>(this IEnumerableAsync<T> enumerable)
+        {
+            var enumerator = enumerable.GetEnumerator();
+            int count = 0;
+            while (await enumerator.MoveNextAsync())
+            {
+                count = count + 1;
+            }
+            return count;
+        }
+
         public static async Task<TResult> FirstAsync<T, TResult>(this IEnumerableAsync<T> enumerable,
             Func<T, TResult> onOne,
             Func<TResult> onNone)
