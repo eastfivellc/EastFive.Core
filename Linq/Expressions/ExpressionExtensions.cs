@@ -130,8 +130,9 @@ namespace EastFive.Linq.Expressions
             {
                 var memberExpression = expression as MemberExpression;
                 var memberObject = memberExpression.Expression.Resolve();
-                var memberOfObjectAccessed = memberObject.GetType().GetField(memberExpression.Member.Name);
-                var memberValue = memberOfObjectAccessed.GetValue(memberObject);
+                //var memberOfObjectAccessed = memberObject.GetType().GetField(memberExpression.Member.Name);
+                //var memberValue = memberOfObjectAccessed.GetValue(memberObject);
+                var memberValue = memberExpression.Member.GetValue(memberObject);
                 return memberValue;
             }
 
