@@ -23,6 +23,17 @@ namespace EastFive
             var result = onValue(valueMaybe.Value);
             return result;
         }
-        
+
+        public static object AsNullable(this object valueTypeValue)
+        {
+            var underlyingType = valueTypeValue.GetType();
+            var nullableType = typeof(Nullable<>).MakeGenericType(underlyingType);
+            if (!underlyingType.IsValueType)
+                throw new ArgumentException("structValue", $"Type `{underlyingType.FullName}` passed to AsNullable is not a value type.");
+            // new Nullable<int>(10);
+            var nullableInstance = Activator.CreateInstance(nullableType, new object[] { valueTypeValue });
+            return nullableInstance;
+        }
+
     }
 }
