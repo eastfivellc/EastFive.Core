@@ -51,6 +51,5 @@ namespace EastFive.Linq.Async
                     return moved(grouping);
                 });
         }
-
     }
 }
