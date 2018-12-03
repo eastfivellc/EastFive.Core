@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using EastFive.Analytics;
 
 namespace EastFive.Linq.Async
 {
@@ -30,7 +31,8 @@ namespace EastFive.Linq.Async
                 () => false);
         }
 
-        public static async Task<IEnumerable<T>> Async<T>(this IEnumerableAsync<T> enumerable)
+        public static async Task<IEnumerable<T>> Async<T>(this IEnumerableAsync<T> enumerable,
+            Analytics.ILogger logger = default(Analytics.ILogger))
         {
             var enumerator = enumerable.GetEnumerator();
             var firstStep = new Step<T>
@@ -39,8 +41,10 @@ namespace EastFive.Linq.Async
                 steps = new Step<T>?[2],
             };
             var step = firstStep;
+            logger.Trace("Async:First step");
             while (await enumerator.MoveNextAsync())
             {
+                logger.Trace("Async:Moved next step");
                 var nextStep = new Step<T>
                 {
                     current = enumerator.Current,
@@ -50,12 +54,14 @@ namespace EastFive.Linq.Async
                 step.steps[StepEnumerable<T>.StepEnumerator.nextIndex] = nextStep;
                 step = nextStep;
             }
+            logger.Trace("Async:Last step");
             return new StepEnumerable<T>(firstStep);
         }
 
-        public static async Task<T[]> ToArrayAsync<T>(this IEnumerableAsync<T> enumerableAsync)
+        public static async Task<T[]> ToArrayAsync<T>(this IEnumerableAsync<T> enumerableAsync,
+            EastFive.Analytics.ILogger logger = default(Analytics.ILogger))
         {
-            var enumerable = await enumerableAsync.Async();
+            var enumerable = await enumerableAsync.Async(logger);
             return enumerable.ToArray();
         }
 

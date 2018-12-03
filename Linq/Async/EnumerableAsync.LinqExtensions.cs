@@ -239,22 +239,39 @@ namespace EastFive.Linq.Async
 
         public static IEnumerableAsync<T> Distinct<T>(this IEnumerableAsync<T> enumerable)
         {
-            var accumulation = new T[] { }; // TODO: Should be a hash
-            return new DelegateEnumerableAsync<T, T>(enumerable,
-                async (enumeratorAsync, enumeratorDestination, moved, ended) =>
+            var accumulation = new HashSet<T>(); // TODO: Should be a hash
+            var enumerator = enumerable.GetEnumerator();
+            return Yield<T>(
+                async (yieldAsync, yieldBreak) =>
                 {
-                    if (!await enumeratorAsync.MoveNextAsync())
-                        return ended();
-                    var current = enumeratorAsync.Current;
-                    while (accumulation.Contains(current))
+                    while (true)
                     {
-                        if (!await enumeratorAsync.MoveNextAsync())
-                            return ended();
-                        current = enumeratorAsync.Current;
+                        if (!await enumerator.MoveNextAsync())
+                            return yieldBreak;
+
+                        var current = enumerator.Current;
+                        if (accumulation.Contains(current))
+                            continue;
+
+                        accumulation.Add(current);
+                        return yieldAsync(current);
                     }
-                    accumulation = accumulation.Append(current).ToArray();
-                    return moved(current);
                 });
+            //return new DelegateEnumerableAsync<T, T>(enumerable,
+            //    async (enumeratorAsync, enumeratorDestination, moved, ended) =>
+            //    {
+            //        if (!await enumeratorAsync.MoveNextAsync())
+            //            return ended();
+            //        var current = enumeratorAsync.Current;
+            //        while (accumulation.Contains(current))
+            //        {
+            //            if (!await enumeratorAsync.MoveNextAsync())
+            //                return ended();
+            //            current = enumeratorAsync.Current;
+            //        }
+            //        accumulation = accumulation.Append(current).ToArray();
+            //        return moved(current);
+            //    });
         }
 
         public static IEnumerableAsync<T> Distinct<T, TKey>(this IEnumerableAsync<T> enumerable, Func<T, TKey> selectKey)
@@ -310,41 +327,39 @@ namespace EastFive.Linq.Async
 
         private static async Task BatchAsync<T>(this IEnumerableAsync<T> enumerable,
             List<T> cache, EventWaitHandle moved, EventWaitHandle complete,
-            string diagnosticsTag = default(string))
+            EastFive.Analytics.ILogger diagnosticsTag = default(EastFive.Analytics.ILogger))
         {
             var enumerator = enumerable.GetEnumerator();
 
             Func<Task<bool>> getMoveNext =
-                diagnosticsTag.IsNullOrWhiteSpace()?
+                diagnosticsTag.IsDefaultOrNull()?
                     (Func<Task<bool>>)(() => enumerator.MoveNextAsync())
                     :
                     (Func<Task<bool>>)(async () =>
                     {
-                        Console.WriteLine($"BatchAsync[{diagnosticsTag}]:Moving");
+                        diagnosticsTag.Trace($"BatchAsync[{diagnosticsTag}]:Moving");
                         var success = await enumerator.MoveNextAsync();
-                        Console.WriteLine($"BatchAsync[{diagnosticsTag}]:Moved");
+                        diagnosticsTag.Trace($"BatchAsync[{diagnosticsTag}]:Moved");
                         return success;
                     });
 
             while(await getMoveNext())
             {
-                if(!diagnosticsTag.IsNullOrWhiteSpace())
-                    Console.WriteLine($"BatchAsync[{diagnosticsTag}]:Adding Value");
+                diagnosticsTag.Trace($"BatchAsync[{diagnosticsTag}]:Adding Value");
                 lock (cache)
                 {
                     cache.Add(enumerator.Current);
                     moved.Set();
                 }
-                if (!diagnosticsTag.IsNullOrWhiteSpace())
-                    Console.WriteLine($"BatchAsync[{diagnosticsTag}]:Added Value");
+                diagnosticsTag.Trace($"BatchAsync[{diagnosticsTag}]:Added Value");
             }
             moved.Set();
             complete.Set();
-            if (!diagnosticsTag.IsNullOrWhiteSpace())
-                Console.WriteLine($"BatchAsync[{diagnosticsTag}]:Completed");
+            diagnosticsTag.Trace($"BatchAsync[{diagnosticsTag}]:Completed");
         }
 
-        public static IEnumerableAsync<T[]> Batch<T>(this IEnumerableAsync<T> enumerable, string diagnosticsTag = default(string))
+        public static IEnumerableAsync<T[]> Batch<T>(this IEnumerableAsync<T> enumerable,
+            EastFive.Analytics.ILogger diagnosticsTag = default(EastFive.Analytics.ILogger))
         {
             var segment = new List<T>();
             var moved = new AutoResetEvent(false);
@@ -372,7 +387,7 @@ namespace EastFive.Linq.Async
                 });
         }
         
-        public static IEnumerableAsync<T> Prespool<T>(this IEnumerableAsync<T> items, string diagnosticsTag = default(string))
+        public static IEnumerableAsync<T> Prespool<T>(this IEnumerableAsync<T> items, ILogger diagnosticsTag = default(ILogger))
         {
             // TODO: Match batch use this instead of this using Batch.
             return items.Batch(diagnosticsTag).SelectMany();

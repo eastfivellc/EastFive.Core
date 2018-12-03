@@ -1,9 +1,11 @@
-﻿using EastFive.Extensions;
+﻿using EastFive.Collections.Generic;
+using EastFive.Extensions;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace EastFive.Linq.Async
@@ -16,19 +18,30 @@ namespace EastFive.Linq.Async
             // TODO: Use singular enumeration
 
             private IEnumerableAsync<TElement> enumerable;
+            private IEnumeratorAsync<TElement> tryNextEnumerator;
+            bool isEnumerating = true;
             private Dictionary<TKey, TValue> dictionary;
+            private AutoResetEvent dictionaryLock;
             private Func<TElement, TKey> keySelector;
             private Func<TElement, TValue> valueSelector;
+            Func<TKey, TKey, bool> comparison;
 
 
             public DictionaryAsync(IEnumerableAsync<TElement> enumerable,
                 Func<TElement, TKey> keySelector,
-                Func<TElement, TValue> valueSelector)
+                Func<TElement, TValue> valueSelector,
+                Func<TKey, TKey, bool> comparison = default(Func<TKey, TKey, bool>))
             {
                 this.enumerable = enumerable;
                 this.dictionary = new Dictionary<TKey, TValue>();
                 this.keySelector = keySelector;
                 this.valueSelector = valueSelector;
+                this.tryNextEnumerator = enumerable.GetEnumerator();
+                this.dictionaryLock = new AutoResetEvent(true);
+
+                if (comparison.IsDefaultOrNull())
+                    comparison = (key1, key2) => key1.Equals(key2);
+                this.comparison = comparison;
             }
 
             public Task<TValue> this[TKey key]
@@ -61,82 +74,65 @@ namespace EastFive.Linq.Async
                         item => this.valueSelector(item).PairWithKey(this.keySelector(item)))
                     .GetEnumerator();
 
+            private async Task<KeyValuePair<bool, TValue>> GetLockedValueAsync(TKey key)
+            {
+                dictionaryLock.WaitOne();
+                try
+                {
+                    if (dictionary.ContainsKey(key))
+                        return dictionary[key].PairWithKey(true);
+
+                    if (!isEnumerating)
+                        return default(TValue).PairWithKey(false);
+
+                    while (true)
+                    {
+                        if (!await tryNextEnumerator.MoveNextAsync())
+                        {
+                            isEnumerating = false;
+                            return default(TValue).PairWithKey(false);
+                        }
+
+                        var element = tryNextEnumerator.Current;
+                        var elementKey = this.keySelector(element);
+                        var elementValue = this.valueSelector(element);
+                        dictionary.Add(elementKey, elementValue);
+                        if (!comparison(elementKey, key))
+                            return default(TValue).PairWithKey(false);
+
+                        return elementValue.PairWithKey(true);
+                    }
+                }
+                catch(Exception)
+                {
+                    throw;
+                }
+                finally
+                {
+                    dictionaryLock.Set();
+                }
+            }
+
             public async Task<TResult> TryGetValue<TResult>(TKey key, 
                 Func<TValue, TResult> onValue,
                 Func<TResult> onNotFound)
             {
-                return await enumerable.FirstAsyncMatchAsync(
-                    async (element, next) =>
-                    {
-                        var elementKey = this.keySelector(element);
-                        if (elementKey.Equals(key))
-                            return onValue(this.valueSelector(element));
-                        return await next();
-                    },
-                    () => onNotFound());
+                var kvp = await GetLockedValueAsync(key);
+                if (kvp.Key)
+                    return onValue(kvp.Value);
+
+                return onNotFound();
             }
         }
 
-        public static IDictionaryAsync<TKey, TValue> ToDictionary<TElement, TKey, TValue>(this IEnumerableAsync<TElement> enumerable,
-            Func<TElement, TKey> keySelector,
-            Func<TElement, TValue> valueSelector)
-        {
-            return new DictionaryAsync<TElement, TKey, TValue>(enumerable, keySelector, valueSelector);
-        }
-
-        public static IDictionaryAsync<TKey, TValue> ToDictionary<TKey, TValue>(this IEnumerableAsync<KeyValuePair<TKey, TValue>> enumerable)
-        {
-            return new DictionaryAsync<KeyValuePair<TKey, TValue>, TKey, TValue>(enumerable, 
-                (kvp) => kvp.Key,
-                (kvp) => kvp.Value);
-        }
-
-        public static IEnumerableAsync<TKey> SelectKeys<TKey, TValue>(this IEnumerableAsync<KeyValuePair<TKey, TValue>> enumerable)
-        {
-            return enumerable.Select(kvp => kvp.Key);
-        }
-
-        public static IEnumerableAsync<TValue> SelectValues<TKey, TValue>(this IEnumerableAsync<KeyValuePair<TKey, TValue>> enumerable)
-        {
-            return enumerable.Select(kvp => kvp.Value);
-        }
-
-        public interface ISelectNextValue<T>
-        {
-            bool Selected { get; }
-            T Value { get; }
-        }
-
-        private struct SelectedNextValue<T> : ISelectNextValue<T>
-        {
-            public SelectedNextValue(T v)
-            {
-                this.Value = v;
-            }
-
-            public bool Selected => true;
-
-            public T Value { get; private set; }
-        }
-
-        private struct NoNextValue<T> : ISelectNextValue<T>
-        {
-            public bool Selected => false;
-
-            public T Value => throw new NotImplementedException();
-        }
-
-        public delegate Task<ISelectNextValue<TValue>> NextValueDelegate<TKey, TValue>(TKey key,
-            Func<TValue, ISelectNextValue<TValue>> onValue,
-            Func<ISelectNextValue<TValue>> onValueNotAvailable);
 
         private class DynamicDictionaryAsync<TKey, TValue> : IDictionaryAsync<TKey, TValue>
         {
             // TODO: Use singular enumeration
-            
+
             private Dictionary<TKey, TValue> dictionary;
             private NextValueDelegate<TKey, TValue> nextAsync;
-            
+
             public DynamicDictionaryAsync(NextValueDelegate<TKey, TValue> nextAsync)
             {
                 this.dictionary = new Dictionary<TKey, TValue>();
@@ -196,7 +192,7 @@ namespace EastFive.Linq.Async
             {
                 var value = default(TValue);
                 bool containedKey;
-                lock(dictionary)
+                lock (dictionary)
                 {
                     containedKey = dictionary.ContainsKey(key);
                     if (containedKey)
@@ -210,11 +206,71 @@ namespace EastFive.Linq.Async
                     () => new NoNextValue<TValue>());
 
                 if (selecter.Selected)
+                {
+                    lock (dictionary)
+                    {
+                        dictionary.AddOrReplace(key, selecter.Value);
+                    }
                     return onValue(selecter.Value);
+                }
 
                 return onNotFound();
             }
         }
+
+        public static IDictionaryAsync<TKey, TValue> ToDictionary<TElement, TKey, TValue>(this IEnumerableAsync<TElement> enumerable,
+            Func<TElement, TKey> keySelector,
+            Func<TElement, TValue> valueSelector)
+        {
+            return new DictionaryAsync<TElement, TKey, TValue>(enumerable, keySelector, valueSelector);
+        }
+
+        public static IDictionaryAsync<TKey, TValue> ToDictionary<TKey, TValue>(this IEnumerableAsync<KeyValuePair<TKey, TValue>> enumerable)
+        {
+            return new DictionaryAsync<KeyValuePair<TKey, TValue>, TKey, TValue>(enumerable, 
+                (kvp) => kvp.Key,
+                (kvp) => kvp.Value);
+        }
+
+        public static IEnumerableAsync<TKey> SelectKeys<TKey, TValue>(this IEnumerableAsync<KeyValuePair<TKey, TValue>> enumerable)
+        {
+            return enumerable.Select(kvp => kvp.Key);
+        }
+
+        public static IEnumerableAsync<TValue> SelectValues<TKey, TValue>(this IEnumerableAsync<KeyValuePair<TKey, TValue>> enumerable)
+        {
+            return enumerable.Select(kvp => kvp.Value);
+        }
+
+        public interface ISelectNextValue<T>
+        {
+            bool Selected { get; }
+            T Value { get; }
+        }
+
+        private struct SelectedNextValue<T> : ISelectNextValue<T>
+        {
+            public SelectedNextValue(T v)
+            {
+                this.Value = v;
+            }
+
+            public bool Selected => true;
+
+            public T Value { get; private set; }
+        }
+
+        private struct NoNextValue<T> : ISelectNextValue<T>
+        {
+            public bool Selected => false;
+
+            public T Value => throw new NotImplementedException();
+        }
+
+        public delegate Task<ISelectNextValue<TValue>> NextValueDelegate<TKey, TValue>(TKey key,
+            Func<TValue, ISelectNextValue<TValue>> onValue,
+            Func<ISelectNextValue<TValue>> onValueNotAvailable);
+
 
         public static IDictionaryAsync<TKey, TValue> DictionaryAsyncStart<TKey, TValue>(
             NextValueDelegate<TKey, TValue> generate)
