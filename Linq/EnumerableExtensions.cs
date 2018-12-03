@@ -725,6 +725,28 @@ namespace EastFive.Linq
                 .Select(item => item);
         }
 
+        public static IEnumerable<T> Compress<T>(this IEnumerable<T> items, Func<T, T, T[]> compressor)
+        {
+            var iterator = items.GetEnumerator();
+            if (!iterator.MoveNext())
+                yield break;
+            var current = iterator.Current;
+
+            while(iterator.MoveNext())
+            {
+                var compressedResults = compressor(current, iterator.Current);
+                if (!compressedResults.Any())
+                    continue;
+
+                current = compressedResults.Last();
+                foreach (var item in compressedResults.Take(compressedResults.Length - 1))
+                {
+                    yield return item;
+                }
+            }
+            yield return current;
+        }
+
         public static IEnumerable<KeyValuePair<T1, T2>> Combine<T1, T2>(this IEnumerable<T1> items1, IEnumerable<T2> combineWith)
         {
             foreach(var item1 in items1)

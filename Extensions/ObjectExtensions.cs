@@ -57,6 +57,12 @@ namespace EastFive.Extensions
             return (T?)value;
         }
 
+        public static async Task<T?> AsOptional<T>(this Task<T> value)
+            where T : struct
+        {
+            return await value;
+        }
+
         #region AsArray
 
         public static T[] AsArray<T>(this T onlyItem)
