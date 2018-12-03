@@ -65,7 +65,8 @@ namespace EastFive.Linq.Async
                     if (enumeratorAsync.IsDefaultOrNull())
                         return ended();
 
-                    logItem.Trace($"Calling MoveNextAsync.");
+                    if(!logItem.IsDefaultOrNull())
+                        logItem.Trace($"Calling MoveNextAsync.");
                     if (!await enumeratorAsync.MoveNextAsync())
                     {
                         logItem.Trace($"COMPLETE");
@@ -325,7 +326,7 @@ namespace EastFive.Linq.Async
                 });
         }
 
-        private static async Task BatchAsync<T>(this IEnumerableAsync<T> enumerable,
+        private static Task BatchAsync<T>(this IEnumerableAsync<T> enumerable,
             List<T> cache, EventWaitHandle moved, EventWaitHandle complete,
             EastFive.Analytics.ILogger diagnosticsTag = default(EastFive.Analytics.ILogger))
         {
@@ -343,19 +344,24 @@ namespace EastFive.Linq.Async
                         return success;
                     });
 
-            while(await getMoveNext())
+            return Task.Run(CycleAsync);
+
+            async Task CycleAsync()
             {
-                diagnosticsTag.Trace($"BatchAsync[{diagnosticsTag}]:Adding Value");
-                lock (cache)
+                while (await getMoveNext())
                 {
-                    cache.Add(enumerator.Current);
-                    moved.Set();
+                    diagnosticsTag.Trace($"BatchAsync[{diagnosticsTag}]:Adding Value");
+                    lock (cache)
+                    {
+                        cache.Add(enumerator.Current);
+                        moved.Set();
+                    }
+                    diagnosticsTag.Trace($"BatchAsync[{diagnosticsTag}]:Added Value");
                 }
-                diagnosticsTag.Trace($"BatchAsync[{diagnosticsTag}]:Added Value");
+                complete.Set();
+                moved.Set();
+                diagnosticsTag.Trace($"BatchAsync[{diagnosticsTag}]:Completed");
             }
-            moved.Set();
-            complete.Set();
-            diagnosticsTag.Trace($"BatchAsync[{diagnosticsTag}]:Completed");
         }
 
         public static IEnumerableAsync<T[]> Batch<T>(this IEnumerableAsync<T> enumerable,
@@ -371,18 +377,26 @@ namespace EastFive.Linq.Async
                     while (!complete.WaitOne(0))
                     {
                         moved.WaitOne();
+                        T[] nextSegment;
                         lock (segment)
                         {
-                            var nextSegment = segment.ToArray();
-                            if (nextSegment.Any())
-                            {
-                                segment.Clear();
-                                return yieldReturn(nextSegment);
-                            }
+                            nextSegment = segment.ToArray();
+                            segment.Clear();
                         }
+                        if (nextSegment.Any())
+                            return yieldReturn(nextSegment);
+                        continue;
                     }
 
                     await segmentTask;
+                    T[] lastSegment;
+                    lock (segment)
+                    {
+                        lastSegment = segment.ToArray();
+                        segment.Clear();
+                    }
+                    if (lastSegment.Any())
+                        return yieldReturn(lastSegment);
                     return yieldBreak;
                 });
         }
