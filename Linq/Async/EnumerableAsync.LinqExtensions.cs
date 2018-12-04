@@ -258,40 +258,28 @@ namespace EastFive.Linq.Async
                         return yieldAsync(current);
                     }
                 });
-            //return new DelegateEnumerableAsync<T, T>(enumerable,
-            //    async (enumeratorAsync, enumeratorDestination, moved, ended) =>
-            //    {
-            //        if (!await enumeratorAsync.MoveNextAsync())
-            //            return ended();
-            //        var current = enumeratorAsync.Current;
-            //        while (accumulation.Contains(current))
-            //        {
-            //            if (!await enumeratorAsync.MoveNextAsync())
-            //                return ended();
-            //            current = enumeratorAsync.Current;
-            //        }
-            //        accumulation = accumulation.Append(current).ToArray();
-            //        return moved(current);
-            //    });
         }
 
         public static IEnumerableAsync<T> Distinct<T, TKey>(this IEnumerableAsync<T> enumerable, Func<T, TKey> selectKey)
         {
-            var accumulation = new TKey[] { }; // TODO: Should be a hash
-            return new DelegateEnumerableAsync<T, T>(enumerable,
-                async (enumeratorAsync, enumeratorDestination, moved, ended) =>
+            var accumulation = new HashSet<TKey>();
+            var enumerator = enumerable.GetEnumerator();
+            return Yield<T>(
+                async (yieldAsync, yieldBreak) =>
                 {
-                    if (!await enumeratorAsync.MoveNextAsync())
-                        return ended();
-                    var current = enumeratorAsync.Current;
-                    while (accumulation.Contains(selectKey(current)))
+                    while (true)
                     {
-                        if (!await enumeratorAsync.MoveNextAsync())
-                            return ended();
-                        current = enumeratorAsync.Current;
+                        if (!await enumerator.MoveNextAsync())
+                            return yieldBreak;
+                        var current = enumerator.Current;
+
+                        var currentKey = selectKey(current);
+                        if (accumulation.Contains(currentKey))
+                            continue;
+                        accumulation.Add(currentKey);
+                        
+                        return yieldAsync(current);
                     }
-                    accumulation = accumulation.Append(selectKey(current)).ToArray();
-                    return moved(current);
                 });
         }
 

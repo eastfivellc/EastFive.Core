@@ -98,7 +98,7 @@ namespace EastFive.Linq.Async
                         var elementValue = this.valueSelector(element);
                         dictionary.Add(elementKey, elementValue);
                         if (!comparison(elementKey, key))
-                            return default(TValue).PairWithKey(false);
+                            continue;
 
                         return elementValue.PairWithKey(true);
                     }
