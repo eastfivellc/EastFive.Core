@@ -293,5 +293,60 @@ namespace EastFive.Linq.Async
                     });
         }
         
+
+
+        public static IEnumerableAsync<TItem> Throttle<TItem>(this IEnumerableAsync<Task<TItem>> enumerable,
+            int desiredRunCount = 1,
+            ILogger log = default(ILogger))
+        {
+            var logScope = log.CreateScope($"Throttle[{Guid.NewGuid()}]");
+            var throttler = new PerformanceManager<TItem>(desiredRunCount, logScope);
+            var taskList = new List<Task<TItem>>();
+            var enumerator = enumerable.GetEnumerator();
+            var moving = true;
+            return Yield<TItem>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    while (true)
+                    {
+                        var finishedTask = default(Task<TItem>);
+                        lock (taskList)
+                        {
+                            if (taskList.Count >= desiredRunCount)
+                            {
+                                Task<TItem>[] tasks = taskList.ToArray();
+                                var finishedTaskIndex = Task.WaitAny(tasks);
+                                finishedTask = tasks[finishedTaskIndex];
+                                taskList.RemoveAt(finishedTaskIndex);
+                            }
+                            if (!moving)
+                            {
+                                if (!taskList.Any())
+                                    return yieldBreak;
+
+                                Task<TItem>[] tasks = taskList.ToArray();
+                                var finishedTaskIndex = Task.WaitAny(tasks);
+                                finishedTask = tasks[finishedTaskIndex];
+                                taskList.RemoveAt(finishedTaskIndex);
+                            }
+                        }
+                        if (!finishedTask.IsDefaultOrNull())
+                        {
+                            var next = await finishedTask;
+                            return yieldReturn(next);
+                        }
+                        if (!await enumerator.MoveNextAsync())
+                        {
+                            moving = false;
+                            continue;
+                        }
+                        var nextTask = enumerator.Current;
+                        lock (taskList)
+                        {
+                            taskList.Add(nextTask);
+                        }
+                    }
+                });
+        }
     }
 }

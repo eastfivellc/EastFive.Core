@@ -26,5 +26,10 @@ namespace EastFive.Analytics
         {
             logger.LogTrace($"{state}:{message}");
         }
+
+        public void LogWarning(string message)
+        {
+            logger.LogWarning($"{state}:{message}");
+        }
     }
 }

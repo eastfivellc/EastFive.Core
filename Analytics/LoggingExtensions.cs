@@ -28,5 +28,12 @@ namespace EastFive.Analytics
                 return;
             logger.LogTrace(message);
         }
+
+        public static void Warning(this ILogger logger, string message)
+        {
+            if (logger.IsDefault())
+                return;
+            logger.LogWarning(message);
+        }
     }
 }

@@ -8,6 +8,8 @@ namespace EastFive.Analytics
         void LogInformation(string message);
 
         void LogTrace(string message);
+
+        void LogWarning(string message);
     }
 
     public class DebugLogger : ILogger
@@ -21,6 +23,11 @@ namespace EastFive.Analytics
         {
             Debug.WriteLine(message);
         }
+
+        public void LogWarning(string message)
+        {
+            Debug.WriteLine(message);
+        }
     }
 
     public class ConsoleLogger : ILogger
@@ -31,6 +38,11 @@ namespace EastFive.Analytics
         }
 
         public void LogTrace(string message)
+        {
+            Console.WriteLine(message);
+        }
+
+        public void LogWarning(string message)
         {
             Console.WriteLine(message);
         }
