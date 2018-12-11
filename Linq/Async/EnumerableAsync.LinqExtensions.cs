@@ -86,6 +86,43 @@ namespace EastFive.Linq.Async
             return selected;
         }
 
+        public static IEnumerableAsync<TResult> SelectWithIndex<T, TResult>(this IEnumerableAsync<T> enumerable,
+            Func<T, int, TResult> selection,
+            ILogger log = default(ILogger))
+        {
+            var selectId = Guid.NewGuid();
+            var logSelect = log.CreateScope($"Select[{selectId}]");
+            var eventId = 0;
+            var selected = new DelegateEnumerableAsync<TResult, T>(enumerable,
+                async (enumeratorAsync, enumeratorDestination, moved, ended) =>
+                {
+                    var index = eventId;
+                    var logItem = logSelect.CreateScope($"Item[{eventId++}]");
+                    logItem.Trace($"START BLOCK");
+                    if (enumeratorAsync.IsDefaultOrNull())
+                        return ended();
+
+                    if (!logItem.IsDefaultOrNull())
+                        logItem.Trace($"Calling MoveNextAsync.");
+                    if (!await enumeratorAsync.MoveNextAsync())
+                    {
+                        logItem.Trace($"COMPLETE");
+                        return ended();
+                    }
+                    var current = enumeratorAsync.Current;
+
+                    logItem.Trace($"Begin transform");
+                    var next = selection(current, index);
+                    logItem.Trace($"Ended transform");
+
+                    var result = moved(next);
+                    logItem.Trace($"END BLOCK");
+                    return result;
+                });
+
+            return selected;
+        }
+
         public static async Task<long> CountAsync<T>(this IEnumerableAsync<T> enumerable)
         {
             var enumerator = enumerable.GetEnumerator();

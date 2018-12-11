@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace EastFive.Linq.Async
@@ -13,19 +14,54 @@ namespace EastFive.Linq.Async
         private class GroupingAsync<TKey, TElement> : IGroupingAsync<TKey, TElement>
         {
             public TKey Key { get; private set; }
-
-            private IEnumerableAsync<TElement> enumerable;
+            
+            private List<TElement> cache;
+            private Func<Task<bool>> moveNextAsync;
 
             public IEnumeratorAsync<TElement> GetEnumerator()
             {
-                return enumerable.GetEnumerator();
+                int index = 0;
+                var enumerator = Yield<TElement>(
+                    async (yieldReturn, yieldBreak) =>
+                    {
+                        while (true)
+                        {
+                            var element = default(TElement);
+                            bool found = false;
+                            lock (cache)
+                            {
+                                if (index < cache.Count)
+                                {
+                                    found = true;
+                                    element = cache[index];
+                                    index++;
+                                }
+                            }
+                            if (found)
+                                return yieldReturn(element);
+
+                            if (!await moveNextAsync())
+                                return yieldBreak;
+                        }
+                    });
+
+                return enumerator.GetEnumerator();
             }
 
-            public GroupingAsync(TKey key, IEnumerableAsync<TElement> enumerable, Func<TElement, TKey> keySelector)
+            public void AddItem(TElement element)
+            {
+                lock(cache)
+                {
+                    cache.Add(element);
+                }
+            }
+
+            public GroupingAsync(TKey key,
+                Func<Task<bool>> moveNextAsync)
             {
                 this.Key = key;
-                this.enumerable = enumerable.Where(
-                    item => key.Equals(keySelector(item)));
+                this.moveNextAsync = moveNextAsync;
+                this.cache = new List<TElement>();
             }
         }
 
@@ -33,22 +69,75 @@ namespace EastFive.Linq.Async
             Func<TSource, TKey> keySelector)
         {
             var accumulation = new Dictionary<TKey, GroupingAsync<TKey, TSource>>();
-            return new DelegateEnumerableAsync<IGroupingAsync<TKey, TSource>, TSource>(enumerable,
-                async (enumeratorAsync, enumeratorDestination, moved, ended) =>
+            var enumeratorAsync = enumerable.GetEnumerator();
+            
+            var keyQueue = new Queue<TKey>();
+
+            var mutex = new ManualResetEvent(true);
+            return Yield<IGroupingAsync<TKey, TSource>>(
+                async (yieldReturn, yieldBreak) =>
                 {
-                    if (!await enumeratorAsync.MoveNextAsync())
-                        return ended();
-                    var current = enumeratorAsync.Current;
-                    var key = keySelector(current);
-                    while (accumulation.ContainsKey(key))
+                    async Task<bool> MoveNextAsync()
                     {
-                        if (!await enumeratorAsync.MoveNextAsync())
-                            return ended();
-                        current = enumeratorAsync.Current;
+                        mutex.WaitOne();
+                        var current = default(TSource);
+                        try
+                        {
+                            if (!await enumeratorAsync.MoveNextAsync())
+                                return false;
+                            current = enumeratorAsync.Current;
+                        }
+                        finally
+                        {
+                            mutex.Set();
+                        }
+                        
+                        var key = keySelector(current);
+                        lock (accumulation)
+                        {
+                            if (!accumulation.ContainsKey(key))
+                            {
+                                lock (keyQueue)
+                                {
+                                    keyQueue.Enqueue(key);
+                                }
+                                var grouping = new GroupingAsync<TKey, TSource>(
+                                    key,
+                                    async () =>
+                                    {
+                                        var didMove = await MoveNextAsync();
+                                        return didMove;
+                                    });
+                                accumulation.Add(key, grouping);
+                            }
+                            accumulation[key].AddItem(current);
+                        }
+                        return true;
                     }
-                    var grouping = new GroupingAsync<TKey, TSource>(key, enumerable, keySelector); // TODO: Pass enumerable that beings at this point since there are clearly no elements matching the key before this point.
-                    accumulation.Add(key, grouping); 
-                    return moved(grouping);
+
+                    while(true)
+                    {
+                        var key = default(TKey);
+                        bool any = false;
+                        lock(keyQueue)
+                        {
+                            any = keyQueue.Any();
+                            if (any)
+                                key = keyQueue.Dequeue();
+                        }
+                        if (any)
+                        {
+                            lock (accumulation)
+                            {
+                                return yieldReturn(accumulation[key]);
+                            }
+                        }
+
+                        var moved = await MoveNextAsync();
+                        if (moved)
+                            continue;
+                        return yieldBreak;
+                    }
                 });
         }
     }
