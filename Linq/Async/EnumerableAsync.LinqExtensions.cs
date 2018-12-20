@@ -57,20 +57,22 @@ namespace EastFive.Linq.Async
             var selectId = Guid.NewGuid();
             var logSelect = log.CreateScope($"Select[{selectId}]");
             var eventId = 1;
-            var selected = new DelegateEnumerableAsync<TResult, T>(enumerable,
-                async (enumeratorAsync, enumeratorDestination, moved, ended) =>
+            var enumeratorAsync = enumerable.GetEnumerator();
+            return Yield<TResult>(
+                async (yieldReturn, yieldBreak) =>
                 {
                     var logItem = logSelect.CreateScope($"Item[{eventId++}]");
                     logItem.Trace($"START BLOCK");
-                    if (enumeratorAsync.IsDefaultOrNull())
-                        return ended();
 
-                    if(!logItem.IsDefaultOrNull())
-                        logItem.Trace($"Calling MoveNextAsync.");
+                    if (enumeratorAsync.IsDefaultOrNull())
+                        return yieldBreak;
+
+                    logItem.Trace($"Calling MoveNextAsync.");
                     if (!await enumeratorAsync.MoveNextAsync())
                     {
+                        enumeratorAsync = default(IEnumeratorAsync<T>);
                         logItem.Trace($"COMPLETE");
-                        return ended();
+                        return yieldBreak;
                     }
                     var current = enumeratorAsync.Current;
 
@@ -78,13 +80,46 @@ namespace EastFive.Linq.Async
                     var next = selection(current);
                     logItem.Trace($"Ended transform");
 
-                    var result = moved(next);
+                    var result = yieldReturn(next);
                     logItem.Trace($"END BLOCK");
                     return result;
                 });
-
-            return selected;
         }
+
+        //public static IEnumerableAsync<TResult> Select<T, TResult>(this IEnumerableAsync<T> enumerable, Func<T, TResult> selection,
+        //    ILogger log = default(ILogger))
+        //{
+        //    var selectId = Guid.NewGuid();
+        //    var logSelect = log.CreateScope($"Select[{selectId}]");
+        //    var eventId = 1;
+        //    var selected = new DelegateEnumerableAsync<TResult, T>(enumerable,
+        //        async (enumeratorAsync, enumeratorDestination, moved, ended) =>
+        //        {
+        //            var logItem = logSelect.CreateScope($"Item[{eventId++}]");
+        //            logItem.Trace($"START BLOCK");
+        //            if (enumeratorAsync.IsDefaultOrNull())
+        //                return ended();
+
+        //            if(!logItem.IsDefaultOrNull())
+        //                logItem.Trace($"Calling MoveNextAsync.");
+        //            if (!await enumeratorAsync.MoveNextAsync())
+        //            {
+        //                logItem.Trace($"COMPLETE");
+        //                return ended();
+        //            }
+        //            var current = enumeratorAsync.Current;
+
+        //            logItem.Trace($"Begin transform");
+        //            var next = selection(current);
+        //            logItem.Trace($"Ended transform");
+
+        //            var result = moved(next);
+        //            logItem.Trace($"END BLOCK");
+        //            return result;
+        //        });
+
+        //    return selected;
+        //}
 
         public static IEnumerableAsync<TResult> SelectWithIndex<T, TResult>(this IEnumerableAsync<T> enumerable,
             Func<T, int, TResult> selection,

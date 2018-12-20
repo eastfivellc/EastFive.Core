@@ -163,43 +163,50 @@ namespace EastFive.Linq.Async
 
             public Task<bool> HasNext(Func<IYieldResult<TItem[]>, bool> onMore, Func<bool> onEnd)
             {
-                return onEnd().ToTask();
+                return onEnd().AsTask();
             }
         }
 
         public static IEnumerableAsync<T> YieldBatch<T>(
             YieldDelegateAsync<T[]> generateFunction)
         {
-            var index = 0;
-            var segment = new T[] { };
-            var yieldBreakSegment = new YieldBreakBatch<T>();
-            return Yield<T>(
-                async (yieldReturn, yieldBreak) =>
-                {
-                    if (segment.Length <= index)
-                    {
-                        var yieldResult = await generateFunction(
-                            (nextSegment) =>
-                            {
-                                return new YieldResultBatch<T>(nextSegment);
-                            },
-                            yieldBreakSegment);
-                        var moreData = await yieldResult.HasNext(
-                            nextSegment =>
-                            {
-                                segment = nextSegment.Value;
-                                index = 0;
-                                return true;
-                            },
-                            () => false);
-                        if (!moreData)
-                            return yieldBreak;
-                    }
-                    var value = segment[index];
-                    index++;
-                    return yieldReturn(value);
-                });
+            return Yield<T[]>(generateFunction)
+                .SelectMany();
         }
+
+        //public static IEnumerableAsync<T> YieldBatch<T>(
+        //    YieldDelegateAsync<T[]> generateFunction)
+        //{
+        //    var index = 0;
+        //    var segment = new T[] { };
+        //    var yieldBreakSegment = new YieldBreakBatch<T>();
+        //    return Yield<T>(
+        //        async (yieldReturn, yieldBreak) =>
+        //        {
+        //            if (segment.Length <= index)
+        //            {
+        //                var yieldResult = await generateFunction(
+        //                    (nextSegment) =>
+        //                    {
+        //                        return new YieldResultBatch<T>(nextSegment);
+        //                    },
+        //                    yieldBreakSegment);
+        //                var moreData = await yieldResult.HasNext(
+        //                    nextSegment =>
+        //                    {
+        //                        segment = nextSegment.Value;
+        //                        index = 0;
+        //                        return true;
+        //                    },
+        //                    () => false);
+        //                if (!moreData)
+        //                    return yieldBreak;
+        //            }
+        //            var value = segment[index];
+        //            index++;
+        //            return yieldReturn(value);
+        //        });
+        //}
 
         public static IEnumerableAsync<T> Range<T>(int start, int count,
             Func<int, Task<T>> generateFunction)
