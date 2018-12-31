@@ -398,9 +398,9 @@ namespace EastFive.Linq.Async
                     :
                     (Func<Task<bool>>)(async () =>
                     {
-                        diagnosticsTag.Trace($"BatchAsync[{diagnosticsTag}]:Moving");
+                        diagnosticsTag.Trace($"Moving");
                         var success = await enumerator.MoveNextAsync();
-                        diagnosticsTag.Trace($"BatchAsync[{diagnosticsTag}]:Moved");
+                        diagnosticsTag.Trace($"Moved");
                         return success;
                     });
 
@@ -408,19 +408,30 @@ namespace EastFive.Linq.Async
 
             async Task CycleAsync()
             {
-                while (await getMoveNext())
+                try
                 {
-                    diagnosticsTag.Trace($"BatchAsync[{diagnosticsTag}]:Adding Value");
-                    lock (cache)
+                    while (await getMoveNext())
                     {
-                        cache.Add(enumerator.Current);
-                        moved.Set();
+                        diagnosticsTag.Trace($"Adding Value");
+                        lock (cache)
+                        {
+                            cache.Add(enumerator.Current);
+                            moved.Set();
+                        }
+                        diagnosticsTag.Trace($"Added Value");
                     }
-                    diagnosticsTag.Trace($"BatchAsync[{diagnosticsTag}]:Added Value");
                 }
-                complete.Set();
-                moved.Set();
-                diagnosticsTag.Trace($"BatchAsync[{diagnosticsTag}]:Completed");
+                catch (Exception ex)
+                {
+                    diagnosticsTag.Trace($"Captured exception:{ex.Message}");
+                    throw;
+                }
+                finally
+                {
+                    complete.Set();
+                    moved.Set();
+                    diagnosticsTag.Trace($"Completed");
+                }
             }
         }
 
