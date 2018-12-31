@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 
 namespace EastFive
 {
+    #region IRef(Obj)
+
     public interface IReferenceable
     {
         Guid id { get; }
@@ -15,8 +17,6 @@ namespace EastFive
 
     public interface IRefBase : IReferenceable
     {
-        Guid id { get; }
-        
         Task ResolveAsync();
 
         bool resolved { get; }
@@ -34,6 +34,40 @@ namespace EastFive
         Func<TType> value { get; }
     }
 
+    #endregion
+
+    #region IRef(Obj)Optional
+
+    public interface IReferenceableOptional
+    {
+        Guid? id { get; }
+    }
+
+    public interface IRefOptionalBase : IReferenceableOptional
+    {
+        Task ResolveAsync();
+
+        bool resolved { get; }
+
+        bool HasValue { get; }
+    }
+
+    public interface IRefOptional<TType> : IRefOptionalBase
+        where TType : struct
+    {
+        TType? value { get; }
+    }
+
+    public interface IRefObjOptional<TType> : IRefOptionalBase
+        where TType : class
+    {
+        TType value { get; }
+    }
+
+    #endregion
+
+    #region IRef plural
+
     public interface IReferences
     {
         Guid[] ids { get; }
@@ -43,6 +77,8 @@ namespace EastFive
     {
         Linq.Async.IEnumerableAsync<TType> Values { get; }
     }
+
+    #endregion
 
     public struct Ref<TType> : IRef<TType>
         where TType : struct

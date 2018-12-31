@@ -173,17 +173,5 @@ namespace EastFive.Linq.Expressions
             return value;
         }
         
-        public static TResult GetAssignment<TObject, TResult>(this Expression<Action<TObject>> expression,
-            Func<MemberInfo, object, TResult> onAssignmentResolved,
-            Func<string, TResult> onFailure = default(Func<string, TResult>))
-        {
-            var body = expression.Body;
-            var methodCall = body as MethodCallExpression;
-
-            var memberInfo = (methodCall.Arguments[0] as MemberExpression).Member;
-            var valueResolved = methodCall.Arguments[1].Resolve();
-            
-            return onAssignmentResolved(memberInfo, valueResolved);
-        }
     }
 }

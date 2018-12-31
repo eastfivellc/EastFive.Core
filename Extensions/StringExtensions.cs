@@ -148,6 +148,11 @@ namespace EastFive
             return String.IsNullOrWhiteSpace(value);
         }
 
+        public static bool HasBlackSpace(this string value)
+        {
+            return !String.IsNullOrWhiteSpace(value);
+        }
+
         /// <summary>
         /// 
         /// </summary>

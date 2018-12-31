@@ -269,6 +269,11 @@ namespace EastFive.Linq
             return items.Concat(appendItems);
         }
 
+        public static bool AnyNullSafe<TItem>(this IEnumerable<TItem> items)
+        {
+            return items.NullToEmpty().Any();
+        }
+
         public static TResult Min<TItem, TComparable, TResult>(this IEnumerable<TItem> items,
             Func<TItem, TComparable> sortCriteria,
             Func<TComparable, TComparable, int> comparer,
