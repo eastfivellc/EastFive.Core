@@ -80,9 +80,21 @@ namespace EastFive.Linq.Async
         }
 
         public static IEnumerableAsync<T> JoinTask<T>(this IEnumerableAsync<T> enumerableAsync,
-            Task task,
-            string tag = default(string))
+            Func<Task> task,
+            EastFive.Analytics.ILogger logger = default(ILogger))
         {
+            enumerableAsync
+                .JoinTask(
+                    Task.Run(task),
+                    logger);
+            return enumerableAsync;
+        }
+
+        public static IEnumerableAsync<T> JoinTask<T>(this IEnumerableAsync<T> enumerableAsync,
+            Task task,
+            EastFive.Analytics.ILogger logger = default(ILogger))
+        {
+            var scopedLogger = logger.CreateScope($"Join[{task.Id}]");
             var enumerator = enumerableAsync.GetEnumerator();
             return EnumerableAsync.Yield<T>(
                 async (next, last) =>
@@ -96,12 +108,9 @@ namespace EastFive.Linq.Async
                         return next(enumerator.Current);
                     }
 
-                    if (!tag.IsNullOrWhiteSpace())
-                        Console.WriteLine($"Join[{tag}] Joining Task.");
+                    scopedLogger.Trace($"Joining Task.");
                     await task;
-                    if (!tag.IsNullOrWhiteSpace())
-                        Console.WriteLine($"Join[{tag}] Complete.");
-
+                    scopedLogger.Trace($"Complete.");
                     return last;
                 });
         }
