@@ -43,9 +43,9 @@ namespace EastFive.Net.Http
             return request;
         }
 
-        protected virtual async Task<bool> NeedsRefreshAsync(HttpResponseMessage response)
+        protected virtual Task<bool> NeedsRefreshAsync(HttpResponseMessage response)
         {
-            return (response.StatusCode == System.Net.HttpStatusCode.Unauthorized);
+            return (response.StatusCode == System.Net.HttpStatusCode.Unauthorized).AsTask();
         }
 
         protected abstract string AccessToken { get; }
