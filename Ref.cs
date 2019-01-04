@@ -133,4 +133,128 @@ namespace EastFive
         public Task<TType> valueAsync;
         public bool resolved;
     }
+
+    public struct RefOptional<TType> : IRefOptional<TType>
+        where TType : struct
+    {
+        private IRef<TType> baseRef;
+
+        public static IRefOptional<TType> Empty()
+        {
+            return new RefOptional<TType>
+            {
+                HasValue = false,
+                baseRef = default(IRef<TType>),
+            };
+        }
+
+        public RefOptional(IRef<TType> baseRef)
+        {
+            this.HasValue = true;
+            this.baseRef = baseRef;
+        }
+
+        public Guid? id
+        {
+            get
+            {
+                if (!this.HasValue)
+                    return default(Guid?);
+                return baseRef.id;
+            }
+        }
+
+        public TType? value
+        {
+            get
+            {
+                if (!this.HasValue)
+                    return default(TType?);
+                return baseRef.value;
+            }
+        }
+
+        public Task ResolveAsync()
+        {
+            if (!this.HasValue)
+                throw new Exception("Attempt to resolve empty value");
+
+            return this.baseRef.ResolveAsync();
+        }
+
+        public bool resolved
+        {
+            get
+            {
+                if (!this.HasValue)
+                    throw new Exception("Attempt to check resolution of empty value");
+
+                return this.baseRef.resolved;
+            }
+        }
+
+        public bool HasValue { get; set; }
+    }
+
+    public struct RefObjOptional<TType> : IRefObjOptional<TType>
+        where TType : class
+    {
+        private IRefObj<TType> baseRef;
+
+        public static IRefObjOptional<TType> Empty()
+        {
+            return new RefObjOptional<TType>
+            {
+                HasValue = false,
+                baseRef = default(IRefObj<TType>),
+            };
+        }
+
+        public RefObjOptional(IRefObj<TType> baseRef)
+        {
+            this.HasValue = true;
+            this.baseRef = baseRef;
+        }
+
+        public Guid? id
+        {
+            get
+            {
+                if (!this.HasValue)
+                    return default(Guid?);
+                return baseRef.id;
+            }
+        }
+
+        public TType value
+        {
+            get
+            {
+                if (!this.HasValue)
+                    return default(TType);
+                return baseRef.value();
+            }
+        }
+
+        public Task ResolveAsync()
+        {
+            if (!this.HasValue)
+                throw new Exception("Attempt to resolve empty value");
+
+            return this.baseRef.ResolveAsync();
+        }
+
+        public bool resolved
+        {
+            get
+            {
+                if (!this.HasValue)
+                    throw new Exception("Attempt to check resolution of empty value");
+
+                return this.baseRef.resolved;
+            }
+        }
+
+        public bool HasValue { get; set; }
+    }
 }
