@@ -909,24 +909,17 @@ namespace EastFive.Linq.Async
             //    });
         }
         
-        public static IEnumerableAsync<T> Aggregate<T>(this IEnumerableAsync<T> enumerable)
+        public static async Task<TResult[]> AsyncAggregateAsync<TItem, TResult>(this IEnumerableAsync<TItem> enumerable,
+            Func<TResult[], TItem, Task<TResult[]>> funcAsync)
         {
-            var accumulation = new T[] { }; // TODO: Should be a hash
-            return new DelegateEnumerableAsync<T, T>(enumerable,
-                async (enumeratorAsync, enumeratorDestination, moved, ended) =>
-                {
-                    if (!await enumeratorAsync.MoveNextAsync())
-                        return ended();
-                    var current = enumeratorAsync.Current;
-                    while (accumulation.Contains(current))
-                    {
-                        if (!await enumeratorAsync.MoveNextAsync())
-                            return ended();
-                        current = enumeratorAsync.Current;
-                    }
-                    accumulation = accumulation.Append(current).ToArray();
-                    return moved(current);
-                });
+            var accumulation = new TResult[] { }; // TODO: Should be a hash
+            var enumeratorAsync = enumerable.GetEnumerator();
+            while(await enumeratorAsync.MoveNextAsync())
+            {
+                var current = enumeratorAsync.Current;
+                accumulation = await funcAsync(accumulation, current);
+            }
+            return accumulation;
         }
 
         private abstract class LinqEnumerableAsync<T, TSource> : IEnumerableAsync<T>
