@@ -74,7 +74,10 @@ namespace EastFive
     }
 
     public interface IRefs<TType> : IReferences
+        where  TType : struct
     {
+        IRef<TType>[] refs { get; }
+
         Linq.Async.IEnumerableAsync<TType> Values { get; }
     }
 
@@ -90,6 +93,14 @@ namespace EastFive
             this.id = default(Guid);
             this.value = default(TType?);
             this.valueTask = valueTask;
+            this.resolved = false;
+        }
+
+        public Ref(Guid id) : this()
+        {
+            this.id = id;
+            this.value = default(TType?);
+            this.valueTask = default(Task<TType>);
             this.resolved = false;
         }
 
@@ -182,6 +193,7 @@ namespace EastFive
             return this.baseRef.ResolveAsync();
         }
 
+        [Newtonsoft.Json.JsonIgnore]
         public bool resolved
         {
             get
