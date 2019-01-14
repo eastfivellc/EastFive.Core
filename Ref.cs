@@ -1,8 +1,10 @@
 ﻿using BlackBarLabs.Extensions;
 using EastFive.Extensions;
+using EastFive.Linq.Async;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -56,6 +58,8 @@ namespace EastFive
         where TType : struct
     {
         TType? value { get; }
+
+        IRef<TType> Ref { get; }
     }
 
     public interface IRefObjOptional<TType> : IRefOptionalBase
@@ -206,6 +210,17 @@ namespace EastFive
         }
 
         public bool HasValue { get; set; }
+
+        [Newtonsoft.Json.JsonIgnore]
+        public IRef<TType> Ref
+        {
+            get
+            {
+                if (!this.HasValue)
+                    throw new Exception("Attempt to de-option empty value");
+                return baseRef;
+            }
+        }
     }
 
     public struct RefObjOptional<TType> : IRefObjOptional<TType>
@@ -268,5 +283,64 @@ namespace EastFive
         }
 
         public bool HasValue { get; set; }
+    }
+
+    public struct Refs<TType> : IRefs<TType>
+        where TType : struct
+    {
+        public Refs(IEnumerableAsync<TType> valueTask)
+        {
+            this.ids = default(Guid[]);
+            this.value = default(TType?);
+            this.Values = valueTask;
+            this.resolved = false;
+        }
+
+        public Refs(Guid[] ids,
+            Func<Guid, Task<TType>> lookup) : this()
+        {
+            this.ids = ids;
+            this.value = default(TType?);
+            var index = 0;
+            this.Values = EnumerableAsync.Yield<TType>(
+                async (r, b) =>
+                {
+                    if (index >= ids.Length)
+                        return b;
+                    var id = ids[index];
+                    index = index++;
+                    var v = await lookup(id);
+                    return r(v);
+                });
+            this.resolved = false;
+        }
+
+        public Guid[] ids { get; set; }
+
+        public TType? value { get; set; }
+
+        public bool resolved { get; set; }
+
+        public IRef<TType>[] refs => throw new NotImplementedException();
+
+        public IEnumerableAsync<TType> Values
+        {
+            get;
+            private set;
+        }
+
+        public static implicit operator Refs<TType>(Guid [] values)
+        {
+            return new Refs<TType>(values, (v) => throw new NotImplementedException(
+                $"Implicitedly created Refs<{typeof(TType).FullName}> cannot be Enumerated."));
+        }
+
+        public static implicit operator Refs<TType>(TType[] values)
+        {
+            return values.IsDefault() ?
+                new Refs<TType>(EnumerableAsync.Empty<TType>())
+                :
+                new Refs<TType>(values.Select(v => v.AsTask()).AsyncEnumerable());
+        }
     }
 }
