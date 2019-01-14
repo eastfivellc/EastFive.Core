@@ -80,7 +80,7 @@ namespace EastFive.Linq.Expressions
                     ((FieldInfo)memberInfo).SetValue(objUnboxed, value);
                     break;
                 case MemberTypes.Property:
-                    ((PropertyInfo)memberInfo).SetValue(obj, value);
+                    ((PropertyInfo)memberInfo).SetValue(objUnboxed, value);
                     break;
                 default:
                     throw new ArgumentException($"memberInfo of type '{memberInfo.MemberType}' which is unsupported");
