@@ -240,12 +240,28 @@ namespace EastFive.Serialization
 
         #region Enums
 
-        public static T[] ToEnumsFromByteArray<T>(this byte [] byteArrayOfEnums)
+        public static object[] ToEnumsFromByteArray(this byte[] byteArrayOfEnums, Type enumType)
         {
             return byteArrayOfEnums
                 .ToStringsFromUTF8ByteArray()
-                .Select(enumName => (T)Enum.Parse(typeof(T), enumName))
+                .Select(enumName => Enum.Parse(enumType, enumName))
                 .ToArray();
+        }
+
+        public static T[] ToEnumsFromByteArray<T>(this byte [] byteArrayOfEnums)
+        {
+            return byteArrayOfEnums
+                .ToEnumsFromByteArray(typeof(T))
+                .Cast<T>()
+                .ToArray();
+        }
+
+        public static byte[] ToByteArrayOfEnums(this IEnumerable<object> enums, Type enumType)
+        {
+            return enums
+                .NullToEmpty()
+                .Select(enumValue => Enum.GetName(enumType, enumValue))
+                .ToUTF8ByteArrayOfStrings();
         }
 
         public static byte[] ToByteArrayOfEnums<T>(this IEnumerable<T> enums) where T : struct, IConvertible // TODO: When we switch to C# 7.3 : System.Enum
