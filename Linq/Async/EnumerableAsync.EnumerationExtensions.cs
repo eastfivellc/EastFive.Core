@@ -58,11 +58,55 @@ namespace EastFive.Linq.Async
             return new StepEnumerable<T>(firstStep);
         }
 
+        public static async Task<IEnumerable<T>> AsyncWonky<T>(this IEnumerableAsync<T> enumerable,
+            Analytics.ILogger logger = default(Analytics.ILogger))
+        {
+            var enumerator = enumerable.GetEnumerator();
+            var firstStep = new Step<T>
+            {
+                current = default(T),
+                steps = new Step<T>?[2],
+            };
+            var step = firstStep;
+            logger.Trace("Async:First step");
+            while (await enumerator.MoveNextAsync())
+            {
+                logger.Trace("Async:Moved next step");
+                var nextStep = new Step<T>
+                {
+                    current = enumerator.Current,
+                    steps = new Step<T>?[2],
+                };
+                nextStep.steps[StepEnumerable<T>.StepEnumerator.lastIndex] = step;
+                step.steps[StepEnumerable<T>.StepEnumerator.nextIndex] = nextStep;
+                step = nextStep;
+            }
+            logger.Trace("Async:Last step");
+            return new StepEnumerable<T>(firstStep);
+        }
+
         public static async Task<T[]> ToArrayAsync<T>(this IEnumerableAsync<T> enumerableAsync,
             EastFive.Analytics.ILogger logger = default(Analytics.ILogger))
         {
             var enumerable = await enumerableAsync.Async(logger);
-            return enumerable.ToArray();
+            var output =  enumerable.ToArray();
+
+            if (output.Length > 10)
+                Console.WriteLine("");
+
+            return output;
+        }
+
+        public static async Task<T[]> ToArrayAsyncWonky<T>(this IEnumerableAsync<T> enumerableAsync,
+            EastFive.Analytics.ILogger logger = default(Analytics.ILogger))
+        {
+            var enumerable = await enumerableAsync.AsyncWonky(logger);
+            var output = enumerable.ToArray();
+
+            if (output.Length > 10)
+                Console.WriteLine("");
+
+            return output;
         }
 
         public static async Task<TResult> ToArrayAsync<T, TResult>(this IEnumerableAsync<T> enumerableAsync,
