@@ -321,7 +321,15 @@ namespace EastFive
 
         public bool resolved { get; set; }
 
-        public IRef<TType>[] refs => throw new NotImplementedException();
+        public IRef<TType>[] refs
+        {
+            get
+            {
+                if (!ids.Any())
+                    return new IRef<TType>[] { };
+                throw new NotImplementedException();
+            }
+        }
 
         public IEnumerableAsync<TType> Values
         {

@@ -246,6 +246,23 @@ namespace EastFive.Linq.Async
             return doNexts[0]();
         }
 
+        public static async Task<TResult> LastAsync<T, TResult>(this IEnumerableAsync<T> enumerable,
+            Func<T, TResult> onOne,
+            Func<TResult> onNone)
+        {
+            var enumerator = enumerable.GetEnumerator();
+            bool found = false;
+            var item = default(T);
+            while (await enumerator.MoveNextAsync())
+            {
+                found = true;
+                item = enumerator.Current;
+            }
+            if (!found)
+                return onNone();
+            return onOne(item);
+        }
+
         public static IEnumerableAsync<T> Empty<T>()
         {
             return EnumerableAsync.Yield<T>(
@@ -870,7 +887,6 @@ namespace EastFive.Linq.Async
                 });
         }
         
-
         public static IEnumerableAsync<T> Await<T>(this IEnumerableAsync<Task<T>> enumerable, string tag = default(string))
         {
             var enumerator = enumerable.GetEnumerator();
@@ -908,7 +924,58 @@ namespace EastFive.Linq.Async
             //        return moved(next);
             //    });
         }
-        
+
+        public static IEnumerableAsync<T> Parallel<T>(this IEnumerableAsync<Task<T>> enumerable,
+            bool maintainOrder = false,
+            ILogger diagnostics = default(ILogger))
+        {
+            var segment = new List<Task<T>>();
+            var moved = new AutoResetEvent(false);
+            var complete = new ManualResetEvent(false);
+            var segmentTask = enumerable.BatchAsync(segment, moved, complete, diagnostics);
+            return Yield<T>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    while (!complete.WaitOne(0))
+                    {
+                        moved.WaitOne(TimeSpan.FromSeconds(5));
+                        Task<T>[] nextSegment;
+                        lock (segment)
+                        {
+                            nextSegment = segment.ToArray();
+                        }
+                        if (nextSegment.Any())
+                        {
+                            var finishedTaskNext = await Task.WhenAny<T>(nextSegment);
+                            lock(segment)
+                            {
+                                segment.Remove(finishedTaskNext);
+                            }
+                            var next = await finishedTaskNext;
+                            return yieldReturn(next);
+                        }
+                        continue;
+                    }
+
+                    Task<T>[] lastSegment;
+                    lock (segment)
+                    {
+                        lastSegment = segment.ToArray();
+                    }
+                    if (!lastSegment.Any())
+                        return yieldBreak;
+                    var finishedTask = await Task.WhenAny<T>(lastSegment);
+                    lock (segment)
+                    {
+                        segment.Remove(finishedTask);
+                    }
+                    {
+                        var next = await finishedTask;
+                        return yieldReturn(next);
+                    }
+                });
+        }
+
         public static async Task<TResult[]> AsyncAggregateAsync<TItem, TResult>(this IEnumerableAsync<TItem> enumerable,
             Func<TResult[], TItem, Task<TResult[]>> funcAsync)
         {

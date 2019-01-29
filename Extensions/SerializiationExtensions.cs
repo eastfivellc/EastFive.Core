@@ -368,7 +368,7 @@ namespace EastFive.Serialization
                 yield break;
 
             int index = 0;
-            while (index < data.Length)
+            while (index < data.Length && index >= 0) // incase it loads a negative number (should be unsigned anyway)
             {
                 yield return index;
                 var offset = BitConverter.ToInt32(data, index);
@@ -466,6 +466,9 @@ namespace EastFive.Serialization
                 }
                 else
                 {
+                    if (byteArrayOfNullables.Length < index + 1 + storageLength)
+                        yield break; // TODO: Data warning
+
                     Array.Copy(byteArrayOfNullables, index + 1, byteArrayOfNullable, 0, storageLength);
                     yield return convert(byteArrayOfNullable);
                     index += storageLength;
