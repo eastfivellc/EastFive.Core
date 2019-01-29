@@ -694,14 +694,19 @@ namespace EastFive.Linq.Async
                 {
                     while (true)
                     {
-                        if (enumeratorInner.IsDefaultOrNull() || (!enumeratorInner.MoveNext()))
+                        if (enumeratorInner.IsDefaultOrNull())
                         {
                             if (!await enumerator.MoveNextAsync())
                                 return yieldBreak;
-
                             enumeratorInner = selectMany(enumerator.Current).GetEnumerator();
-                            if (!enumeratorInner.MoveNext())
-                                continue;
+                            continue;
+                        }
+                        if (!enumeratorInner.MoveNext())
+                        {
+                            if (!await enumerator.MoveNextAsync())
+                                return yieldBreak;
+                            enumeratorInner = selectMany(enumerator.Current).GetEnumerator();
+                            continue;
                         }
                         return yieldReturn(enumeratorInner.Current);
                     }
@@ -717,15 +722,22 @@ namespace EastFive.Linq.Async
                 {
                     while (true)
                     {
-                        if (enumeratorInner.IsDefaultOrNull() || (!await enumeratorInner.MoveNextAsync()))
+                        if (enumeratorInner.IsDefaultOrNull())
                         {
                             if (!await enumerator.MoveNextAsync())
                                 return yieldBreak;
-
                             enumeratorInner = selectMany(enumerator.Current).GetEnumerator();
-                            if (!await enumeratorInner.MoveNextAsync())
-                                continue;
+                            continue;
                         }
+
+                        if (!await enumeratorInner.MoveNextAsync())
+                        {
+                            if (!await enumerator.MoveNextAsync())
+                                return yieldBreak;
+                            enumeratorInner = selectMany(enumerator.Current).GetEnumerator();
+                            continue;
+                        }
+
                         return yieldReturn(enumeratorInner.Current);
                     }
                 });

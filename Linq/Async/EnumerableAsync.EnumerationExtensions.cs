@@ -62,7 +62,12 @@ namespace EastFive.Linq.Async
             EastFive.Analytics.ILogger logger = default(Analytics.ILogger))
         {
             var enumerable = await enumerableAsync.Async(logger);
-            return enumerable.ToArray();
+            var output =  enumerable.ToArray();
+
+            if (output.Length > 10)
+                Console.WriteLine("");
+
+            return output;
         }
 
         public static async Task<TResult> ToArrayAsync<T, TResult>(this IEnumerableAsync<T> enumerableAsync,
