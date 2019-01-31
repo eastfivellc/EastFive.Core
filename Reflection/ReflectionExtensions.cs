@@ -24,6 +24,13 @@ namespace EastFive.Reflection
 
         }
 
+        public static object Cast(this object[] arrayOfObj, Type arrayType)
+        {
+            var arrayOfType = Array.CreateInstance(arrayType, arrayOfObj.Length);
+            Array.Copy(arrayOfObj, arrayOfType, arrayOfObj.Length);
+            return arrayOfType;
+        }
+
         [Obsolete("This may not be possible")]
         private static KeyValuePair<Type, object>[] ResolveArgs<T>(this Expression<Func<T, object>> expression)
         {
