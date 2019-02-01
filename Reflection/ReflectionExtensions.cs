@@ -24,12 +24,42 @@ namespace EastFive.Reflection
 
         }
 
-        public static object Cast(this object[] arrayOfObj, Type arrayType)
+        public static object Cast(this IEnumerable<object> enumerableOfObj, Type enumerableType)
         {
-            var arrayOfType = Array.CreateInstance(arrayType, arrayOfObj.Length);
-            Array.Copy(arrayOfObj, arrayOfType, arrayOfObj.Length);
-            return arrayOfType;
+            var typeConvertedEnumerable = typeof(System.Linq.Enumerable)
+                .GetMethod("Cast", BindingFlags.Static | BindingFlags.Public)
+                .MakeGenericMethod(new Type[] { enumerableType })
+                .Invoke(null, new object[] { enumerableOfObj });
+
+            return typeConvertedEnumerable;
         }
+
+        public static object CastArray(this IEnumerable<object> arrayOfObj, Type arrayType)
+        {
+            var typeConvertedEnumerable = arrayOfObj.Cast(arrayType);
+            var typeConvertedArray = typeof(System.Linq.Enumerable)
+                .GetMethod("ToArray", BindingFlags.Static | BindingFlags.Public)
+                .MakeGenericMethod(new Type[] { arrayType })
+                .Invoke(null, new object[] { typeConvertedEnumerable });
+            return typeConvertedArray;
+
+            //var arrayOfType = Array.CreateInstance(arrayType, arrayOfObj.Length);
+            //Array.Copy(arrayOfObj, arrayOfType, arrayOfObj.Length);
+            //return arrayOfType;
+        }
+
+        //public static object Cast(this IEnumerable<object> values, Type castTo)
+        //{
+        //    //var list = new List<object>(values);
+        //    //list.Add(x);
+        //    var listOfTypeType = typeof(List<>).MakeGenericType(castTo);
+        //    var addMethod = listOfTypeType.GetMethod("Add");
+        //    var instance = Activator.CreateInstance(listOfTypeType);
+        //    foreach (var value in values)
+        //        addMethod.Invoke(instance, new object[] { value });
+        //    var array = listOfTypeType.GetMethod("ToArray").Invoke(instance, new object[] { });
+        //    return array;
+        //}
 
         [Obsolete("This may not be possible")]
         private static KeyValuePair<Type, object>[] ResolveArgs<T>(this Expression<Func<T, object>> expression)
@@ -125,17 +155,5 @@ namespace EastFive.Reflection
             }
         }
         
-        public static object Cast(this IEnumerable<object> values, Type castTo)
-        {
-            //var list = new List<object>(values);
-            //list.Add(x);
-            var listOfTypeType = typeof(List<>).MakeGenericType(castTo);
-            var addMethod = listOfTypeType.GetMethod("Add");
-            var instance = Activator.CreateInstance(listOfTypeType);
-            foreach (var value in values)
-                addMethod.Invoke(instance, new object[] { value });
-            var array = listOfTypeType.GetMethod("ToArray").Invoke(instance, new object[] { });
-            return array;
-        }
     }
 }
