@@ -1,5 +1,6 @@
 ﻿using EastFive.Extensions;
 using EastFive.Linq;
+using EastFive.Reflection;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -219,7 +220,67 @@ namespace EastFive.Serialization
 
         public static byte[] ToUTF8ByteArrayOfStrings(this IEnumerable<string> strings)
         {
-            return strings.NullToEmpty().ToByteArray(str => str.IsDefaultOrNull()? new byte[] { } : Encoding.UTF8.GetBytes(str));
+            return strings
+                .NullToEmpty()
+                .ToByteArray(
+                    str =>
+                    {
+                        return str.IsDefaultOrNull() ?
+                            new byte[] { }
+                            :
+                            Encoding.UTF8.GetBytes(str);
+                    });
+        }
+
+        public static string[] ToStringNullOrEmptysFromUTF8ByteArray(this byte[] byteArrayOfStrings)
+        {
+            if (byteArrayOfStrings.IsDefaultNullOrEmpty())
+                return new string[] { };
+
+            return byteArrayOfStrings
+                .FromByteArray(
+                    (bytes) =>
+                    {
+                        if(!bytes.Any())
+                            return System.Text.Encoding.UTF8.GetString(new byte[] { });
+
+                        var indicatorByte = bytes[0];
+                        var strBytes = bytes.Skip(1).ToArray();
+                        if (indicatorByte == 0)
+                        {
+                            var str = System.Text.Encoding.UTF8.GetString(strBytes);
+                            return str;
+                        }
+
+                        if (indicatorByte == 1)
+                            return string.Empty;
+
+                        return null;
+                    })
+                .ToArray();
+        }
+
+        public static byte[] ToUTF8ByteArrayOfStringNullOrEmptys(this IEnumerable<string> strings)
+        {
+            return strings
+                .NullToEmpty()
+                .ToByteArray(
+                    str =>
+                    {
+                        if(null == str)
+                            return new byte[] { 2 };
+
+                        if (str.Length > 0)
+                            return (new byte[] { 0 })
+                                .Concat(Encoding.UTF8.GetBytes(str))
+                                .ToArray();
+
+                        if (string.Empty == str)
+                            return new byte[] { 1 };
+
+                        // Should never hit
+                        return new byte[] { 2 };
+                    });
         }
 
         public static string GetString(this byte[] bytes, Encoding encoding = default(Encoding))
@@ -240,19 +301,20 @@ namespace EastFive.Serialization
 
         #region Enums
 
-        public static object[] ToEnumsFromByteArray(this byte[] byteArrayOfEnums, Type enumType)
+        public static object ToEnumsFromByteArray(this byte[] byteArrayOfEnums, Type enumType)
         {
             return byteArrayOfEnums
                 .ToStringsFromUTF8ByteArray()
                 .Select(enumName => Enum.Parse(enumType, enumName))
-                .ToArray();
+                .CastArray(enumType);
         }
 
         public static T[] ToEnumsFromByteArray<T>(this byte [] byteArrayOfEnums)
         {
+            var enumType = typeof(T);
             return byteArrayOfEnums
-                .ToEnumsFromByteArray(typeof(T))
-                .Cast<T>()
+                .ToStringsFromUTF8ByteArray()
+                .Select(enumName => (T)Enum.Parse(enumType, enumName))
                 .ToArray();
         }
 
@@ -368,7 +430,7 @@ namespace EastFive.Serialization
                 yield break;
 
             int index = 0;
-            while (index < data.Length && index >= 0) // incase it loads a negative number (should be unsigned anyway)
+            while (index + sizeof(int) <= data.Length && index >= 0) // incase it loads a negative number (should be unsigned anyway)
             {
                 yield return index;
                 var offset = BitConverter.ToInt32(data, index);

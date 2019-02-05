@@ -108,7 +108,14 @@ namespace EastFive
 
         public static string EscapeSingleQuote(this string parameter)
         {
-            return parameter.ToString().Trim('\'').Replace("\'", "\'\'");
+            var trimmed = parameter.ToString()
+                .Trim('\'');
+            var characterScoped = new string(trimmed
+                .Where(c => c > 26)
+                .ToArray());
+            return characterScoped
+                .Replace("\\", "\\\\")
+                .Replace("\'", "\'\'");
         }
 
         public static bool IsGuid(this string possibleGuid)

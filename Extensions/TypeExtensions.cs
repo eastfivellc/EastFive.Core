@@ -110,5 +110,12 @@ namespace EastFive
                 return onNotNullable();
             return onNullable(Nullable.GetUnderlyingType(type));
         }
+
+        public static Type MakeArrayType(this Type t)
+        {
+            var discardArray = Array.CreateInstance(t, 0);
+            var arrayType = discardArray.GetType();
+            return arrayType;
+        }
     }
 }

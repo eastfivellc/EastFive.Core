@@ -64,9 +64,6 @@ namespace EastFive.Linq.Async
             var enumerable = await enumerableAsync.Async(logger);
             var output =  enumerable.ToArray();
 
-            if (output.Length > 10)
-                Console.WriteLine("");
-
             return output;
         }
 
@@ -82,6 +79,12 @@ namespace EastFive.Linq.Async
         {
             var enumerable = await enumerableAsync.Async();
             return enumerable.ToDictionary();
+        }
+
+        public static async Task<List<T>> ToListAsync<T>(this IEnumerableAsync<T> enumerableAsync)
+        {
+            var enumerable = await enumerableAsync.Async();
+            return enumerable.ToList();
         }
 
         public static IEnumerableAsync<T> JoinTask<T>(this IEnumerableAsync<T> enumerableAsync,
