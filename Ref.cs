@@ -140,13 +140,28 @@ namespace EastFive
         }
     }
 
-    public struct RefObj<TType>
+    public struct RefObj<TType> : IRefObj<TType>
         where TType : class
     {
-        public Guid id;
+        public Guid id { get; set; }
+
         public TType value;
         public Task<TType> valueAsync;
         public bool resolved;
+
+        public RefObj(Guid id) : this()
+        {
+            this.id = id;
+        }
+
+        Func<TType> IRefObj<TType>.value => throw new NotImplementedException();
+
+        bool IRefBase.resolved => false;
+
+        public Task ResolveAsync()
+        {
+            throw new NotImplementedException();
+        }
     }
 
     public struct RefOptional<TType> : IRefOptional<TType>
