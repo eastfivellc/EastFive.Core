@@ -158,6 +158,15 @@ namespace EastFive.Linq.Async
             return selected;
         }
 
+        public static IEnumerableAsync<T> SelectWhereHasValue<T>(this IEnumerableAsync<Nullable<T>> enumerable)
+            where T : struct
+        {
+            return enumerable
+                .Where(valueMaybe => valueMaybe.HasValue)
+                .Select(valueMaybe => valueMaybe.Value);
+        }
+
+
         public static async Task<long> CountAsync<T>(this IEnumerableAsync<T> enumerable)
         {
             var enumerator = enumerable.GetEnumerator();

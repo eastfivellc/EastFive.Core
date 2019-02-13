@@ -87,6 +87,13 @@ namespace EastFive.Linq.Async
             return enumerable.ToList();
         }
 
+        public static async Task<ILookup<TKey, T>> ToLookupAsync<TKey, T>(this IEnumerableAsync<T> enumerableAsync,
+            Func<T, TKey> keySelector)
+        {
+            var enumerable = await enumerableAsync.Async();
+            return enumerable.ToLookup(keySelector);
+        }
+
         public static IEnumerableAsync<T> JoinTask<T>(this IEnumerableAsync<T> enumerableAsync,
             Func<Task> task,
             EastFive.Analytics.ILogger logger = default(ILogger))
