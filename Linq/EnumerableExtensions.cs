@@ -72,7 +72,7 @@ namespace EastFive.Linq
         {
             return items.All(b => b);
         }
-        
+
         public static IEnumerable<T> Append<T>(this IEnumerable<T> items, T item)
         {
             return items.NullToEmpty().Concat(new T[] { item });
@@ -108,7 +108,7 @@ namespace EastFive.Linq
         public static IEnumerable<T> RemoveItemAtIndex<T>(this IEnumerable<T> items, int index)
         {
             int indexOfItem = 0;
-            foreach(var item in items)
+            foreach (var item in items)
             {
                 if (index != indexOfItem)
                     yield return item;
@@ -120,8 +120,8 @@ namespace EastFive.Linq
         {
             return itemss.SelectMany(items => items);
         }
-        
-        public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items, 
+
+        public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items,
             Func<T, T, int> comparer,
             Func<T, int> hash = default(Func<T, int>))
         {
@@ -129,7 +129,7 @@ namespace EastFive.Linq
             return items.Distinct(predicateComparer, hash);
         }
 
-        public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items, 
+        public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items,
             Func<T, T, bool> predicateComparer,
             Func<T, int> hash = default(Func<T, int>))
         {
@@ -145,7 +145,7 @@ namespace EastFive.Linq
             return items.Except(itemsToExclude, x);
         }
 
-        public static IEnumerable<T> Except<T>(this IEnumerable<T> items, IEnumerable<T> itemsToExclude, 
+        public static IEnumerable<T> Except<T>(this IEnumerable<T> items, IEnumerable<T> itemsToExclude,
             Func<T, T, bool> predicateComparer,
             Func<T, int> hash = default(Func<T, int>))
         {
@@ -197,6 +197,19 @@ namespace EastFive.Linq
                    String.Compare(propertySelection(v1), propertySelection(v2));
             return items.Intersect(second, comparer,
                 v => propertySelection(v).GetHashCode());
+        }
+
+        public static IDictionary<T0, KeyValuePair<T1, T2>> Merge<T0, T1, T2>(this IEnumerable<T1> items1,
+                IEnumerable<T2> items2,
+                Func<T1, T0> propertySelection1,
+                Func<T2, T0> propertySelection2,
+            Func<T0, T0, bool> predicateComparer,
+            Func<T0, int> hash = default(Func<T0, int>))
+        {
+            return items1.Merge(items2,
+                propertySelection1, propertySelection2,
+                (dictionaryKvp, item1UnmatchedDiscard, items2UnmatchedDiscard) => dictionaryKvp,
+                predicateComparer, hash);
         }
 
         public static TResult Merge<T0, T1, T2, TResult>(this IEnumerable<T1> items1, 
