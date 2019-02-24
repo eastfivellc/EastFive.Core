@@ -114,6 +114,7 @@
     <Compile Include="Net\Http\ThrottleMessageHandler.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Ref.cs" />
+    <Compile Include="RefExtensions.cs" />
     <Compile Include="Reflection\CustomAttributeExtensions.cs" />
     <Compile Include="Reflection\ObjectBuilder.cs" />
     <Compile Include="Reflection\ReflectionExtensions.cs" />

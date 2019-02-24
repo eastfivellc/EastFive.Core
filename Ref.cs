@@ -85,6 +85,12 @@ namespace EastFive
         Linq.Async.IEnumerableAsync<TType> Values { get; }
     }
 
+    public interface IRefObjs<TType> : IReferences
+        where TType : class
+    {
+        IRefObj<TType>[] refs { get; }
+    }
+
     #endregion
 
     public struct Ref<TType> : IRef<TType>
@@ -176,6 +182,12 @@ namespace EastFive
                 HasValue = false,
                 baseRef = default(IRef<TType>),
             };
+        }
+
+        public RefOptional(Guid baseId)
+        {
+            this.HasValue = true;
+            this.baseRef = new Ref<TType>(baseId);
         }
 
         public RefOptional(IRef<TType> baseRef)
@@ -365,5 +377,29 @@ namespace EastFive
                 :
                 new Refs<TType>(values.Select(v => v.AsTask()).AsyncEnumerable());
         }
+    }
+
+    public struct RefObjs<TType> : IRefObjs<TType>
+        where TType : class
+    {
+        public Guid[] ids { get; private set; }
+
+        public RefObjs(Guid[] ids) : this()
+        {
+            this.ids = ids;
+        }
+
+        public IRefObj<TType>[] refs
+        {
+            get
+            {
+                if (!ids.Any())
+                    return new IRefObj<TType>[] { };
+                return ids
+                    .Select(id => (IRefObj<TType>)new RefObj<TType>(id))
+                    .ToArray();
+            }
+        }
+
     }
 }
