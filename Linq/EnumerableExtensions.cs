@@ -221,8 +221,10 @@ namespace EastFive.Linq
             Func<T0, int> hash = default(Func<T0, int>))
         {
             var item1Lookup =
-                items1.NullToEmpty().Select(item => propertySelection1(item).PairWithValue(item))
-                .ToDictionary();
+                items1
+                    .NullToEmpty()
+                    .Select(item => propertySelection1(item).PairWithValue(item))
+                    .ToDictionary();
             var item2Lookup =
                 items2.NullToEmpty().Select(item => propertySelection2(item).PairWithValue(item))
                 .ToDictionary();

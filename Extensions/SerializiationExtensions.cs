@@ -511,6 +511,8 @@ namespace EastFive.Serialization
             int storageLength;
             try
             {
+                if (!byteArrayOfNullables.Any())
+                    yield break;
                 storageLength = BitConverter.ToInt32(byteArrayOfNullables, 0);
             } catch(ArgumentOutOfRangeException)
             {
@@ -623,7 +625,11 @@ namespace EastFive.Serialization
             if (default(MD5) == md5)
                 md5 = MD5.Create();
 
-            byte[] data = md5.ComputeHash(Encoding.UTF8.GetBytes(concatination));
+            var md5Bytes = concatination.HasBlackSpace() ?
+                Encoding.UTF8.GetBytes(concatination)
+                :
+                new byte[] { };
+            byte[] data = md5.ComputeHash(md5Bytes);
             return new Guid(data);
         }
 
