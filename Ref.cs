@@ -313,13 +313,20 @@ namespace EastFive
     }
 
     public struct Refs<TType> : IRefs<TType>
-        where TType : struct
+        where TType : struct, IReferenceable
     {
         public Refs(IEnumerableAsync<TType> valueTask)
         {
             this.ids = default(Guid[]);
             this.value = default(TType?);
             this.Values = valueTask;
+            this.resolved = false;
+        }
+
+        public Refs(Guid[] ids) : this()
+        {
+            this.ids = ids;
+            this.value = default(TType?);
             this.resolved = false;
         }
 
@@ -366,16 +373,15 @@ namespace EastFive
 
         public static implicit operator Refs<TType>(Guid [] values)
         {
-            return new Refs<TType>(values, (v) => throw new NotImplementedException(
-                $"Implicitedly created Refs<{typeof(TType).FullName}> cannot be Enumerated."));
+            return new Refs<TType>(values);
         }
 
         public static implicit operator Refs<TType>(TType[] values)
         {
             return values.IsDefault() ?
-                new Refs<TType>(EnumerableAsync.Empty<TType>())
+                new Refs<TType>(new Guid[] { })
                 :
-                new Refs<TType>(values.Select(v => v.AsTask()).AsyncEnumerable());
+                new Refs<TType>(values.Select(v => v.id).ToArray());
         }
     }
 
