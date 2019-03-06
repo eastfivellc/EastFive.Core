@@ -69,7 +69,10 @@
     <Compile Include="Extensions\EnumExtensions.cs" />
     <Compile Include="Extensions\FuncExtensions.cs" />
     <Compile Include="Extensions\NullableExtensions.cs" />
-    <Compile Include="Extensions\SerializiationExtensions.cs" />
+    <Compile Include="Serialization\ICast.cs" />
+    <Compile Include="Serialization\IBind.cs" />
+    <Compile Include="Serialization\ISerialize.cs" />
+    <Compile Include="Serialization\SerializiationExtensions.cs" />
     <Compile Include="Extensions\RegexExtensions.cs" />
     <Compile Include="Extensions\TResultExtensions.cs" />
     <Compile Include="FuncAsync.cs" />
@@ -130,6 +133,7 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>
