@@ -707,7 +707,11 @@ namespace EastFive.Linq.Async
                         {
                             if (!await enumerator.MoveNextAsync())
                                 return yieldBreak;
-                            enumeratorInner = selectMany(enumerator.Current).GetEnumerator();
+                            var current = enumerator.Current;
+                            var many = selectMany(current);
+                            if (many.IsDefaultOrNull())
+                                continue;
+                            enumeratorInner = many.GetEnumerator();
                             continue;
                         }
                         if (!enumeratorInner.MoveNext())
