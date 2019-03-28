@@ -90,10 +90,18 @@ namespace EastFive.Serialization
                 .Select(byteBlock => BitConverter.ToInt32(byteBlock.ToArray(), 0))
                 .ToArray();
 
-            //Use the decimal's new constructor to
-            //create an instance of decimal
-            value = new decimal(bits);
-            return true;
+            try
+            {
+                //Use the decimal's new constructor to
+                //create an instance of decimal
+                value = new decimal(bits);
+                return true;
+            } catch(ArgumentException) 
+            {
+                // sometimes the bytes, despite being the correct length, are not valid decimal bytes
+                value = default(decimal);
+                return false;
+            }
         }
 
         public static decimal[] ToDecimalsFromByteArray(this byte[] bytes)

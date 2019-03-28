@@ -221,5 +221,37 @@ namespace EastFive.Extensions
                 return thenOperation(value);
             return value;
         }
+
+        public static TResult TryAsDecimal<TResult>(this object value,
+            Func<decimal, TResult> onCasted,
+            Func<TResult> onCouldNotCast)
+        {
+            if (value is decimal)
+            {
+                var decimalValue = (decimal)value;
+                return onCasted(decimalValue);
+            }
+            if (value is int)
+            {
+                var intValue = (int)value;
+                return onCasted(intValue);
+            }
+            if (value is long)
+            {
+                var longValue = (long)value;
+                return onCasted(longValue);
+            }
+            if (value is float)
+            {
+                var floatValue = (float)value;
+                return onCasted((decimal)floatValue);
+            }
+            if (value is double)
+            {
+                var doubleValue = (double)value;
+                return onCasted((decimal)doubleValue);
+            }
+            return onCouldNotCast();
+        }
     }
 }

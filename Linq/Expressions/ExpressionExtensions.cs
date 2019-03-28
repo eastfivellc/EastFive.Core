@@ -141,25 +141,37 @@ namespace EastFive.Linq.Expressions
 
             if (expression is UnaryExpression)
             {
-                // if casting is involved, Expression is not value but Convert(value)
                 var unaryExpression = expression as UnaryExpression;
-                // or possibly some other method than convert, either way, just get the method
-                var unaryMethod = unaryExpression.Method;
-                // and ensure it's static and only has one parameter
-                if(unaryMethod.IsStatic && unaryMethod.GetParameters().Length == 1)
+
+                // ensure that there is an operandValue
+                if (!unaryExpression.Operand.IsDefaultOrNull())
                 {
                     var operandValue = unaryExpression.Operand.Resolve();
-                    try
+
+                    // if casting is involved, Expression is not value but Convert(value)
+                    // or possibly some other method than convert, either way, just get the method
+                    var unaryMethod = unaryExpression.Method;
+
+                    // if the method is null, just return the operandValue
+                    if (unaryMethod.IsDefaultOrNull())
+                        return operandValue;
+
+                    // and ensure the method is static and only has one parameter
+                    if (unaryMethod.IsStatic && unaryMethod.GetParameters().Length == 1)
                     {
-                        var convertedValue = unaryExpression.Method.Invoke(null, new object[] { operandValue });
-                        return convertedValue;
-                    } catch(Exception ex)
-                    {
-                        ex.GetType();
+                        try
+                        {
+                            var convertedValue = unaryExpression.Method.Invoke(null, new object[] { operandValue });
+                            return convertedValue;
+                        }
+                        catch (Exception ex)
+                        {
+                            ex.GetType();
+                        }
                     }
+                    // otherwise more work is required to call it.
                 }
                 // otherwise more work is required to call it.
-                
             }
 
             if (expression is ConstantExpression)

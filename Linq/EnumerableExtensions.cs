@@ -745,6 +745,33 @@ namespace EastFive.Linq
                 .Select(item => item);
         }
 
+        public static IEnumerable<T> Sort<T>(this IEnumerable<T> items, 
+            Func<IEnumerable<T>, IEnumerable<T>, IEnumerable<T>> sorter,
+            Func<T, T, bool> comparison)
+        {
+            var sorted = new T[] { };
+            var unsorted = items.ToArray();
+            while(true)
+            {
+                var newSorted = sorter(unsorted, sorted).ToArray();
+                var newUnsorted = unsorted
+                    .Where(i1 => !newSorted.Where(i2 => comparison(i1, i2)).Any())
+                    .ToArray();
+
+                // sorting is done
+                if (!newUnsorted.Any())
+                    return newSorted;
+
+                // sorting has stalled, TODO: Message?
+                if (newUnsorted.Length == unsorted.Length)
+                    return newSorted;
+
+                // Prepare to sort again
+                unsorted = newUnsorted;
+                sorted = newSorted;
+            }
+        }
+
         public static IEnumerable<T> Compress<T>(this IEnumerable<T> items, Func<T, T, T[]> compressor)
         {
             var iterator = items.GetEnumerator();

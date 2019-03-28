@@ -47,10 +47,6 @@ namespace EastFive
 
     public interface IRefOptionalBase : IReferenceableOptional
     {
-        Task ResolveAsync();
-
-        bool resolved { get; }
-
         bool HasValue { get; }
     }
 
@@ -65,7 +61,7 @@ namespace EastFive
     public interface IRefObjOptional<TType> : IRefOptionalBase
         where TType : class
     {
-        TType value { get; }
+        IRefObj<TType> Ref { get; }
     }
 
     #endregion
@@ -173,6 +169,7 @@ namespace EastFive
     public struct RefOptional<TType> : IRefOptional<TType>
         where TType : struct
     {
+        [Newtonsoft.Json.JsonIgnore]
         private IRef<TType> baseRef;
 
         public static IRefOptional<TType> Empty()
@@ -206,6 +203,7 @@ namespace EastFive
             }
         }
 
+        [Newtonsoft.Json.JsonIgnore]
         public TType? value
         {
             get
@@ -213,26 +211,6 @@ namespace EastFive
                 if (!this.HasValue)
                     return default(TType?);
                 return baseRef.value;
-            }
-        }
-
-        public Task ResolveAsync()
-        {
-            if (!this.HasValue)
-                throw new Exception("Attempt to resolve empty value");
-
-            return this.baseRef.ResolveAsync();
-        }
-
-        [Newtonsoft.Json.JsonIgnore]
-        public bool resolved
-        {
-            get
-            {
-                if (!this.HasValue)
-                    throw new Exception("Attempt to check resolution of empty value");
-
-                return this.baseRef.resolved;
             }
         }
 
@@ -279,37 +257,10 @@ namespace EastFive
                 return baseRef.id;
             }
         }
-
-        public TType value
-        {
-            get
-            {
-                if (!this.HasValue)
-                    return default(TType);
-                return baseRef.value();
-            }
-        }
-
-        public Task ResolveAsync()
-        {
-            if (!this.HasValue)
-                throw new Exception("Attempt to resolve empty value");
-
-            return this.baseRef.ResolveAsync();
-        }
-
-        public bool resolved
-        {
-            get
-            {
-                if (!this.HasValue)
-                    throw new Exception("Attempt to check resolution of empty value");
-
-                return this.baseRef.resolved;
-            }
-        }
+        public IRefObj<TType> Ref => new RefObj<TType>(this.id.Value);
 
         public bool HasValue { get; set; }
+
     }
 
     public struct Refs<TType> : IRefs<TType>

@@ -24,6 +24,15 @@ namespace EastFive.Reflection
 
         }
 
+        public static object GetPropertyOrField(this object obj, string propertyOrFieldName)
+        {
+            return obj
+                .GetType()
+                .GetProperty(propertyOrFieldName)
+                .GetValue(obj)
+                .ToString();
+        }
+
         public static object Cast(this IEnumerable<object> enumerableOfObj, Type enumerableType)
         {
             var typeConvertedEnumerable = typeof(System.Linq.Enumerable)
