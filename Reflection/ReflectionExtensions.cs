@@ -11,6 +11,21 @@ namespace EastFive.Reflection
 {
     public static class ReflectionExtensions
     {
+        public static IEnumerable<MemberInfo> GetPropertyOrFieldMembers(this Type type)
+        {
+            return type
+                .GetMembers()
+                .Where(
+                    member =>
+                    {
+                        if (member.MemberType == MemberTypes.Property)
+                            return true;
+                        if (member.MemberType == MemberTypes.Field)
+                            return true;
+                        return false;
+                    });
+        }
+
         public static Type GetPropertyOrFieldType(this MemberInfo memberType)
         {
             if(memberType is PropertyInfo)
