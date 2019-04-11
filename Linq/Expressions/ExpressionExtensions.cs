@@ -25,6 +25,40 @@ namespace EastFive.Linq.Expressions
             Func<PropertyInfo, TResult> onPropertyExpression,
             Func<TResult> onNotPropertyExpression)
         {
+            return propertyExpression.MemberInfo(
+                (memberInfo) =>
+                {
+                    if (memberInfo is PropertyInfo)
+                    {
+                        var propertyInfo = memberInfo as PropertyInfo;
+                        return onPropertyExpression(propertyInfo);
+                    }
+                    return onNotPropertyExpression();
+                },
+                onNotPropertyExpression);
+        }
+
+        public static TResult FieldInfo<TObject, TProperty, TResult>(this Expression<Func<TObject, TProperty>> fieldExpression,
+            Func<FieldInfo, TResult> onPropertyExpression,
+            Func<TResult> onNotPropertyExpression)
+        {
+            return fieldExpression.MemberInfo(
+                (memberInfo) =>
+                {
+                    if (memberInfo is FieldInfo)
+                    {
+                        var propertyInfo = memberInfo as FieldInfo;
+                        return onPropertyExpression(propertyInfo);
+                    }
+                    return onNotPropertyExpression();
+                },
+                onNotPropertyExpression);
+        }
+
+        public static TResult MemberInfo<TObject, TProperty, TResult>(this Expression<Func<TObject, TProperty>> propertyExpression,
+            Func<MemberInfo, TResult> onPropertyExpression,
+            Func<TResult> onNotPropertyExpression)
+        {
             if (propertyExpression.Body.IsDefault())
                 return onNotPropertyExpression();
 
@@ -32,14 +66,8 @@ namespace EastFive.Linq.Expressions
                 return onNotPropertyExpression();
 
             var memberExpression = propertyExpression.Body as MemberExpression;
-            var lockedPropertyMember = memberExpression.Member;
-
-            var propertyInfo = lockedPropertyMember as PropertyInfo;
-            if (null == propertyInfo)
-            {
-                return onNotPropertyExpression();
-            }
-            return onPropertyExpression(propertyInfo);
+            var memberInfo = memberExpression.Member;
+            return onPropertyExpression(memberInfo);
         }
 
         public static TResult MemberName<TObject, TProperty, TResult>(this Expression<Func<TObject, TProperty>> memberExpression,

@@ -72,6 +72,13 @@ namespace EastFive.Reflection
             //return arrayOfType;
         }
 
+        public static IEnumerable<object> ObjectToEnumerable(this object arrayOfObj)
+        {
+            var enumerable = (System.Collections.IEnumerable)arrayOfObj;
+            foreach (var item in enumerable)
+                yield return item;
+        }
+
         public static IEnumerable<KeyValuePair<object, object>> DictionaryKeyValuePairs(this object dictionary)
         {
             if (!dictionary.GetType().IsSubClassOfGeneric(typeof(IDictionary<,>)))
