@@ -48,7 +48,7 @@ namespace EastFive.Linq.Async
             {
                 get
                 {
-                    return TryGetValue(key,
+                    return TryGetValueAsync(key,
                         (v) => v,
                         () =>
                         {
@@ -63,7 +63,7 @@ namespace EastFive.Linq.Async
 
             public Task<bool> ContainsKeyAsync(TKey key)
             {
-                return TryGetValue(key,
+                return TryGetValueAsync(key,
                     (v) => true,
                     () => false);
             }
@@ -113,7 +113,7 @@ namespace EastFive.Linq.Async
                 }
             }
 
-            public async Task<TResult> TryGetValue<TResult>(TKey key, 
+            public async Task<TResult> TryGetValueAsync<TResult>(TKey key, 
                 Func<TValue, TResult> onValue,
                 Func<TResult> onNotFound)
             {
@@ -143,7 +143,7 @@ namespace EastFive.Linq.Async
             {
                 get
                 {
-                    return TryGetValue(key,
+                    return TryGetValueAsync(key,
                         (v) => v,
                         () =>
                         {
@@ -158,7 +158,7 @@ namespace EastFive.Linq.Async
 
             public Task<bool> ContainsKeyAsync(TKey key)
             {
-                return TryGetValue(key,
+                return TryGetValueAsync(key,
                     (v) => true,
                     () => false);
             }
@@ -186,7 +186,7 @@ namespace EastFive.Linq.Async
                 return kvps.GetEnumerator();
             }
 
-            public async Task<TResult> TryGetValue<TResult>(TKey key,
+            public async Task<TResult> TryGetValueAsync<TResult>(TKey key,
                 Func<TValue, TResult> onValue,
                 Func<TResult> onNotFound)
             {

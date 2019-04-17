@@ -16,7 +16,7 @@ namespace EastFive.Linq.Async
 
         Task<bool> ContainsKeyAsync(TKey key);
 
-        Task<TResult> TryGetValue<TResult>(TKey key,
+        Task<TResult> TryGetValueAsync<TResult>(TKey key,
                 Func<TValue, TResult> value,
                 Func<TResult> onNotFound);
     }
