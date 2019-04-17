@@ -958,12 +958,42 @@ namespace EastFive.Linq.Async
             var moved = new AutoResetEvent(false);
             var complete = new ManualResetEvent(false);
             var segmentTask = enumerable.BatchAsync(segment, moved, complete, diagnostics);
+            var taskComplete = false; // Prevents call to WaitOne if task has already completed
             return Yield<T>(
                 async (yieldReturn, yieldBreak) =>
                 {
-                    while (!complete.WaitOne(0))
+                    bool Complete()
+                    {
+                        if (taskComplete)
+                            return true;
+
+                        var taskIsFinished = complete.WaitOne(0);
+                        if (taskIsFinished)
+                        {
+                            taskComplete = true; // prevent hanging on complete.WaitOne
+                            return true;
+                        }
+
+                        return false;
+                    }
+
+                    while (!Complete())
                     {
                         moved.WaitOne(TimeSpan.FromSeconds(5));
+
+                        var yieldKvp = await YieldResultAsync();
+                        if (!yieldKvp.Key)
+                            continue;
+                        return yieldKvp.Value;
+                    }
+
+                    var yieldFinalKvp = await YieldResultAsync();
+                    if (!yieldFinalKvp.Key)
+                        return yieldBreak;
+                    return yieldFinalKvp.Value;
+
+                    async Task<KeyValuePair<bool, IYieldResult<T>>> YieldResultAsync()
+                    {
                         Task<T>[] nextSegment;
                         lock (segment)
                         {
@@ -971,32 +1001,18 @@ namespace EastFive.Linq.Async
                         }
                         if (nextSegment.Any())
                         {
-                            var finishedTaskNext = await Task.WhenAny<T>(nextSegment);
-                            lock(segment)
+                            var finishedTaskNext = maintainOrder ?
+                                nextSegment.First()
+                                :
+                                await Task.WhenAny<T>(nextSegment);
+                            lock (segment)
                             {
                                 segment.Remove(finishedTaskNext);
                             }
                             var next = await finishedTaskNext;
-                            return yieldReturn(next);
+                            return yieldReturn(next).PairWithKey(true);
                         }
-                        continue;
-                    }
-
-                    Task<T>[] lastSegment;
-                    lock (segment)
-                    {
-                        lastSegment = segment.ToArray();
-                    }
-                    if (!lastSegment.Any())
-                        return yieldBreak;
-                    var finishedTask = await Task.WhenAny<T>(lastSegment);
-                    lock (segment)
-                    {
-                        segment.Remove(finishedTask);
-                    }
-                    {
-                        var next = await finishedTask;
-                        return yieldReturn(next);
+                        return default(IYieldResult<T>).PairWithKey(false);
                     }
                 });
         }
