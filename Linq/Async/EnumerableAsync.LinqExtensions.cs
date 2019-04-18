@@ -467,11 +467,27 @@ namespace EastFive.Linq.Async
             var segment = new List<T>();
             var moved = new AutoResetEvent(false);
             var complete = new ManualResetEvent(false);
+            var taskComplete = false; // Prevents call to WaitOne if task has already completed
             var segmentTask = enumerable.BatchAsync(segment, moved, complete, diagnosticsTag);
             return Yield<T[]>(
                 async (yieldReturn, yieldBreak) =>
                 {
-                    while (!complete.WaitOne(0))
+                    bool Complete()
+                    {
+                        if (taskComplete)
+                            return true;
+
+                        var taskIsFinished = complete.WaitOne(0);
+                        if (taskIsFinished)
+                        {
+                            taskComplete = true; // prevent hanging on complete.WaitOne
+                            return true;
+                        }
+
+                        return false;
+                    }
+
+                    while (!Complete())
                     {
                         moved.WaitOne();
                         T[] nextSegment;
@@ -497,7 +513,74 @@ namespace EastFive.Linq.Async
                     return yieldBreak;
                 });
         }
-        
+
+        public static IEnumerableAsync<T> Parallel<T>(this IEnumerableAsync<Task<T>> enumerable,
+            bool maintainOrder = false,
+            ILogger diagnostics = default(ILogger))
+        {
+            var segment = new List<Task<T>>();
+            var moved = new AutoResetEvent(false);
+            var complete = new ManualResetEvent(false);
+            var segmentTask = enumerable.BatchAsync(segment, moved, complete, diagnostics);
+            var taskComplete = false; // Prevents call to WaitOne if task has already completed
+            return Yield<T>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    bool Complete()
+                    {
+                        if (taskComplete)
+                            return true;
+
+                        var taskIsFinished = complete.WaitOne(0);
+                        if (taskIsFinished)
+                        {
+                            taskComplete = true; // prevent hanging on complete.WaitOne
+                            return true;
+                        }
+
+                        return false;
+                    }
+
+                    while (!Complete())
+                    {
+                        moved.WaitOne(TimeSpan.FromSeconds(5));
+
+                        var yieldKvp = await YieldResultAsync();
+                        if (!yieldKvp.Key)
+                            continue;
+                        return yieldKvp.Value;
+                    }
+
+                    var yieldFinalKvp = await YieldResultAsync();
+                    if (!yieldFinalKvp.Key)
+                        return yieldBreak;
+                    return yieldFinalKvp.Value;
+
+                    async Task<KeyValuePair<bool, IYieldResult<T>>> YieldResultAsync()
+                    {
+                        Task<T>[] nextSegment;
+                        lock (segment)
+                        {
+                            nextSegment = segment.ToArray();
+                        }
+                        if (nextSegment.Any())
+                        {
+                            var finishedTaskNext = maintainOrder ?
+                                nextSegment.First()
+                                :
+                                await Task.WhenAny<T>(nextSegment);
+                            lock (segment)
+                            {
+                                segment.Remove(finishedTaskNext);
+                            }
+                            var next = await finishedTaskNext;
+                            return yieldReturn(next).PairWithKey(true);
+                        }
+                        return default(IYieldResult<T>).PairWithKey(false);
+                    }
+                });
+        }
+
         public static IEnumerableAsync<T> Prespool<T>(this IEnumerableAsync<T> items, ILogger diagnosticsTag = default(ILogger))
         {
             // TODO: Match batch use this instead of this using Batch.
@@ -948,73 +1031,6 @@ namespace EastFive.Linq.Async
             //        var next = await enumeratorAsync.Current;
             //        return moved(next);
             //    });
-        }
-
-        public static IEnumerableAsync<T> Parallel<T>(this IEnumerableAsync<Task<T>> enumerable,
-            bool maintainOrder = false,
-            ILogger diagnostics = default(ILogger))
-        {
-            var segment = new List<Task<T>>();
-            var moved = new AutoResetEvent(false);
-            var complete = new ManualResetEvent(false);
-            var segmentTask = enumerable.BatchAsync(segment, moved, complete, diagnostics);
-            var taskComplete = false; // Prevents call to WaitOne if task has already completed
-            return Yield<T>(
-                async (yieldReturn, yieldBreak) =>
-                {
-                    bool Complete()
-                    {
-                        if (taskComplete)
-                            return true;
-
-                        var taskIsFinished = complete.WaitOne(0);
-                        if (taskIsFinished)
-                        {
-                            taskComplete = true; // prevent hanging on complete.WaitOne
-                            return true;
-                        }
-
-                        return false;
-                    }
-
-                    while (!Complete())
-                    {
-                        moved.WaitOne(TimeSpan.FromSeconds(5));
-
-                        var yieldKvp = await YieldResultAsync();
-                        if (!yieldKvp.Key)
-                            continue;
-                        return yieldKvp.Value;
-                    }
-
-                    var yieldFinalKvp = await YieldResultAsync();
-                    if (!yieldFinalKvp.Key)
-                        return yieldBreak;
-                    return yieldFinalKvp.Value;
-
-                    async Task<KeyValuePair<bool, IYieldResult<T>>> YieldResultAsync()
-                    {
-                        Task<T>[] nextSegment;
-                        lock (segment)
-                        {
-                            nextSegment = segment.ToArray();
-                        }
-                        if (nextSegment.Any())
-                        {
-                            var finishedTaskNext = maintainOrder ?
-                                nextSegment.First()
-                                :
-                                await Task.WhenAny<T>(nextSegment);
-                            lock (segment)
-                            {
-                                segment.Remove(finishedTaskNext);
-                            }
-                            var next = await finishedTaskNext;
-                            return yieldReturn(next).PairWithKey(true);
-                        }
-                        return default(IYieldResult<T>).PairWithKey(false);
-                    }
-                });
         }
 
         public static async Task<TResult[]> AsyncAggregateAsync<TItem, TResult>(this IEnumerableAsync<TItem> enumerable,
