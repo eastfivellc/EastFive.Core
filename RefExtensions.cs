@@ -34,6 +34,15 @@ namespace EastFive
             return new RefOptional<T>(baseRef);
         }
 
+        public static IRefOptional<T> AsRefOptional<T>(this Guid? baseRef)
+            where T : struct
+        {
+            if (!baseRef.HasValue)
+                return new RefOptional<T>();
+
+            return baseRef.Value.AsRef<T>().Optional();
+        }
+
         public static bool HasValueNotNull<T>(this IRefOptional<T> refOptional) where T : struct
         {
             if (refOptional.IsDefaultOrNull())
