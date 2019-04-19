@@ -56,10 +56,13 @@ namespace EastFive
         public static Uri SetQueryParam(this Uri uri, string name, string value)
         {
             // From: http://stackoverflow.com/questions/829080/how-to-build-a-query-string-for-a-url-in-c#20492373
-            
+
             // this actually returns HttpValueCollection : NameValueCollection
             // which uses unicode compliant encoding on ToString()
-            var queryParams = HttpUtility.ParseQueryString(uri.Query);
+            var queryParams = uri.Query.IsDefaultOrNull() ?
+                new System.Collections.Specialized.NameValueCollection()
+                :
+                HttpUtility.ParseQueryString(uri.Query);
             if (queryParams.AllKeys.Contains(name))
                 queryParams[name] = value;
             else
