@@ -288,6 +288,13 @@ namespace EastFive.Linq.Async
             return items.OrderBy(ranking);
         }
 
+        public static async Task<IOrderedEnumerable<TItem>> OrderByDescendingAsync<TItem, TRank>(this IEnumerableAsync<TItem> enumerable,
+            Func<TItem, TRank> ranking)
+        {
+            var items = await enumerable.Async();
+            return items.OrderByDescending(ranking);
+        }
+
         public static async Task<TResult> SelectOneAsync<TItem, TResult>(this IEnumerableAsync<TItem> enumerable,
                 Func<TItem, TItem, TItem> select,
             Func<TItem, TResult> onOne,
