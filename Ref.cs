@@ -17,23 +17,16 @@ namespace EastFive
         Guid id { get; }
     }
 
-    public interface IRefBase : IReferenceable
+    public interface IRef<TType>
+        where TType : IReferenceable
     {
-        Task ResolveAsync();
-
-        bool resolved { get; }
+        Guid id { get; }
     }
 
-    public interface IRef<TType> : IRefBase
-        where TType : struct
+    public interface IRefObj<TType>
+        where TType : IReferenceable
     {
-        TType? value { get; }
-    }
-
-    public interface IRefObj<TType> : IRefBase
-        where TType : class
-    {
-        Func<TType> value { get; }
+        Guid id { get; }
     }
 
     #endregion
@@ -43,23 +36,19 @@ namespace EastFive
     public interface IReferenceableOptional
     {
         Guid? id { get; }
-    }
 
-    public interface IRefOptionalBase : IReferenceableOptional
-    {
         bool HasValue { get; }
     }
 
-    public interface IRefOptional<TType> : IRefOptionalBase
-        where TType : struct
+    public interface IRefOptional<TType> : IReferenceableOptional
+        where TType : IReferenceable
     {
-        TType? value { get; }
-
         IRef<TType> Ref { get; }
     }
 
-    public interface IRefObjOptional<TType> : IRefOptionalBase
-        where TType : class
+    [Obsolete("Use global::EastFive.IRefOptional")]
+    public interface IRefObjOptional<TType> : IReferenceableOptional
+        where TType : IReferenceable
     {
         IRefObj<TType> Ref { get; }
     }
@@ -74,15 +63,13 @@ namespace EastFive
     }
 
     public interface IRefs<TType> : IReferences
-        where  TType : struct
+        where  TType : IReferenceable
     {
         IRef<TType>[] refs { get; }
-
-        Linq.Async.IEnumerableAsync<TType> Values { get; }
     }
 
     public interface IRefObjs<TType> : IReferences
-        where TType : class
+        where TType : IReferenceable
     {
         IRefObj<TType>[] refs { get; }
     }
@@ -90,41 +77,15 @@ namespace EastFive
     #endregion
 
     public struct Ref<TType> : IRef<TType>
-        where TType : struct
+        where TType : IReferenceable
     {
-        private Task<TType> valueTask;
-
-        public Ref(Task<TType> valueTask)
-        {
-            this.id = default(Guid);
-            this.value = default(TType?);
-            this.valueTask = valueTask;
-            this.resolved = false;
-        }
-
         public Ref(Guid id) : this()
         {
             this.id = id;
-            this.value = default(TType?);
-            this.valueTask = default(Task<TType>);
-            this.resolved = false;
         }
 
-        public Guid id { get; set; }
+        public Guid id { get; private set; }
 
-        public TType? value { get; set; }
-        
-        public async Task ResolveAsync()
-        {
-            if (value.HasValue)
-                return;
-            
-            this.value = await valueTask;
-            this.resolved = true;
-        }
-
-        public bool resolved { get; set; }
-        
         public static implicit operator Ref<TType>(Guid value)
         {
             return new Ref<TType>()
@@ -138,36 +99,24 @@ namespace EastFive
             return value.IsDefault() ? 
                 default(Ref<TType>) 
                 :
-                new Ref<TType>(value.AsTask());
+                new Ref<TType>(value.id);
         }
     }
 
+    [Obsolete("Use Ref<>")]
     public struct RefObj<TType> : IRefObj<TType>
-        where TType : class
+        where TType : IReferenceable
     {
         public Guid id { get; set; }
-
-        public TType value;
-        public Task<TType> valueAsync;
-        public bool resolved;
 
         public RefObj(Guid id) : this()
         {
             this.id = id;
         }
-
-        Func<TType> IRefObj<TType>.value => throw new NotImplementedException();
-
-        bool IRefBase.resolved => false;
-
-        public Task ResolveAsync()
-        {
-            throw new NotImplementedException();
-        }
     }
 
     public struct RefOptional<TType> : IRefOptional<TType>
-        where TType : struct
+        where TType : IReferenceable
     {
         [Newtonsoft.Json.JsonIgnore]
         private IRef<TType> baseRef;
@@ -203,18 +152,7 @@ namespace EastFive
             }
         }
 
-        [Newtonsoft.Json.JsonIgnore]
-        public TType? value
-        {
-            get
-            {
-                if (!this.HasValue)
-                    return default(TType?);
-                return baseRef.value;
-            }
-        }
-
-        public bool HasValue { get; set; }
+        public bool HasValue { get; private set; }
 
         [Newtonsoft.Json.JsonIgnore]
         public IRef<TType> Ref
@@ -222,25 +160,17 @@ namespace EastFive
             get
             {
                 if (!this.HasValue)
-                    throw new Exception("Attempt to de-option empty value");
+                    throw new InvalidOperationException("Attempt to de-option empty value");
                 return baseRef;
             }
         }
     }
 
+    [Obsolete("Use RefOptional<>")]
     public struct RefObjOptional<TType> : IRefObjOptional<TType>
-        where TType : class
+        where TType : IReferenceable
     {
         private IRefObj<TType> baseRef;
-
-        public static IRefObjOptional<TType> Empty()
-        {
-            return new RefObjOptional<TType>
-            {
-                HasValue = false,
-                baseRef = default(IRefObj<TType>),
-            };
-        }
 
         public RefObjOptional(IRefObj<TType> baseRef)
         {
@@ -264,47 +194,19 @@ namespace EastFive
     }
 
     public struct Refs<TType> : IRefs<TType>
-        where TType : struct, IReferenceable
+        where TType : IReferenceable
     {
         public Refs(IEnumerableAsync<TType> valueTask)
         {
             this.ids = default(Guid[]);
-            this.value = default(TType?);
-            this.Values = valueTask;
-            this.resolved = false;
         }
 
         public Refs(Guid[] ids) : this()
         {
             this.ids = ids;
-            this.value = default(TType?);
-            this.resolved = false;
-        }
-
-        public Refs(Guid[] ids,
-            Func<Guid, Task<TType>> lookup) : this()
-        {
-            this.ids = ids;
-            this.value = default(TType?);
-            var index = 0;
-            this.Values = EnumerableAsync.Yield<TType>(
-                async (r, b) =>
-                {
-                    if (index >= ids.Length)
-                        return b;
-                    var id = ids[index];
-                    index = index++;
-                    var v = await lookup(id);
-                    return r(v);
-                });
-            this.resolved = false;
         }
 
         public Guid[] ids { get; set; }
-
-        public TType? value { get; set; }
-
-        public bool resolved { get; set; }
 
         public IRef<TType>[] refs
         {
@@ -316,11 +218,6 @@ namespace EastFive
             }
         }
 
-        public IEnumerableAsync<TType> Values
-        {
-            get;
-            private set;
-        }
 
         public static implicit operator Refs<TType>(Guid [] values)
         {
@@ -334,29 +231,5 @@ namespace EastFive
                 :
                 new Refs<TType>(values.Select(v => v.id).ToArray());
         }
-    }
-
-    public struct RefObjs<TType> : IRefObjs<TType>
-        where TType : class
-    {
-        public Guid[] ids { get; private set; }
-
-        public RefObjs(Guid[] ids) : this()
-        {
-            this.ids = ids;
-        }
-
-        public IRefObj<TType>[] refs
-        {
-            get
-            {
-                if (!ids.Any())
-                    return new IRefObj<TType>[] { };
-                return ids
-                    .Select(id => (IRefObj<TType>)new RefObj<TType>(id))
-                    .ToArray();
-            }
-        }
-
     }
 }
