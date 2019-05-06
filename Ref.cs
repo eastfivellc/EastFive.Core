@@ -17,10 +17,15 @@ namespace EastFive
         Guid id { get; }
     }
 
-    public interface IRef<TType>
-        where TType : IReferenceable
+    public interface IRef
     {
         Guid id { get; }
+    }
+
+    public interface IRef<TType> : IReferenceable // TODO: , IRef
+        where TType : IReferenceable
+    {
+        // Guid id { get; }
     }
 
     public interface IRefObj<TType>
