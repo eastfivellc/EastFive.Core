@@ -69,6 +69,7 @@
     <Compile Include="Extensions\EnumExtensions.cs" />
     <Compile Include="Extensions\FuncExtensions.cs" />
     <Compile Include="Extensions\NullableExtensions.cs" />
+    <Compile Include="Reflection\TaskExtensions.cs" />
     <Compile Include="Serialization\ICast.cs" />
     <Compile Include="Serialization\IBind.cs" />
     <Compile Include="Serialization\ISerialize.cs" />

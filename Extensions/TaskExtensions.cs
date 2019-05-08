@@ -48,8 +48,33 @@ namespace EastFive
             return results;
         }
 
+        public static async Task<T[]> WhenAllAsync<T>(this Task<IEnumerable<Task<T>>> tasksTask, int parallelLimit = 0)
+        {
+            var tasks = await tasksTask;
+            return await BlackBarLabs.TaskExtensions.WhenAllAsync(tasks, parallelLimit);
+        }
 
-        
+        public static async Task RunAllAsync(this IEnumerable<Task> tasks, int parallelLimit = 0)
+        {
+            if (parallelLimit <= 0)
+            {
+                await Task.WhenAll(tasks);
+                return;
+            }
+
+            var queue = new List<Task>(parallelLimit);
+            foreach (var task in tasks)
+            {
+                queue.Add(task);
+                if (queue.Count >= parallelLimit)
+                {
+                    var completedTask = await Task.WhenAny(queue.ToArray());
+                    queue.Remove(completedTask);
+                }
+            }
+            await Task.WhenAll(queue);
+        }
+
     }
 }
 
@@ -77,31 +102,7 @@ namespace BlackBarLabs
             results.AddRange(await Task.WhenAll(queue));
             return results.ToArray();
         }
-        public static async Task<T[]> WhenAllAsync<T>(this Task<IEnumerable<Task<T>>> tasksTask, int parallelLimit = 0)
-        {
-            var tasks = await tasksTask;
-            return await BlackBarLabs.TaskExtensions.WhenAllAsync(tasks, parallelLimit);
-        }
-
-        public static async Task WhenAllAsync(this IEnumerable<Task> tasks, int parallelLimit = 0)
-        {
-            if (parallelLimit <= 0)
-            {
-                await Task.WhenAll(tasks);
-                return;
-            }
-
-            var queue = new List<Task>(parallelLimit);
-            foreach (var task in tasks)
-            {
-                queue.Add(task);
-                if (queue.Count >= parallelLimit)
-                {
-                    var completedTask = await Task.WhenAny(queue.ToArray());
-                    queue.Remove(completedTask);
-                }
-            }
-            await Task.WhenAll(queue);
-        }
+        
+        
     }
 }
