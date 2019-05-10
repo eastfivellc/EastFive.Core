@@ -80,7 +80,7 @@ namespace EastFive.Async
                                         .ToArrayAsync(
                                             async (rollbacks) =>
                                             {
-                                                await rollbacks.WhenAllAsync();
+                                                await rollbacks.RunAllAsync();
                                                 return result;
                                             });
                                     return tresult;
