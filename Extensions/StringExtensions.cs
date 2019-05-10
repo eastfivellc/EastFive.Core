@@ -41,6 +41,16 @@ namespace EastFive
             return Convert.ToBase64String(bytes);
         }
 
+        public static byte[] FromBase64String(this string base64String)
+        {
+            return Convert.FromBase64String(base64String);
+        }
+
+        public static string ToBase64String(this byte[] bytes)
+        {
+            return Convert.ToBase64String(bytes);
+        }
+
         public static TResult GetClrType<TResult>(this string type,
             Func<Type, TResult> matched,
             Func<TResult> noMatch)

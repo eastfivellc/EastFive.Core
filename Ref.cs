@@ -46,13 +46,6 @@ namespace EastFive
         IRef<TType> Ref { get; }
     }
 
-    [Obsolete("Use global::EastFive.IRefOptional")]
-    public interface IRefObjOptional<TType> : IReferenceableOptional
-        where TType : IReferenceable
-    {
-        IRefObj<TType> Ref { get; }
-    }
-
     #endregion
 
     #region IRef plural
@@ -164,33 +157,6 @@ namespace EastFive
                 return baseRef;
             }
         }
-    }
-
-    [Obsolete("Use RefOptional<>")]
-    public struct RefObjOptional<TType> : IRefObjOptional<TType>
-        where TType : IReferenceable
-    {
-        private IRefObj<TType> baseRef;
-
-        public RefObjOptional(IRefObj<TType> baseRef)
-        {
-            this.HasValue = true;
-            this.baseRef = baseRef;
-        }
-
-        public Guid? id
-        {
-            get
-            {
-                if (!this.HasValue)
-                    return default(Guid?);
-                return baseRef.id;
-            }
-        }
-        public IRefObj<TType> Ref => new RefObj<TType>(this.id.Value);
-
-        public bool HasValue { get; set; }
-
     }
 
     public struct Refs<TType> : IRefs<TType>

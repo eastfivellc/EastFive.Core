@@ -39,6 +39,18 @@ namespace EastFive.Reflection
 
         }
 
+        public static object GetPropertyOrFieldValue(this MemberInfo memberInfo, object obj)
+        {
+            if (memberInfo is PropertyInfo)
+                return (memberInfo as PropertyInfo).GetValue(obj);
+
+            if (memberInfo is FieldInfo)
+                return (memberInfo as FieldInfo).GetValue(obj);
+
+            throw new ArgumentException("memberType",
+                $"Cannot determine type of {memberInfo.GetType().FullName} since it could not be casted to {typeof(PropertyInfo).Name} or {typeof(FieldInfo).Name}.");
+        }
+
         public static object GetPropertyOrField(this object obj, string propertyOrFieldName)
         {
             return obj

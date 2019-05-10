@@ -659,6 +659,28 @@ namespace EastFive.Serialization
             return Convert.ToBase64String(data);
         }
 
+        public static byte [] SHAHash(this byte[] bytes, SHA256 sha256 = default(SHA256))
+        {
+            if (default(SHA256) == sha256)
+                sha256 = SHA256.Create();
+
+            byte[] data = sha256.ComputeHash(bytes);
+            return data;
+        }
+
+        public static byte[] SHAHash(this string stringToHash,
+            System.Text.Encoding encoding = default(System.Text.Encoding),
+            SHA256 sha256 = default(SHA256))
+        {
+            if (default(System.Text.Encoding) == encoding)
+                encoding = System.Text.Encoding.UTF8;
+            var bytes = stringToHash.HasBlackSpace() ?
+                encoding.GetBytes(stringToHash)
+                :
+                new byte[] { };
+            return bytes.SHAHash();
+        }
+
         #endregion
 
         #region Object Storage String

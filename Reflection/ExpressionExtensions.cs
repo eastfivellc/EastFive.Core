@@ -10,16 +10,6 @@ namespace EastFive.Reflection
 {
     public static class ExpressionExtensions
     {
-
-        [Obsolete("This may not be possible")]
-        private static KeyValuePair<Type, object>[] ResolveArgs<T>(this Expression<Func<T, object>> expression)
-        {
-            var body = (System.Linq.Expressions.MethodCallExpression)expression.Body;
-            var values = new List<KeyValuePair<Type, object>>();
-
-            return values.ToArray();
-        }
-
         public static object ResolveExpression(this Expression expression)
         {
             if (expression is MemberExpression)
@@ -57,7 +47,7 @@ namespace EastFive.Reflection
             }
         }
 
-        private static object GetValue(this MemberExpression exp)
+        public static object GetValue(this MemberExpression exp)
         {
             // expression is ConstantExpression or FieldExpression
             if (exp.Expression is ConstantExpression)
