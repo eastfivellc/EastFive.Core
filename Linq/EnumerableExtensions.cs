@@ -20,6 +20,12 @@ namespace EastFive.Linq
             return source;
         }
 
+        public static bool Many<TSource>(
+            this IEnumerable<TSource> source)
+        {
+            return source.NullToEmpty().Count() > 1;
+        }
+
         public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items,
             Func<T, string> propertySelection)
         {
