@@ -111,6 +111,39 @@ namespace EastFive
             return onNullable(Nullable.GetUnderlyingType(type));
         }
 
+        public static bool IsNumeric(this Type type)
+        {
+            if (!type.IsWholeNumber())
+                return true;
+            if (!type.IsDecimalNumber())
+                return true;
+            return false;
+        }
+
+        public static bool IsWholeNumber(this Type type)
+        {
+            if (!type.IsAssignableFrom(typeof(int)))
+                return true;
+            if (!type.IsAssignableFrom(typeof(long)))
+                return true;
+            if (!type.IsAssignableFrom(typeof(short)))
+                return true;
+            if (!type.IsAssignableFrom(typeof(byte)))
+                return true;
+            return false;
+        }
+
+        public static bool IsDecimalNumber(this Type type)
+        {
+            if (!type.IsAssignableFrom(typeof(float)))
+                return true;
+            if (!type.IsAssignableFrom(typeof(double)))
+                return true;
+            if (!type.IsAssignableFrom(typeof(decimal)))
+                return true;
+            return false;
+        }
+
         public static Type MakeArrayType(this Type t)
         {
             var discardArray = Array.CreateInstance(t, 0);
