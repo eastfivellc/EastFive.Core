@@ -74,6 +74,8 @@ namespace EastFive
                 return typeof (string);
             if (type.ToLower() == "int")
                 return typeof (int);
+            if (type.ToLower() == "count")
+                return typeof(int);
             if (type.ToLower() == "number")
                 return typeof (decimal);
             if (type.ToLower() == "decimal")
@@ -92,6 +94,8 @@ namespace EastFive
                 return typeof (bool);
             if (type.ToLower() == "boolean")
                 return typeof (bool);
+            if (type.ToLower() == "text")
+                return typeof(string);
             throw new InvalidDataException($"Type {type} not supported");
         }
 

@@ -99,6 +99,11 @@ namespace EastFive
                 :
                 new Ref<TType>(value.id);
         }
+
+        public static IRef<TType> NewRef()
+        {
+            return Guid.NewGuid().AsRef<TType>();
+        }
     }
 
     [Obsolete("Use Ref<>")]
@@ -185,7 +190,7 @@ namespace EastFive
             {
                 if (!ids.Any())
                     return new IRef<TType>[] { };
-                throw new NotImplementedException();
+                return ids.Select(id => id.AsRef<TType>()).ToArray();
             }
         }
 
