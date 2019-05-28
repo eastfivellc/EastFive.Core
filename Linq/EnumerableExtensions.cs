@@ -20,6 +20,12 @@ namespace EastFive.Linq
             return source;
         }
 
+        public static bool One<TSource>(
+            this IEnumerable<TSource> source)
+        {
+            return source.NullToEmpty().Count() == 1;
+        }
+
         public static bool Many<TSource>(
             this IEnumerable<TSource> source)
         {
