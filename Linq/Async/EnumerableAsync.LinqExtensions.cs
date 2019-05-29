@@ -678,23 +678,40 @@ namespace EastFive.Linq.Async
         private static IEnumerableAsync<T> SelectManySequential<T>(IEnumerable<IEnumerableAsync<T>> enumerables)
         {
             var enumerator = enumerables.GetEnumerator();
-            var enumeratorInner = default(IEnumeratorAsync<T>);
+
+            IEnumeratorAsync<T> enumeratorInner;
+            while (true)
+            {
+                if (!enumerator.MoveNext())
+                    return EnumerableAsync.Empty<T>();
+                // Catch unlikely case where returned EnumerableAsync is null or default;
+                if (enumerator.Current.IsDefaultOrNull())
+                    continue;
+
+                enumeratorInner = enumerator.Current.GetEnumerator();
+                break;
+            }
+
             return Yield<T>(
                 async (yieldReturn, yieldBreak) =>
                 {
                     while (true)
                     {
-                        if (enumeratorInner.IsDefaultOrNull() || (!await enumeratorInner.MoveNextAsync()))
+                        if (await enumeratorInner.MoveNextAsync())
+                            return yieldReturn(enumeratorInner.Current);
+
+                        while (true)
                         {
                             if (!enumerator.MoveNext())
                                 return yieldBreak;
+
+                            // Catch unlikely case where returned EnumerableAsync is null or default;
+                            if (enumerator.Current.IsDefaultOrNull())
+                                continue;
+
+                            enumeratorInner = enumerator.Current.GetEnumerator();
+                            break;
                         }
-
-                        enumeratorInner = enumerator.Current.GetEnumerator();
-                        if (!await enumeratorInner.MoveNextAsync())
-                            continue;
-
-                        return yieldReturn(enumeratorInner.Current);
                     }
                 });
         }
