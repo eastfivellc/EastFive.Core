@@ -32,6 +32,50 @@ namespace EastFive.Linq
             return source.NullToEmpty().Count() > 1;
         }
 
+        public static IEnumerable<TSource> Less<TSource>(
+            this IEnumerable<TSource> source, int less)
+        {
+            if (less < 0)
+                throw new ArgumentException($"Less({less}) cannot be negative", "less");
+            if (less == 0)
+            {
+                foreach (var item in source)
+                    yield return item;
+                yield break;
+            }
+            var enumerator = source.GetEnumerator();
+            var queueAhead = new TSource[less];
+            var index = 0;
+            while(index < less)
+            {
+                if (!enumerator.MoveNext())
+                    yield break;
+                queueAhead[index] = enumerator.Current;
+                index++;
+            }
+            var swapIndex = 0;
+            while(enumerator.MoveNext())
+            {
+                yield return queueAhead[swapIndex];
+                queueAhead[swapIndex] = enumerator.Current;
+                swapIndex = (swapIndex + 1) % queueAhead.Length;
+            }
+        }
+
+
+        public static IEnumerable<TSource> Less<TSource>(
+            this IEnumerable<TSource> source, int less, out TSource[] lastItems)
+        {
+            if (less < 0)
+                throw new ArgumentException($"Less({less}) cannot be negative", "less");
+            lastItems = new TSource[less];
+            var allItems = source.ToArray();
+            Array.Copy(allItems, 0, lastItems, allItems.Length - less, less);
+            return Enumerable
+                .Range(0, allItems.Length - less)
+                .Select(index => allItems[index]);
+        }
+
         public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items,
             Func<T, string> propertySelection)
         {

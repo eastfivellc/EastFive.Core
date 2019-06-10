@@ -131,11 +131,13 @@ namespace EastFive.Linq.Async
             // TODO: Use singular enumeration
 
             private Dictionary<TKey, TValue> dictionary;
+            private Dictionary<TKey, Task<ISelectNextValue<TValue>>> inProgressDictionary;
             private NextValueDelegate<TKey, TValue> nextAsync;
 
             public DynamicDictionaryAsync(NextValueDelegate<TKey, TValue> nextAsync)
             {
                 this.dictionary = new Dictionary<TKey, TValue>();
+                this.inProgressDictionary = new Dictionary<TKey, Task<ISelectNextValue<TValue>>>();
                 this.nextAsync = nextAsync;
             }
 
@@ -201,10 +203,24 @@ namespace EastFive.Linq.Async
                 if (containedKey)
                     return onValue(value);
 
-                var selecter = await this.nextAsync(key,
-                    (v) => new SelectedNextValue<TValue>(v),
-                    () => new NoNextValue<TValue>());
+                var gettingValue = default(Task<ISelectNextValue<TValue>>);
+                lock(inProgressDictionary)
+                {
+                    containedKey = inProgressDictionary.ContainsKey(key);
+                    if (containedKey)
+                    {
+                        gettingValue = inProgressDictionary[key];
+                    }
+                    else
+                    { 
+                        gettingValue = this.nextAsync(key,
+                            (v) => new SelectedNextValue<TValue>(v),
+                            () => new NoNextValue<TValue>());
+                        inProgressDictionary.Add(key, gettingValue);
+                    }
+                }
 
+                var selecter = await gettingValue;
                 if (selecter.Selected)
                 {
                     lock (dictionary)
