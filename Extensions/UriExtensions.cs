@@ -164,7 +164,17 @@ namespace EastFive
                 },
                 () => { throw new ArgumentException("Not a property expression", "parameterExpr"); });
         }
-        
+
+        public static Uri AppendToPath(this Uri uri, string fileOrDirectory)
+        {
+            var uriBuilder = new UriBuilder(uri);
+            uriBuilder.Path = uriBuilder.Path.EndsWith("/") ?
+                uriBuilder.Path + fileOrDirectory
+                :
+                $"{uriBuilder.Path}/{fileOrDirectory}";
+            return uriBuilder.Uri;
+        }
+
         public static Dictionary<Guid, object> ParseQueryParameter<QueryType>(this Uri uri,
             Expression<Func<QueryType, Dictionary<Guid, object>>> parameterExpr)
         {

@@ -212,6 +212,70 @@ namespace EastFive.Linq.Expressions
             var value = Expression.Lambda(expression).Compile().DynamicInvoke();
             return value;
         }
+
+        public static TResult TryParseMemberAssignment<TResult>(this MethodInfo method,
+                Expression[] arguments,
+            Func<MemberInfo, ExpressionType, object, TResult> onBinaryAssignment,
+            Func<TResult> onCouldNotParse)
+        {
+            foreach (var argument in arguments)
+            {
+                if (argument is System.Linq.Expressions.UnaryExpression)
+                {
+                    var unaryExpr = argument as System.Linq.Expressions.UnaryExpression;
+                    return TryParseMemberAssignment(unaryExpr.Method, unaryExpr.Operand.AsArray(),
+                        onBinaryAssignment,
+                        onCouldNotParse);
+                }
+                if (argument is System.Linq.Expressions.LambdaExpression)
+                {
+                    var lambdaExpr = (argument as System.Linq.Expressions.LambdaExpression);
+                    if (lambdaExpr.Body is BinaryExpression)
+                    {
+                        var binaryExpr = lambdaExpr.Body as BinaryExpression;
+                        var leftExpr = binaryExpr.Left;
+                        var rightExpr = binaryExpr.Right;
+                        if (leftExpr is MemberExpression)
+                        {
+                            var leftMemberExpr = leftExpr as MemberExpression;
+                            var member = leftMemberExpr.Member;
+                            var value = rightExpr.Resolve();
+                            return onBinaryAssignment(member, binaryExpr.NodeType, value);
+                        }
+                    }
+                    if(lambdaExpr.Body is UnaryExpression)
+                    {
+                        var unaryExpr = lambdaExpr.Body as UnaryExpression;
+                        var nodeType = unaryExpr.NodeType;
+                        return TryParseMemberAssignment(unaryExpr.Method, unaryExpr.Operand.AsArray(),
+                            (memberInfo, type, value) => onBinaryAssignment(memberInfo, nodeType, value),
+                            onCouldNotParse);
+                    }
+                    return onCouldNotParse();
+                }
+                if(argument is MemberExpression)
+                {
+                    var memberExp = argument as MemberExpression;
+                    if(memberExp.Member.Name == "HasValue")
+                    {
+                        return TryParseMemberAssignment(method, memberExp.Expression.AsArray(),
+                            (memberInfo, type, v) => onBinaryAssignment(memberInfo, ExpressionType.Equal, "value"),
+                            onCouldNotParse);
+                    }
+                    object GetValue()
+                    {
+                        if (memberExp.Member.GetMemberType() == typeof(bool))
+                            return true;
+                        if (memberExp.Member.GetMemberType().IsSubClassOfGeneric(typeof(Nullable<>)))
+                            return null;
+                        return memberExp.Resolve();
+                    }
+                    var value = GetValue();
+                    return onBinaryAssignment(memberExp.Member, memberExp.NodeType, value);
+                }
+            }
+            return onCouldNotParse();
+        }
         
     }
 }
