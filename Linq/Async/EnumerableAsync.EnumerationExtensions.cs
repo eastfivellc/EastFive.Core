@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using EastFive.Analytics;
+using EastFive.Extensions;
 
 namespace EastFive.Linq.Async
 {
@@ -79,6 +80,40 @@ namespace EastFive.Linq.Async
         {
             var enumerable = await enumerableAsync.Async();
             return enumerable.ToDictionary();
+        }
+
+        public static Task<TResult> ToDictionaryAsync<TKey, TValue, TResult>(this IEnumerableAsync<KeyValuePair<TKey, TValue>> kvpItems,
+            Func<Dictionary<TKey, TValue>, KeyValuePair<TKey, TValue>[], TResult> dictionaryAndDuplicates)
+        {
+            return kvpItems.ToDictionaryAsync(
+                kvp => kvp.Key,
+                kvp => kvp.Value,
+                dictionaryAndDuplicates);
+        }
+
+        public static async Task<TResult> ToDictionaryAsync<TKey, TValue, TKeyDictionary, TValueDictionary, TResult>(this IEnumerableAsync<KeyValuePair<TKey, TValue>> kvpItems,
+            Func<KeyValuePair<TKey, TValue>, TKeyDictionary> selectKey,
+            Func<KeyValuePair<TKey, TValue>, TValueDictionary> selectValue,
+            Func<Dictionary<TKeyDictionary, TValueDictionary>, KeyValuePair<TKey, TValue>[], TResult> dictionaryAndDuplicates)
+        {
+            var hashSet = new HashSet<TKey>();
+            var kvpItemsArray = await kvpItems.ToArrayAsync();
+            var duplicates = new KeyValuePair<TKey, TValue>[] { };
+            var dictionary = kvpItemsArray
+                .Select(
+                    kvp =>
+                    {
+                        if (hashSet.Contains(kvp.Key))
+                        {
+                            duplicates = duplicates.Append(kvp).ToArray();
+                            return default(KeyValuePair<TKeyDictionary, TValueDictionary>?);
+                        }
+                        hashSet.Add(kvp.Key);
+                        return selectValue(kvp).PairWithKey(selectKey(kvp));
+                    })
+                .SelectWhereHasValue()
+                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            return dictionaryAndDuplicates(dictionary, duplicates);
         }
 
         public static async Task<List<T>> ToListAsync<T>(this IEnumerableAsync<T> enumerableAsync)
