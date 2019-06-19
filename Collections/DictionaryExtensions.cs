@@ -64,6 +64,7 @@ namespace EastFive.Collections.Generic
                             duplicates = duplicates.Append(kvp).ToArray();
                             return default(KeyValuePair<TKeyDictionary, TValueDictionary>?);
                         }
+                        hashSet.Add(kvp.Key);
                         return selectKey(kvp).PairWithValue(selectValue(kvp));
                     })
                 .SelectWhereHasValue()
