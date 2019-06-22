@@ -115,7 +115,9 @@ namespace EastFive
             if (uri.IsDefault() || uri.Query.IsNullOrWhiteSpace())
                 return new Dictionary<string, string>();
 
-            var queryNameCollection = HttpUtility.ParseQueryString(uri.Query);
+            // https://stackoverflow.com/questions/56706759/correctly-access-query-parameters-from-httprequestmessage
+            var plusFixedQuery = uri.Query.Replace("+", "%2b"); 
+            var queryNameCollection = HttpUtility.ParseQueryString(plusFixedQuery);
             return queryNameCollection.AsDictionary();
         }
 

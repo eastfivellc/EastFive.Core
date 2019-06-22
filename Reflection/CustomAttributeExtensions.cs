@@ -87,6 +87,36 @@ namespace EastFive
             return attributes.ToArray();
         }
 
+        public static T[] GetAttributesInterface<T>(this System.Reflection.ParameterInfo type, bool inherit = false)
+        {
+            if (!typeof(T).IsInterface)
+                throw new ArgumentException($"{typeof(T).FullName} is not an interface.");
+            var attributes = type.GetCustomAttributes(inherit)
+                .Where(attr => attr.GetType().IsSubClassOfGeneric(typeof(T)))
+                .Select(attr => (T)attr);
+            return attributes.ToArray();
+        }
+
+        public static T GetAttributeInterface<T>(this System.Reflection.ParameterInfo type, bool inherit = false)
+        {
+            if (!typeof(T).IsInterface)
+                throw new ArgumentException($"{typeof(T).FullName} is not an interface.");
+            var attributes = type.GetCustomAttributes(inherit)
+                .Where(attr => attr.GetType().IsSubClassOfGeneric(typeof(T)))
+                .Select(attr => (T)attr);
+            return attributes.First();
+        }
+
+        public static bool ContainsAttributeInterface<T>(this System.Reflection.ParameterInfo type, bool inherit = false)
+        {
+            if (!typeof(T).IsInterface)
+                throw new ArgumentException($"{typeof(T).FullName} is not an interface.");
+            var attributes = type.GetCustomAttributes(inherit)
+                .Where(attr => attr.GetType().IsSubClassOfGeneric(typeof(T)))
+                .Select(attr => (T)attr);
+            return attributes.Any();
+        }
+
         public static bool ContainsCustomAttribute(this System.Reflection.MemberInfo type, 
             Type attributeType, bool inherit = false)
         {

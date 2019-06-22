@@ -49,6 +49,12 @@ namespace EastFive
             return guid.AsOptional().AsRefOptional<TType>();
         }
 
+        public static IRef<TCast> CastRef<TCast>(this IReferenceable sourceRef)
+            where TCast : IReferenceable
+        {
+            return sourceRef.id.AsRef<TCast>();
+        }
+
         public static bool HasValueNotNull<T>(this IRefOptional<T> refOptional) 
             where T : IReferenceable
         {

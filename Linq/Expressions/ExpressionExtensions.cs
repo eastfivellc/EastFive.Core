@@ -70,6 +70,22 @@ namespace EastFive.Linq.Expressions
             return onPropertyExpression(memberInfo);
         }
 
+        public static TResult MemberInfo<TObject, TProperty, TResult>(this Expression<Func<TObject, TProperty>> propertyExpression,
+            Func<MemberInfo, Expression, TResult> onPropertyExpression,
+            Func<TResult> onNotPropertyExpression)
+        {
+            if (propertyExpression.Body.IsDefault())
+                return onNotPropertyExpression();
+
+            if (!(propertyExpression.Body is MemberExpression))
+                return onNotPropertyExpression();
+
+            var memberExpression = propertyExpression.Body as MemberExpression;
+            var memberInfo = memberExpression.Member;
+            var expression = memberExpression.Expression;
+            return onPropertyExpression(memberInfo, expression);
+        }
+
         public static TResult MemberName<TObject, TProperty, TResult>(this Expression<Func<TObject, TProperty>> memberExpression,
             Func<string, TResult> onMemberExpression,
             Func<TResult> onNotMemberExpression)
