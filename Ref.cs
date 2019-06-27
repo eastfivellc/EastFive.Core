@@ -1,6 +1,7 @@
 ﻿using BlackBarLabs.Extensions;
 using EastFive.Extensions;
 using EastFive.Linq.Async;
+using EastFive.Security;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -103,6 +104,11 @@ namespace EastFive
         public static IRef<TType> NewRef()
         {
             return Guid.NewGuid().AsRef<TType>();
+        }
+
+        public static IRef<TType> SecureRef()
+        {
+            return SecureGuid.Generate().AsRef<TType>();
         }
     }
 
