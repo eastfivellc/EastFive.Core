@@ -35,6 +35,11 @@ namespace EastFive
 
         public static string Base64(this string value, System.Text.Encoding encoding = default(System.Text.Encoding))
         {
+            #region per https://tools.ietf.org/html/rfc4648#section-10 null/empty string are encoded as ""
+            if (value.IsNullOrEmpty())
+                return string.Empty;
+            #endregion
+
             if (default(System.Text.Encoding) == encoding)
                 encoding = System.Text.Encoding.UTF8;
             var bytes = encoding.GetBytes(value);
@@ -162,6 +167,11 @@ namespace EastFive
             var bytes = text.GetBytes(encoding);
             var stream = new MemoryStream(bytes);
             return stream;
+        }
+
+        public static bool IsNullOrEmpty(this string value)
+        {
+            return String.IsNullOrEmpty(value);
         }
 
         public static bool IsNullOrWhiteSpace(this string value)
