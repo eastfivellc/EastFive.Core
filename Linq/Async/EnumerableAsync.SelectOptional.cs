@@ -173,6 +173,27 @@ namespace EastFive.Linq.Async
             return aggregated;
         }
 
+        public static IEnumerableAsync<TResult> SelectAsyncOptional<TItem, TResult>(this IEnumerable<TItem> items,
+            Func<TItem, Func<TResult, ISelected<TResult>>, Func<ISelected<TResult>>, Task<ISelected<TResult>>> callback)
+        {
+            var enumerator = items.GetEnumerator();
+            return Yield<TResult>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    while (enumerator.MoveNext())
+                    {
+                        var item = enumerator.Current;
+
+                        var nextValue = await callback(item,
+                            (nextItem) => new SelectedValue<TResult>(nextItem),
+                            () => new SelectedValue<TResult>(false));
+                        if (nextValue.HasValue)
+                            return yieldReturn(nextValue.Value);
+                    }
+                    return yieldBreak;
+                });
+        }
+
         public static TResult SelectOptional<TItem, TSelect, TCarry, TResult>(this IEnumerableAsync<TItem> enumerable,
             TCarry carry,
             Func<TItem, TCarry, Func<TSelect, TCarry, TResult>, Func<TCarry, TResult>, TResult> selection,

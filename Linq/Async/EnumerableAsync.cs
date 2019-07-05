@@ -17,12 +17,12 @@ namespace EastFive.Linq.Async
             Func<bool> onEnd);
     }
 
-    public delegate Task<IYieldResult<T>> YieldDelegateAsync<T>(
-            Func<T, IYieldResult<T>> yieldReturn,
-            IYieldResult<T> yieldBreak);
-
     public static partial class EnumerableAsync
     {
+        public delegate Task<IYieldResult<T>> YieldDelegateAsync<T>(
+                Func<T, IYieldResult<T>> yieldReturn,
+                IYieldResult<T> yieldBreak);
+
         private struct YieldEnumerable<T> : IEnumerableAsync<T>
         {
             private class YieldResult : IYieldResult<T>
@@ -142,71 +142,12 @@ namespace EastFive.Linq.Async
             return new YieldEnumerable<T>(generateFunction);
         }
 
-        private struct YieldResultBatch<TItem> : IYieldResult<TItem[]>
-        {
-            public YieldResultBatch(TItem [] value)
-            {
-                this.Value = value;
-            }
-
-            public TItem[] Value  {get; private set;}
-
-            public Task<bool> HasNext(Func<IYieldResult<TItem[]>, bool> onMore, Func<bool> onEnd)
-            {
-                return onMore(this).ToTask();
-            }
-        }
-
-        private struct YieldBreakBatch<TItem> : IYieldResult<TItem[]>
-        {
-            public TItem[] Value { get; private set; }
-
-            public Task<bool> HasNext(Func<IYieldResult<TItem[]>, bool> onMore, Func<bool> onEnd)
-            {
-                return onEnd().AsTask();
-            }
-        }
-
         public static IEnumerableAsync<T> YieldBatch<T>(
             YieldDelegateAsync<T[]> generateFunction)
         {
             return Yield<T[]>(generateFunction)
                 .SelectMany();
         }
-
-        //public static IEnumerableAsync<T> YieldBatch<T>(
-        //    YieldDelegateAsync<T[]> generateFunction)
-        //{
-        //    var index = 0;
-        //    var segment = new T[] { };
-        //    var yieldBreakSegment = new YieldBreakBatch<T>();
-        //    return Yield<T>(
-        //        async (yieldReturn, yieldBreak) =>
-        //        {
-        //            if (segment.Length <= index)
-        //            {
-        //                var yieldResult = await generateFunction(
-        //                    (nextSegment) =>
-        //                    {
-        //                        return new YieldResultBatch<T>(nextSegment);
-        //                    },
-        //                    yieldBreakSegment);
-        //                var moreData = await yieldResult.HasNext(
-        //                    nextSegment =>
-        //                    {
-        //                        segment = nextSegment.Value;
-        //                        index = 0;
-        //                        return true;
-        //                    },
-        //                    () => false);
-        //                if (!moreData)
-        //                    return yieldBreak;
-        //            }
-        //            var value = segment[index];
-        //            index++;
-        //            return yieldReturn(value);
-        //        });
-        //}
 
         public static IEnumerableAsync<T> Range<T>(int start, int count,
             Func<int, Task<T>> generateFunction)
@@ -253,53 +194,18 @@ namespace EastFive.Linq.Async
                 });
         }
 
-        public interface IEnumerableAsyncStartResult<T>
-        {
-            bool HasValue { get; }
-            T Value { get; }
-        }
-
-        private class EnumerableAsyncStartResult<T> : IEnumerableAsyncStartResult<T>
-        {
-            public bool HasValue { get; set; }
-
-            public T Value { get; set; }
-        }
-
-        public delegate Task<IEnumerableAsyncStartResult<TItem>> EnumerableAsyncStartDelegate<TItem>(TItem item,
-            Func<TItem, IEnumerableAsyncStartResult<TItem>> onValue,
-            Func<IEnumerableAsyncStartResult<TItem>> onNoNextValue);
-
-        public static IEnumerableAsync<TItem> EnumerableAsyncStart<TItem>(this TItem item,
-            EnumerableAsyncStartDelegate<TItem> next = default(EnumerableAsyncStartDelegate<TItem>))
+        public static IEnumerableAsync<TItem> EnumerableAsyncStart<TItem>(this TItem item)
         {
             bool yielded = false;
             return Yield<TItem>(
-                async (yieldReturn, yieldBreak) =>
+                (yieldReturn, yieldBreak) =>
                 {
                     if (!yielded)
                     {
                         yielded = true;
-                        return yieldReturn(item);
+                        return yieldReturn(item).AsTask();
                     }
-                    if(next.IsDefaultOrNull())
-                        return yieldBreak;
-
-                    var startResult = await next(item,
-                        (v) => new EnumerableAsyncStartResult<TItem>
-                        {
-                            Value = v,
-                            HasValue = true,
-                        },
-                        () => new EnumerableAsyncStartResult<TItem>
-                        {
-                            HasValue = false,
-                        });
-                    if(!startResult.HasValue)
-                        return yieldBreak;
-
-                    item = startResult.Value;
-                    return yieldReturn(item);
+                    return yieldBreak.AsTask();
                 });
         }
 
@@ -325,7 +231,7 @@ namespace EastFive.Linq.Async
             T Value { get; }
         }
 
-        public struct SelectedValue<T> : ISelected<T>
+        private struct SelectedValue<T> : ISelected<T>
         {
             public SelectedValue(bool x)
             {
@@ -344,42 +250,5 @@ namespace EastFive.Linq.Async
             public T Value { get; private set; }
         }
         
-        public static IEnumerableAsync<TResult> SelectAsyncOptional<TItem, TResult>(this IEnumerable<TItem> items,
-            Func<TItem, Func<TResult, ISelected<TResult>>, Func<ISelected<TResult>>, Task<ISelected<TResult>>> callback)
-        {
-            var enumerator = items.GetEnumerator();
-            return Yield<TResult>(
-                async (yieldReturn, yieldBreak) =>
-                {
-                    while (enumerator.MoveNext())
-                    {
-                        var item = enumerator.Current;
-
-                        var nextValue = await callback(item,
-                            (nextItem) => new SelectedValue<TResult>(nextItem),
-                            () => new SelectedValue<TResult>(false));
-                        if (nextValue.HasValue)
-                            return yieldReturn(nextValue.Value);
-                    }
-                    return yieldBreak;
-                });
-        }
-
-        public static IEnumerableAsync<T> AsyncWhere<T>(this IEnumerable<T> items, Func<T, Task<bool>> predicate)
-        {
-            var enumerator = items.GetEnumerator();
-            return Yield<T>(
-                async (yieldReturn, yieldBreak) =>
-                {
-                    while (enumerator.MoveNext())
-                    {
-                        var item = enumerator.Current;
-                        var match = await predicate(item);
-                        if (match)
-                            return yieldReturn(item);
-                    }
-                    return yieldBreak;
-                });
-        }
     }
 }

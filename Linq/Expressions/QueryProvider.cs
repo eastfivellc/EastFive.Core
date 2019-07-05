@@ -1,4 +1,5 @@
-﻿using System;
+﻿using EastFive.Extensions;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -8,6 +9,15 @@ using System.Threading.Tasks;
 
 namespace EastFive.Linq
 {
+    public interface ISupplyQueryProvider<TQueryable>
+        where TQueryable : IQueryable
+    {
+        TQueryable ActivateQueryable(QueryProvider<TQueryable> provider, Type type);
+
+        TQueryable ActivateQueryableWithExpression(QueryProvider<TQueryable> queryProvider,
+            Expression expression, Type elementType);
+    }
+
     public abstract class QueryProvider<TQueryable> : IQueryProvider
         where TQueryable : IQueryable
     {
@@ -24,11 +34,20 @@ namespace EastFive.Linq
             this.activateQueryableWithExpression = activateQueryableWithExpression;
         }
 
+        private ISupplyQueryProvider<TQueryable> supplyQueryProvider;
+
+        public QueryProvider(ISupplyQueryProvider<TQueryable> supplyQueryProvider)
+        {
+            this.supplyQueryProvider = supplyQueryProvider;
+        }
+
         public IQueryable CreateQuery(Expression expression)
         {
             var elementType = expression.Type.GetElementType();
             try
             {
+                if (!supplyQueryProvider.IsDefaultOrNull())
+                    return supplyQueryProvider.ActivateQueryable(this, elementType);
                 return activateQueryable(this, elementType);
             }
             catch (TargetInvocationException tie)
@@ -39,8 +58,15 @@ namespace EastFive.Linq
 
         public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
         {
-            var queryable = this.activateQueryableWithExpression(this, expression, typeof(TElement));
-            return queryable as IQueryable<TElement>;
+            if (!supplyQueryProvider.IsDefaultOrNull())
+            {
+                var queryable = supplyQueryProvider.ActivateQueryableWithExpression(this, expression, typeof(TElement));
+                return queryable as IQueryable<TElement>;
+            }
+            {
+                var queryable = this.activateQueryableWithExpression(this, expression, typeof(TElement));
+                return queryable as IQueryable<TElement>;
+            }
         }
 
         public TResult Execute<TResult>(Expression expression)

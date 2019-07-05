@@ -76,6 +76,53 @@ namespace EastFive.Linq.Async
             return onComplete(items);
         }
 
+        public static async Task<TAccumulate> AggregateAsync<TAccumulate, TItem>(this IEnumerableAsync<TItem> enumerable,
+            TAccumulate seed,
+            Func<TAccumulate, TItem, TAccumulate> funcAsync)
+        {
+            var accumulation = seed;
+            var enumeratorAsync = enumerable.GetEnumerator();
+            while (await enumeratorAsync.MoveNextAsync())
+            {
+                var current = enumeratorAsync.Current;
+                accumulation = funcAsync(accumulation, current);
+            }
+            return accumulation;
+        }
+
+        public struct Accumulate<TAccumulate1, TAccumulate2>
+        {
+            public TAccumulate1 accumulation1;
+            public TAccumulate2 accumulation2;
+        }
+
+        public static async Task<Accumulate<TAccumulate1, TAccumulate2>> AggregateAsync<TAccumulate1, TAccumulate2, TItem>(this IEnumerableAsync<TItem> enumerable,
+            TAccumulate1 seed1, TAccumulate2 seed2,
+            Func<TAccumulate1, TAccumulate2, 
+                TItem,
+                Func<TAccumulate1, TAccumulate2, Accumulate<TAccumulate1, TAccumulate2>>,
+                Accumulate<TAccumulate1, TAccumulate2>> funcAsync)
+        {
+            var accumulation = new Accumulate<TAccumulate1, TAccumulate2>
+            {
+                accumulation1 = seed1,
+                accumulation2 = seed2,
+            };
+            var enumeratorAsync = enumerable.GetEnumerator();
+            while (await enumeratorAsync.MoveNextAsync())
+            {
+                var current = enumeratorAsync.Current;
+                accumulation = funcAsync(accumulation.accumulation1, accumulation.accumulation2,
+                    current,
+                    (acc1, acc2) => new Accumulate<TAccumulate1, TAccumulate2>
+                    {
+                        accumulation1 = acc1,
+                        accumulation2 = acc2,
+                    });
+            }
+            return accumulation;
+        }
+
         public static async Task<IDictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue>(this IEnumerableAsync<KeyValuePair<TKey, TValue>> enumerableAsync)
         {
             var enumerable = await enumerableAsync.Async();
