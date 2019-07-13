@@ -900,6 +900,12 @@ namespace EastFive.Linq.Async
             .AsyncConcat();
         }
 
+        public static IEnumerableAsync<T> Concat<T>(this IEnumerableAsync<T> enumerable1, IEnumerable<T> enumerable2)
+        {
+            var enumerable2Async = enumerable2.Select(item => item.AsTask()).AsyncEnumerable();
+            return enumerable1.Concat(enumerable2Async);
+        }
+
         public static IEnumerableAsync<T> AsyncConcat<T>(this IEnumerable<IEnumerableAsync<T>> enumerables)
         {
             var enumerator = enumerables.GetEnumerator();

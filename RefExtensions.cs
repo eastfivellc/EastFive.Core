@@ -28,6 +28,19 @@ namespace EastFive
             return new Refs<T>(ids.ToArray());
         }
 
+        public static async Task<IRefs<T>> AsRefsAsync<T>(this IEnumerableAsync<Guid> ids)
+            where T : IReferenceable
+        {
+            var idsArray = await ids.ToArrayAsync();
+            return new Refs<T>(idsArray);
+        }
+
+        public static Task<IRefs<T>> AsRefsAsync<T>(this IEnumerableAsync<IRef<T>> refs)
+            where T : IReferenceable
+        {
+            return refs.Select(r => r.id).AsRefsAsync<T>();
+        }
+
         public static IRefOptional<T> Optional<T>(this IRef<T> baseRef)
             where T: IReferenceable
         {
