@@ -18,21 +18,6 @@ namespace BlackBarLabs.Collections.Generic
             }
         }
 
-        private class EqualityComparer<T> : System.Collections.Generic.EqualityComparer<T>
-        {
-            public Func<T, T, int> compare;
-            
-            public override bool Equals(T x, T y)
-            {
-                return compare(x, y) == 0;
-            }
-
-            public override int GetHashCode(T obj)
-            {
-                return obj.GetHashCode();
-            }
-        }
-
         private class EqualityComparerPredicate<T> : System.Collections.Generic.EqualityComparer<T>
         {
             public Func<T, T, bool> areEqual;
