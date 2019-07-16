@@ -29,7 +29,7 @@ namespace EastFive.Linq.Async
             private Queue<ManualResetEvent> workQueue = new Queue<ManualResetEvent>();
             private List<ManualResetEvent> concurrentThreads = new List<ManualResetEvent>();
             private DateTime epoch = DateTime.UtcNow;
-            private double predictor = 0.0;
+            //private double predictor = 0.0;
             private Random rand = new Random();
             private ILogger logger;
 
@@ -44,7 +44,6 @@ namespace EastFive.Linq.Async
             private int manageRequestsProcessed = 0;
             private long totalDuration;
             private int desiredConcurrency = 1;
-            private List<Task> runList = new List<Task>();
             private int desiredRunCount;
             
 
@@ -242,8 +241,8 @@ namespace EastFive.Linq.Async
         
         private struct Timing
         {
-            public TimeSpan when;
-            public TimeSpan duration;
+            //public TimeSpan when;
+            //public TimeSpan duration;
         }
         
         public static IEnumerableAsync<TResult> Throttle<TSource, TResult, TThrottle>(this IEnumerable<TSource> enumerable,
@@ -293,14 +292,17 @@ namespace EastFive.Linq.Async
                     });
         }
         
-
+        private struct TaskListItem<TItem>
+        {
+            public Task<TItem> task;
+            public Stopwatch stopwatch;
+        }
 
         public static IEnumerableAsync<TItem> Throttle<TItem>(this IEnumerableAsync<Task<TItem>> enumerable,
             int desiredRunCount = 1,
             ILogger log = default(ILogger))
         {
             var logScope = log.CreateScope($"Throttle[{Guid.NewGuid()}]");
-            var throttler = new PerformanceManager<TItem>(desiredRunCount, logScope);
             var taskList = new List<Task<TItem>>();
             var enumerator = enumerable.GetEnumerator();
             var moving = true;

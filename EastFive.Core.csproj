@@ -69,6 +69,7 @@
     <Compile Include="Extensions\EnumExtensions.cs" />
     <Compile Include="Extensions\FuncExtensions.cs" />
     <Compile Include="Extensions\NullableExtensions.cs" />
+    <Compile Include="Linq\Async\EnumerableAsync.Async.cs" />
     <Compile Include="Linq\Expressions\Queryable.cs" />
     <Compile Include="Linq\Expressions\QueryProvider.cs" />
     <Compile Include="Reflection\TaskExtensions.cs" />

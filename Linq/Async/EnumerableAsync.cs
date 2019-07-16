@@ -14,6 +14,7 @@ namespace EastFive.Linq.Async
 
         Task<bool> HasNext(
             Func<IYieldResult<T>, bool> onMore,
+            Func<Exception, bool> onException,
             Func<bool> onEnd);
     }
 
@@ -41,7 +42,10 @@ namespace EastFive.Linq.Async
 
                 public virtual T Value => value;
 
-                public async Task<bool> HasNext(Func<IYieldResult<T>, bool> onMore, Func<bool> onEnd)
+                public async Task<bool> HasNext(
+                    Func<IYieldResult<T>, bool> onMore,
+                    Func<Exception, bool> onException,
+                    Func<bool> onEnd)
                 {
                     Task<IYieldResult<T>> internalFetch;
                     lock(this)
@@ -77,7 +81,10 @@ namespace EastFive.Linq.Async
                 {
                     public T Value => throw new NullReferenceException();
 
-                    public Task<bool> HasNext(Func<IYieldResult<T>, bool> onMore, Func<bool> onEnd)
+                    public Task<bool> HasNext(
+                        Func<IYieldResult<T>, bool> onMore,
+                        Func<Exception, bool> onException,
+                        Func<bool> onEnd)
                     {
                         return onEnd().ToTask();
                     }
@@ -120,6 +127,10 @@ namespace EastFive.Linq.Async
                         (next) =>
                         {
                             this.currentStep = next;
+                            return true;
+                        },
+                        (ex) =>
+                        {
                             return true;
                         },
                         () =>

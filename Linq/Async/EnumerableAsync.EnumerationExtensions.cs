@@ -32,40 +32,11 @@ namespace EastFive.Linq.Async
                 () => false);
         }
 
-        public static async Task<IEnumerable<T>> Async<T>(this IEnumerableAsync<T> enumerable,
-            Analytics.ILogger logger = default(Analytics.ILogger))
-        {
-            var enumerator = enumerable.GetEnumerator();
-            var firstStep = new Step<T>
-            {
-                current = default(T),
-                steps = new Step<T>?[2],
-            };
-            var step = firstStep;
-            logger.Trace("Async:First step");
-            while (await enumerator.MoveNextAsync())
-            {
-                logger.Trace("Async:Moved next step");
-                var nextStep = new Step<T>
-                {
-                    current = enumerator.Current,
-                    steps = new Step<T>?[2],
-                };
-                nextStep.steps[StepEnumerable<T>.StepEnumerator.lastIndex] = step;
-                step.steps[StepEnumerable<T>.StepEnumerator.nextIndex] = nextStep;
-                step = nextStep;
-            }
-            logger.Trace("Async:Last step");
-            return new StepEnumerable<T>(firstStep);
-        }
-
         public static async Task<T[]> ToArrayAsync<T>(this IEnumerableAsync<T> enumerableAsync,
             EastFive.Analytics.ILogger logger = default(Analytics.ILogger))
         {
-            var enumerable = await enumerableAsync.Async(logger);
-            var output =  enumerable.ToArray();
-
-            return output;
+            var items = await enumerableAsync.Async(logger);
+            return items.ToArray();
         }
 
         public static async Task<TResult> ToArrayAsync<T, TResult>(this IEnumerableAsync<T> enumerableAsync,
@@ -75,6 +46,8 @@ namespace EastFive.Linq.Async
             var items = enumerable.ToArray();
             return onComplete(items);
         }
+
+        #region Aggregate
 
         public static async Task<TAccumulate> AggregateAsync<TAccumulate, TItem>(this IEnumerableAsync<TItem> enumerable,
             TAccumulate seed,
@@ -123,6 +96,10 @@ namespace EastFive.Linq.Async
             return accumulation;
         }
 
+        #endregion
+
+        #region ToDictionary
+
         public static async Task<IDictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue>(this IEnumerableAsync<KeyValuePair<TKey, TValue>> enumerableAsync)
         {
             var enumerable = await enumerableAsync.Async();
@@ -162,6 +139,8 @@ namespace EastFive.Linq.Async
                 .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
             return dictionaryAndDuplicates(dictionary, duplicates);
         }
+
+        #endregion
 
         public static async Task<List<T>> ToListAsync<T>(this IEnumerableAsync<T> enumerableAsync)
         {
@@ -278,63 +257,6 @@ namespace EastFive.Linq.Async
             onComplete(allValuess);
         }
 
-        private struct Step<T>
-        {
-            public Step<T>?[] steps;
-            public T current;
-        }
-
-        private class StepEnumerable<T> : IEnumerable<T>
-        {
-            internal class StepEnumerator : IEnumerator<T>
-            {
-                internal const int lastIndex = 0;
-                internal const int nextIndex = 1;
-
-                protected Step<T> current;
-                public StepEnumerator(Step<T> current)
-                {
-                    this.current = current;
-                }
-
-                public T Current => current.current;
-
-                object IEnumerator.Current => current.current;
-
-                public void Dispose()
-                {
-                }
-
-                public bool MoveNext()
-                {
-                    if (!current.steps[nextIndex].HasValue)
-                        return false;
-                    current = current.steps[nextIndex].Value;
-                    return true;
-                }
-
-                public void Reset()
-                {
-                    while (current.steps[lastIndex].HasValue)
-                        current = current.steps[lastIndex].Value;
-                }
-            }
-            
-            private Step<T> firstStep;
-            public StepEnumerable(Step<T> firstStep)
-            {
-                this.firstStep = firstStep;
-            }
-
-            public IEnumerator<T> GetEnumerator()
-            {
-                return new StepEnumerator(firstStep);
-            }
-
-            IEnumerator IEnumerable.GetEnumerator() =>
-                this.GetEnumerator();
-        }
-        
         
     }
 }

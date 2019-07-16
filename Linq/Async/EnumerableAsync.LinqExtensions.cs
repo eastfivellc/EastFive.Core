@@ -555,22 +555,21 @@ namespace EastFive.Linq.Async
             return Yield<T>(
                 async (yieldReturn, yieldBreak) =>
                 {
-                    bool Complete()
+                    async Task<bool> CompleteAsync()
                     {
                         if (taskComplete)
                             return true;
 
                         var taskIsFinished = complete.WaitOne(0);
-                        if (taskIsFinished)
-                        {
-                            taskComplete = true; // prevent hanging on complete.WaitOne
-                            return true;
-                        }
+                        if(!taskIsFinished)
+                            return false;
 
-                        return false;
+                        taskComplete = true; // prevent hanging on complete.WaitOne
+                        await segmentTask; // wrap up batch read-ahead task
+                        return true;
                     }
 
-                    while (!Complete())
+                    while (!await CompleteAsync())
                     {
                         moved.WaitOne(TimeSpan.FromSeconds(5));
 
@@ -582,7 +581,9 @@ namespace EastFive.Linq.Async
 
                     var yieldFinalKvp = await YieldResultAsync();
                     if (!yieldFinalKvp.Key)
+                    {
                         return yieldBreak;
+                    }
                     return yieldFinalKvp.Value;
 
                     async Task<KeyValuePair<bool, IYieldResult<T>>> YieldResultAsync()
