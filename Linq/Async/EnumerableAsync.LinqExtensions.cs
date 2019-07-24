@@ -691,7 +691,7 @@ namespace EastFive.Linq.Async
         }
 
         public static IEnumerableAsync<T> SelectMany<T>(this IEnumerable<IEnumerableAsync<T>> enumerables,
-            bool sequential = false)
+            bool sequential = true)
         {
             if (sequential)
                 return SelectManySequential(enumerables);
