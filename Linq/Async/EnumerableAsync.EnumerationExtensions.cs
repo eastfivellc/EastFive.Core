@@ -222,6 +222,34 @@ namespace EastFive.Linq.Async
                 });
         }
 
+        public static IEnumerableAsync<T> OnCompleteAsync<T>(this IEnumerableAsync<T> enumerableAsync,
+            Func<T[], Task> onComplete,
+            ILogger logger = default(ILogger))
+        {
+            var scopedLogger = logger.CreateScope("OnCompleteAsync");
+            var enumerator = enumerableAsync.GetEnumerator();
+            var stack = new Stack<T>();
+            return EnumerableAsync.Yield<T>(
+                async (next, last) =>
+                {
+                    scopedLogger.Trace("MoveNextAsync.");
+                    if (await enumerator.MoveNextAsync())
+                    {
+                        var current = enumerator.Current;
+                        scopedLogger.Trace("Passthrough on value.");
+                        stack.Push(current);
+                        return next(current);
+                    }
+
+                    var allValues = stack.ToArray();
+                    scopedLogger.Trace($"Accumulated `{allValues.Length}` Values.");
+                    await onComplete(allValues);
+                    scopedLogger.Trace($"Complete.");
+
+                    return last;
+                });
+        }
+
         private class CompleteAllMutex<T>
         {
             public EventWaitHandle mutex;

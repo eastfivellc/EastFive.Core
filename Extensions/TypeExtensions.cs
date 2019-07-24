@@ -113,9 +113,9 @@ namespace EastFive
 
         public static bool IsNumeric(this Type type)
         {
-            if (!type.IsWholeNumber())
+            if (type.IsWholeNumber())
                 return true;
-            if (!type.IsDecimalNumber())
+            if (type.IsDecimalNumber())
                 return true;
             return false;
         }

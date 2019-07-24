@@ -561,7 +561,7 @@ namespace EastFive.Linq.Async
                             return true;
 
                         var taskIsFinished = complete.WaitOne(0);
-                        if(!taskIsFinished)
+                        if (!taskIsFinished)
                             return false;
 
                         taskComplete = true; // prevent hanging on complete.WaitOne
@@ -970,11 +970,55 @@ namespace EastFive.Linq.Async
         public static IEnumerableAsync<TItem> ConcatIfAny<TItem>(this IEnumerableAsync<TItem> enumerable1,
             Func<IEnumerableAsync<TItem>> onSome)
         {
+            return enumerable1.ConcatWithTotal(
+                total =>
+                {
+                    if (total > 0)
+                        return onSome();
+                    return Empty<TItem>();
+                });
+            //bool hasExecuted = false;
+            //var iterator = default(IEnumeratorAsync<TItem>);
+            //var enumerator1 = enumerable1.GetEnumerator();
+            //bool enumerator1Terminated = false;
+            //bool wasAny = false;
+            //return EnumerableAsync.Yield<TItem>(
+            //    async (yieldContinue, yieldBreak) =>
+            //    {
+            //        if (!enumerator1Terminated)
+            //        {
+            //            var next = await enumerator1.MoveNextAsync();
+            //            if (next)
+            //            {
+            //                wasAny = true;
+            //                return yieldContinue(enumerator1.Current);
+            //            }
+            //            enumerator1Terminated = true;
+            //        }
+
+            //        if (!wasAny)
+            //            return yieldBreak;
+
+            //        if (!hasExecuted)
+            //        {
+            //            var some = onSome();
+            //            iterator = some.GetEnumerator();
+            //            hasExecuted = true;
+            //        }
+            //        if (await iterator.MoveNextAsync())
+            //            return yieldContinue(iterator.Current);
+            //        return yieldBreak;
+            //    });
+        }
+
+        public static IEnumerableAsync<TItem> ConcatWithTotal<TItem>(this IEnumerableAsync<TItem> enumerable1,
+            Func<int, IEnumerableAsync<TItem>> onSome)
+        {
             bool hasExecuted = false;
             var iterator = default(IEnumeratorAsync<TItem>);
             var enumerator1 = enumerable1.GetEnumerator();
             bool enumerator1Terminated = false;
-            bool wasAny = false;
+            int total = 0;
             return EnumerableAsync.Yield<TItem>(
                 async (yieldContinue, yieldBreak) =>
                 {
@@ -983,27 +1027,24 @@ namespace EastFive.Linq.Async
                         var next = await enumerator1.MoveNextAsync();
                         if (next)
                         {
-                            wasAny = true;
+                            total++;
                             return yieldContinue(enumerator1.Current);
                         }
                         enumerator1Terminated = true;
                     }
 
-                    if (!wasAny)
-                        return yieldBreak;
-
                     if (!hasExecuted)
                     {
-                        var some = onSome();
+                        var some = onSome(total);
                         iterator = some.GetEnumerator();
                         hasExecuted = true;
                     }
+
                     if (await iterator.MoveNextAsync())
                         return yieldContinue(iterator.Current);
                     return yieldBreak;
                 });
         }
-
 
         public static Task<KeyValuePair<int, T>> GetCompletedTaskIndex<T>(this IEnumerable<KeyValuePair<int, Task<T>>> tasks)
         {

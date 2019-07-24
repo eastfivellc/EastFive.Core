@@ -1,9 +1,11 @@
 ﻿using BlackBarLabs.Extensions;
+using EastFive.Analytics;
 using EastFive.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace EastFive.Linq.Async
@@ -235,7 +237,154 @@ namespace EastFive.Linq.Async
                     return yieldBreak;
                 });
         }
-        
+
+        public static IEnumerableAsync<T> Parallel<T>(this IEnumerable<Task<T>> enumerable,
+            bool maintainOrder = false,
+            ILogger diagnostics = default(ILogger))
+        {
+            var segment = new List<Task<T>>();
+            var moved = new AutoResetEvent(false);
+            var complete = new ManualResetEvent(false);
+            var segmentTask = Task.Run(
+                () =>
+                {
+                    var enumerator = enumerable.GetEnumerator();
+                    while(enumerator.MoveNext())
+                    {
+                        lock(segment)
+                        {
+                            segment.Add(enumerator.Current);
+                        }
+                        moved.Set();
+                    }
+                    complete.Set();
+                });
+            var taskComplete = false; // Prevents call to WaitOne if task has already completed
+            return Yield<T>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    async Task<bool> CompleteAsync()
+                    {
+                        if (taskComplete)
+                            return true;
+
+                        var taskIsFinished = complete.WaitOne(0);
+                        if (!taskIsFinished)
+                            return false;
+
+                        taskComplete = true; // prevent hanging on complete.WaitOne(0)
+                        await segmentTask; // wrap up batch read-ahead task
+                        return true;
+                    }
+
+                    while (!await CompleteAsync())
+                    {
+                        moved.WaitOne(TimeSpan.FromSeconds(5));
+
+                        var yieldKvp = await YieldResultAsync();
+                        if (!yieldKvp.Key)
+                            continue;
+                        return yieldKvp.Value;
+                    }
+
+                    var yieldFinalKvp = await YieldResultAsync();
+                    if (!yieldFinalKvp.Key)
+                    {
+                        return yieldBreak;
+                    }
+                    return yieldFinalKvp.Value;
+
+                    async Task<KeyValuePair<bool, IYieldResult<T>>> YieldResultAsync()
+                    {
+                        Task<T>[] nextSegment;
+                        lock (segment)
+                        {
+                            nextSegment = segment.ToArray();
+                        }
+                        if (nextSegment.Any())
+                        {
+                            var finishedTaskNext = maintainOrder ?
+                                nextSegment.First()
+                                :
+                                await Task.WhenAny<T>(nextSegment);
+                            lock (segment)
+                            {
+                                segment.Remove(finishedTaskNext);
+                            }
+                            var next = await finishedTaskNext;
+                            return yieldReturn(next).PairWithKey(true);
+                        }
+                        return default(IYieldResult<T>).PairWithKey(false);
+                    }
+                });
+        }
+
+        public static IEnumerableAsync<TItem> Throttle<TItem>(this IEnumerable<Task<TItem>> enumerable,
+            int desiredRunCount = 1,
+            ILogger log = default(ILogger))
+        {
+            var logScope = log.CreateScope($"Throttle");
+            var taskList = new List<Task<TItem>>();
+            var enumerator = enumerable.GetEnumerator();
+            var moving = true;
+            return Yield<TItem>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    while (true)
+                    {
+                        bool DequeueAnotherTask()
+                        {
+                            if (!moving)
+                                return false;
+
+                            lock (taskList)
+                            {
+                                if (taskList.Count >= desiredRunCount)
+                                    return false;
+                            }
+
+                            return true;
+                        }
+
+                        if(DequeueAnotherTask())
+                        {
+                            if (!enumerator.MoveNext())
+                            {
+                                moving = false;
+                                continue;
+                            }
+                            var nextTask = enumerator.Current;
+                            lock (taskList)
+                            {
+                                taskList.Add(nextTask);
+                            }
+                            continue;
+                        }
+
+                        var finishedTaskTask = default(Task<Task<TItem>>);
+                        lock (taskList)
+                        {
+                            if (!taskList.Any())
+                                if (!moving)
+                                    return yieldBreak;
+
+                            Task<TItem>[] tasks = taskList.ToArray();
+                            finishedTaskTask = Task.WhenAny(tasks);
+                        }
+                        if (finishedTaskTask.IsDefaultOrNull())
+                            continue;
+
+                        var finishedTask = await finishedTaskTask;
+                        lock (taskList)
+                        {
+                            taskList.Remove(finishedTask);
+                        }
+                        var next = await finishedTask;
+                        return yieldReturn(next);
+                    }
+                });
+        }
+
         public interface ISelected<T>
         {
             bool HasValue { get; }

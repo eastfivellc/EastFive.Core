@@ -302,7 +302,7 @@ namespace EastFive.Linq.Async
             int desiredRunCount = 1,
             ILogger log = default(ILogger))
         {
-            var logScope = log.CreateScope($"Throttle[{Guid.NewGuid()}]");
+            var logScope = log.CreateScope($"Throttle");
             var taskList = new List<Task<TItem>>();
             var enumerator = enumerable.GetEnumerator();
             var moving = true;
