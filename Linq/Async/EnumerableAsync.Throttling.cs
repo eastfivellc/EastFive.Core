@@ -304,6 +304,7 @@ namespace EastFive.Linq.Async
         {
             var logScope = log.CreateScope($"Throttle");
             var taskList = new List<Task<TItem>>();
+            var locker = new AutoResetEvent(true);
             var enumerator = enumerable.GetEnumerator();
             var moving = true;
             return Yield<TItem>(
@@ -311,42 +312,45 @@ namespace EastFive.Linq.Async
                 {
                     while (true)
                     {
-                        var finishedTask = default(Task<TItem>);
-                        lock (taskList)
-                        {
-                            if (taskList.Count >= desiredRunCount)
-                            {
-                                Task<TItem>[] tasks = taskList.ToArray();
-                                var finishedTaskIndex = Task.WaitAny(tasks);
-                                finishedTask = tasks[finishedTaskIndex];
-                                taskList.RemoveAt(finishedTaskIndex);
-                            }
-                            if (!moving)
-                            {
-                                if (!taskList.Any())
-                                    return yieldBreak;
+                        locker.WaitOne();
 
-                                Task<TItem>[] tasks = taskList.ToArray();
-                                var finishedTaskIndex = Task.WaitAny(tasks);
-                                finishedTask = tasks[finishedTaskIndex];
-                                taskList.RemoveAt(finishedTaskIndex);
-                            }
-                        }
-                        if (!finishedTask.IsDefaultOrNull())
+                        if (taskList.Count >= desiredRunCount)
                         {
-                            var next = await finishedTask;
-                            return yieldReturn(next);
+                            Task<TItem>[] tasks = taskList.ToArray();
+                            var finishedTask = await Task.WhenAny(tasks);
+                            taskList.Remove(finishedTask);
+                            locker.Set();
+                            var item = await finishedTask;
+                            return yieldReturn(item);
                         }
+
+                        if (!moving)
+                        {
+                            if (!taskList.Any())
+                            {
+                                locker.Set();
+                                return yieldBreak;
+                            }
+
+                            Task<TItem>[] tasks = taskList.ToArray();
+                            var finishedTask = await Task.WhenAny(tasks);
+                            taskList.Remove(finishedTask);
+                            locker.Set();
+                            var item = await finishedTask;
+                            return yieldReturn(item);
+                        }
+
+                        locker.Set();
+
                         if (!await enumerator.MoveNextAsync())
                         {
                             moving = false;
                             continue;
                         }
                         var nextTask = enumerator.Current;
-                        lock (taskList)
-                        {
-                            taskList.Add(nextTask);
-                        }
+                        locker.WaitOne();
+                        taskList.Add(nextTask);
+                        locker.Set();
                     }
                 });
         }

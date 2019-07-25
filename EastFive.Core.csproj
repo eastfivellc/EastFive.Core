@@ -46,6 +46,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Analytics\CaptureLog.cs" />
     <Compile Include="Analytics\IProvideAnalytics.cs" />
     <Compile Include="Analytics\ILogger.cs" />
     <Compile Include="Analytics\LoggingExtensions.cs" />
