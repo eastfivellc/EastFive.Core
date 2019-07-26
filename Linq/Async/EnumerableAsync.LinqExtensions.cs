@@ -552,6 +552,7 @@ namespace EastFive.Linq.Async
             var complete = new ManualResetEvent(false);
             var segmentTask = enumerable.BatchAsync(segment, moved, complete, diagnostics);
             var taskComplete = false; // Prevents call to WaitOne if task has already completed
+            var taskLock = new AutoResetEvent(true); // Prevents parallel calls to MoveNextAsync from waiting the same segment task
             return Yield<T>(
                 async (yieldReturn, yieldBreak) =>
                 {
@@ -589,6 +590,7 @@ namespace EastFive.Linq.Async
                     async Task<KeyValuePair<bool, IYieldResult<T>>> YieldResultAsync()
                     {
                         Task<T>[] nextSegment;
+                        taskLock.WaitOne();
                         lock (segment)
                         {
                             nextSegment = segment.ToArray();
@@ -603,9 +605,11 @@ namespace EastFive.Linq.Async
                             {
                                 segment.Remove(finishedTaskNext);
                             }
+                            taskLock.Set();
                             var next = await finishedTaskNext;
                             return yieldReturn(next).PairWithKey(true);
                         }
+                        taskLock.Set();
                         return default(IYieldResult<T>).PairWithKey(false);
                     }
                 });
