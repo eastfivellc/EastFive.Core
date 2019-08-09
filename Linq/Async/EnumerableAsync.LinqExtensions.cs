@@ -447,25 +447,21 @@ namespace EastFive.Linq.Async
         {
             var enumerator = enumerable.GetEnumerator();
 
-            Func<Task<bool>> getMoveNext =
-                diagnosticsTag.IsDefaultOrNull()?
-                    (Func<Task<bool>>)(() => enumerator.MoveNextAsync())
-                    :
-                    (Func<Task<bool>>)(async () =>
-                    {
-                        diagnosticsTag.Trace($"Moving");
-                        var success = await enumerator.MoveNextAsync();
-                        diagnosticsTag.Trace($"Moved");
-                        return success;
-                    });
-
             return Task.Run(CycleAsync);
 
             async Task CycleAsync()
             {
                 try
                 {
-                    while (await getMoveNext())
+                    async Task<bool> MoveNext()
+                    {
+                        diagnosticsTag.Trace($"Moving");
+                        var success = await enumerator.MoveNextAsync();
+                        diagnosticsTag.Trace($"Moved");
+                        return success;
+                    }
+
+                    while (await MoveNext())
                     {
                         diagnosticsTag.Trace($"Adding Value");
                         lock (cache)
