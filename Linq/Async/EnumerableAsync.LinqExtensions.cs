@@ -441,31 +441,20 @@ namespace EastFive.Linq.Async
                 });
         }
 
-        private static Task BatchAsync<T>(this IEnumerableAsync<T> enumerable,
+        private static async Task BatchAsync<T>(this IEnumerableAsync<T> enumerable,
             List<T> cache, EventWaitHandle moved, EventWaitHandle complete,
             EastFive.Analytics.ILogger diagnosticsTag = default(EastFive.Analytics.ILogger))
         {
             var enumerator = enumerable.GetEnumerator();
 
-            Func<Task<bool>> getMoveNext =
-                diagnosticsTag.IsDefaultOrNull()?
-                    (Func<Task<bool>>)(() => enumerator.MoveNextAsync())
-                    :
-                    (Func<Task<bool>>)(async () =>
-                    {
-                        diagnosticsTag.Trace($"Moving");
-                        var success = await enumerator.MoveNextAsync();
-                        diagnosticsTag.Trace($"Moved");
-                        return success;
-                    });
+            //return Task.Run(CycleAsync);
 
-            return Task.Run(CycleAsync);
-
-            async Task CycleAsync()
-            {
+            //async Task CycleAsync()
+            //{
                 try
                 {
-                    while (await getMoveNext())
+                    diagnosticsTag.Trace($"Moving");
+                    while (await enumerator.MoveNextAsync())
                     {
                         diagnosticsTag.Trace($"Adding Value");
                         lock (cache)
@@ -475,6 +464,7 @@ namespace EastFive.Linq.Async
                         }
                         diagnosticsTag.Trace($"Added Value");
                     }
+                    diagnosticsTag.Trace($"Moved");
                 }
                 catch (Exception ex)
                 {
@@ -487,7 +477,7 @@ namespace EastFive.Linq.Async
                     moved.Set();
                     diagnosticsTag.Trace($"Completed");
                 }
-            }
+            //}
         }
 
         public static IEnumerableAsync<T[]> Batch<T>(this IEnumerableAsync<T> enumerable,
