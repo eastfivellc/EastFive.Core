@@ -28,6 +28,12 @@ namespace EastFive
             return new Refs<T>(ids.ToArray());
         }
 
+        public static IRefs<T> Refs<T>(this IEnumerable<IRef<T>> refs)
+            where T : IReferenceable
+        {
+            return refs.Select(r => r.id).AsRefs<T>();
+        }
+
         public static IRefs<T> AsRefs<T>(this IEnumerable<T> refs)
             where T : IReferenceable
         {

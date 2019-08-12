@@ -149,6 +149,12 @@ namespace EastFive.Extensions
             return EqualityComparer<T>.Default.Equals(value, default(T));
         }
 
+        public static bool IsNull<T>(this T value)
+           where T : class
+        {
+            return value == null;
+        }
+
         public static bool IsDefaultNullOrEmpty<T>(this IEnumerable<T> value)
         {
             if (value.IsDefaultOrNull())
