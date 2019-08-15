@@ -45,8 +45,8 @@ namespace EastFive.Net.Http
                     }
                     var delay = ComputeDelay(request);
 
-                    if (delay.Seconds > 0)
-                        Thread.Sleep(delay);
+                    if (delay.TotalSeconds > 0)
+                        await Task.Delay(delay);
 
                     HttpResponseMessage response = default(HttpResponseMessage);
                     bool didTimeout = false;
