@@ -106,6 +106,14 @@ namespace EastFive.Reflection
                 yield return valueValue.PairWithKey(keyValue);
             }
         }
-        
+
+        public static bool IsExtension(this MethodInfo method)
+        {
+            return method.IsDefaultOrNull() ?
+                false
+                :
+                method.IsDefined(typeof(System.Runtime.CompilerServices.ExtensionAttribute), false);
+        }
+
     }
 }

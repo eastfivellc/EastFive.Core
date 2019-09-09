@@ -1,4 +1,5 @@
-﻿using System;
+﻿using EastFive.Extensions;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -44,11 +45,13 @@ namespace EastFive
             return onHasAttribute(attributes.First());
         }
 
-        public static T[] GetCustomAttributes<T>(this System.Reflection.MemberInfo type, bool inherit = false)
+        public static T[] GetCustomAttributes<T>(this System.Reflection.MemberInfo type,
+                bool inherit = false)
             where T : System.Attribute
         {
             var attributes = type.GetCustomAttributes(typeof(T), inherit);
-            return attributes.Select(attrib => attrib as T).ToArray();
+            var castAttrs = attributes.Select(attrib => attrib as T).ToArray();
+            return castAttrs;
         }
 
         public static bool ContainsCustomAttribute<T>(this System.Reflection.MemberInfo type, bool inherit = false)
@@ -67,14 +70,25 @@ namespace EastFive
             return attributes.Any();
         }
 
-        public static T[] GetAttributesInterface<T>(this System.Reflection.MemberInfo type, bool inherit = false)
+        public static T[] GetAttributesInterface<T>(this System.Reflection.MemberInfo type,
+            bool inherit = false,
+            bool multiple = false)
         {
             if (!typeof(T).IsInterface)
                 throw new ArgumentException($"{typeof(T).FullName} is not an interface.");
             var attributes = type.GetCustomAttributes(inherit)
                 .Where(attr => attr.GetType().IsSubClassOfGeneric(typeof(T)))
-                .Select(attr => (T)attr);
-            return attributes.ToArray();
+                .Select(attr => (T)attr)
+                .ToArray();
+            if(!multiple)
+                return attributes;
+            if (!(type is Type))
+                return attributes;
+            var typeType = type as Type;
+            if(typeType.BaseType.IsDefaultOrNull())
+                return attributes;
+            var baseAttrs = typeType.BaseType.GetAttributesInterface<T>(inherit, multiple);
+            return attributes.Concat(baseAttrs).Distinct().ToArray();
         }
 
         public static T[] GetAttributesInterface<T>(this System.Reflection.MethodInfo method, bool inherit = false)

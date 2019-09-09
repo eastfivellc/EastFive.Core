@@ -3,6 +3,7 @@ using EastFive.Extensions;
 using EastFive.Linq.Async;
 using EastFive.Security;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -61,7 +62,7 @@ namespace EastFive
         Guid[] ids { get; }
     }
 
-    public interface IRefs<TType> : IReferences
+    public interface IRefs<TType> : IReferences, IEnumerable<IRef<TType>>
         where  TType : IReferenceable
     {
         IRef<TType>[] refs { get; }
@@ -200,6 +201,20 @@ namespace EastFive
             }
         }
 
+        public IEnumerator<Guid> GetEnumerator()
+        {
+            return this.ids.Cast<Guid>().GetEnumerator();
+        }
+
+        IEnumerator<IRef<TType>> IEnumerable<IRef<TType>>.GetEnumerator()
+        {
+            return this.ids.Cast<IRef<TType>>().GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return this.ids.GetEnumerator();
+        }
 
         public static implicit operator Refs<TType>(Guid [] values)
         {

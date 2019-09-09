@@ -194,6 +194,7 @@ namespace EastFive.Collections.Generic
         public static IDictionary<string, string> AsDictionary(this System.Collections.Specialized.NameValueCollection nameValueCollection)
         {
             return nameValueCollection.AllKeys
+                .Where(key => key != null)
                 .Select(key => key.PairWithValue(nameValueCollection[key]))
                 .ToDictionary();
         }

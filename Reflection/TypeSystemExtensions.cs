@@ -15,7 +15,6 @@ namespace EastFive.Reflection
             return ienum.GetGenericArguments()[0];
         }
 
-
         public static Type FindIEnumerable(this Type seqType)
         {
             if (seqType == null || seqType == typeof(string))
