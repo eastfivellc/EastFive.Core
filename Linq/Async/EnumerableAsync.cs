@@ -207,6 +207,20 @@ namespace EastFive.Linq.Async
                 });
         }
 
+        public static IEnumerableAsync<TItem> AsAsync<TItem>(this IEnumerable<TItem> items)
+        {
+            var enumerator = items.GetEnumerator();
+            return Yield<TItem>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    if (!enumerator.MoveNext())
+                        return await yieldBreak.AsTask();
+
+                    var current = enumerator.Current;
+                    return yieldReturn(current);
+                });
+        }
+
         public static IEnumerableAsync<TItem> EnumerableAsyncStart<TItem>(this TItem item)
         {
             bool yielded = false;
