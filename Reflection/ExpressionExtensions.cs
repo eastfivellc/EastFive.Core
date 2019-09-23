@@ -6,6 +6,8 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
+using EastFive.Linq.Expressions;
+
 namespace EastFive.Reflection
 {
     public static class ExpressionExtensions
@@ -76,6 +78,33 @@ namespace EastFive.Reflection
                 }
             }
 
+            throw new NotImplementedException();
+        }
+
+        public static MemberInfo MemberComparison(this Expression expression, out ExpressionType relationship, out object value)
+        {
+            if (expression is UnaryExpression)
+            {
+                var argUnary = expression as UnaryExpression;
+                return MemberComparison(argUnary.Operand, out relationship, out value);
+            }
+            if (expression is Expression<Func<object>>)
+            {
+                var paramExpr = expression as Expression<Func<object>>;
+                return MemberComparison(paramExpr.Body, out relationship, out value);
+            }
+            if (expression is BinaryExpression)
+            {
+                var binaryExpr = expression as BinaryExpression;
+                if (binaryExpr.Left is MemberExpression)
+                {
+                    var left = binaryExpr.Left as MemberExpression;
+                    var memberInfo = left.Member;
+                    relationship = binaryExpr.NodeType;
+                    value = binaryExpr.Right.Resolve();
+                    return memberInfo;
+                }
+            }
             throw new NotImplementedException();
         }
     }
