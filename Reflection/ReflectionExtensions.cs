@@ -115,5 +115,22 @@ namespace EastFive.Reflection
                 method.IsDefined(typeof(System.Runtime.CompilerServices.ExtensionAttribute), false);
         }
 
+        public static object GetNullableValue(this object valueTypeValue)
+        {
+            // ?
+            //if (valueTypeValue == null)
+            //    return null;
+
+            var underlyingType = valueTypeValue.GetType();
+
+            // If the value is not Nullable.Value == false, it is just the value.
+            // Yeah, Nullable is an odd thing is C#
+            if (!underlyingType.IsNullable())
+                return valueTypeValue;
+
+            var valueProp = underlyingType.GetProperty("Value",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            return valueProp.GetValue(valueTypeValue);
+        }
     }
 }
