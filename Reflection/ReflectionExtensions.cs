@@ -36,7 +36,6 @@ namespace EastFive.Reflection
 
             throw new ArgumentException("memberType",
                 $"Cannot determine type of {memberType.GetType().FullName} since it could not be casted to {typeof(PropertyInfo).Name} or {typeof(FieldInfo).Name}.");
-
         }
 
         public static object GetPropertyOrFieldValue(this MemberInfo memberInfo, object obj)
@@ -78,10 +77,6 @@ namespace EastFive.Reflection
                 .MakeGenericMethod(new Type[] { arrayType })
                 .Invoke(null, new object[] { typeConvertedEnumerable });
             return typeConvertedArray;
-
-            //var arrayOfType = Array.CreateInstance(arrayType, arrayOfObj.Length);
-            //Array.Copy(arrayOfObj, arrayOfType, arrayOfObj.Length);
-            //return arrayOfType;
         }
 
         public static IEnumerable<object> ObjectToEnumerable(this object arrayOfObj)

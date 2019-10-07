@@ -334,7 +334,7 @@ namespace EastFive.Serialization
                 .ToUTF8ByteArrayOfStrings();
         }
 
-        public static byte[] ToByteArrayOfEnums<T>(this IEnumerable<T> enums) where T : struct, IConvertible // TODO: When we switch to C# 7.3 : System.Enum
+        public static byte[] ToByteArrayOfEnums<T>(this IEnumerable<T> enums) where T : System.Enum // : struct, IConvertible // When we switch to C# 7.3 
         {
             if (!typeof(T).IsEnum)
             {

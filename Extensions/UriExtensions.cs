@@ -1,6 +1,7 @@
 ﻿using EastFive;
 using EastFive.Collections.Generic;
 using EastFive.Extensions;
+using EastFive.Linq;
 using EastFive.Linq.Expressions;
 using System;
 using System.Collections.Generic;
@@ -175,6 +176,28 @@ namespace EastFive
                 :
                 $"{uriBuilder.Path}/{fileOrDirectory}";
             return uriBuilder.Uri;
+        }
+
+        public static string GetFile(this Uri uri)
+        {
+            return uri.Segments.LastOrDefault();
+        }
+
+        public static Uri SetFile(this Uri uri, string fileName)
+        {
+            var uriBuilder = new UriBuilder(uri);
+            uriBuilder.Path = GetPath();
+            return uriBuilder.Uri;
+
+            string GetPath()
+            {
+                if (uriBuilder.Path.EndsWith("/"))
+                    return $"{uriBuilder.Path}/{fileName}";
+
+                var currentFileName = uri.GetFile();
+                return uriBuilder.Path.Substring(0,
+                    uriBuilder.Path.Length - currentFileName.Length) + fileName;
+            }
         }
 
         public static Dictionary<Guid, object> ParseQueryParameter<QueryType>(this Uri uri,

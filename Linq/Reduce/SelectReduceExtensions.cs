@@ -509,7 +509,7 @@ namespace EastFive.Linq
             return enumerator.First(next, onNotFound);
         }
 
-        public static TResult First<TITem, TResult>(this IEnumerator<TITem> items,
+        private static TResult First<TITem, TResult>(this IEnumerator<TITem> items,
             Func<TITem, Func<TResult>, TResult> next,
             Func<TResult> onNotFound)
         {
@@ -517,6 +517,16 @@ namespace EastFive.Linq
                 return onNotFound();
 
             return next(items.Current, () => items.First(next, onNotFound));
+        }
+
+        public static TResult LastOrEmpty<TITem, TResult>(this IEnumerable<TITem> items,
+            Func<TITem, TResult> onLast,
+            Func<TResult> onEmpty)
+        {
+            var enumerator = items.GetEnumerator();
+            if (!enumerator.MoveNext())
+                return onEmpty();
+            return onLast(items.Last());
         }
     }
 }
