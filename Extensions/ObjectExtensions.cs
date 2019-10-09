@@ -162,6 +162,12 @@ namespace EastFive.Extensions
             return (!value.Any());
         }
 
+        public static bool HasSetValue<T>(this T value)
+           where T : class
+        {
+            return !value.IsDefaultOrNull();
+        }
+
         public static TResult HasValue<T, TResult>(this T value, Func<T, TResult> hasValue, Func<TResult> nullOrEmptyValue)
            where T : class
         {
