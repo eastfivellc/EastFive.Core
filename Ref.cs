@@ -30,6 +30,7 @@ namespace EastFive
         // Guid id { get; }
     }
 
+    [Obsolete("Use IRef instead.")]
     public interface IRefObj<TType>
         where TType : IReferenceable
     {

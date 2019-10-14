@@ -292,12 +292,6 @@ namespace EastFive.Linq.Async
                     });
         }
         
-        private struct TaskListItem<TItem>
-        {
-            public Task<TItem> task;
-            public Stopwatch stopwatch;
-        }
-
         public static IEnumerableAsync<TItem> Throttle<TItem>(this IEnumerableAsync<Task<TItem>> enumerable,
             int desiredRunCount = 1,
             ILogger log = default(ILogger))
