@@ -1,4 +1,5 @@
 ﻿using EastFive.Extensions;
+using EastFive.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -68,6 +69,20 @@ namespace EastFive
             var attributes = type.GetCustomAttributes(inherit)
                 .Where(attr => attr.GetType().IsSubClassOfGeneric(typeof(T)));
             return attributes.Any();
+        }
+
+        public static T GetAttributeInterface<T>(this System.Reflection.MemberInfo type,
+            bool inherit = false)
+        {
+            if (!typeof(T).IsInterface)
+                throw new ArgumentException($"{typeof(T).FullName} is not an interface.");
+            var attributes = type.GetCustomAttributes(inherit)
+                .Where(attr => attr.GetType().IsSubClassOfGeneric(typeof(T)))
+                .Select(attr => (T)attr)
+                .ToArray();
+            return attributes.First<T, T>(
+                (attr, discard) => attr,
+                () => throw new ArgumentException($"{type.DeclaringType}..{type.Name} does not contain an attribute of type {typeof(T).FullName}."));
         }
 
         public static T[] GetAttributesInterface<T>(this System.Reflection.MemberInfo type,
