@@ -83,15 +83,37 @@ namespace EastFive.Reflection
 
         public static MemberInfo MemberComparison(this Expression expression, out ExpressionType relationship, out object value)
         {
+            var result = expression.MemberComparison(
+                (memberInfo, r, v) =>
+                    new
+                    {
+                        memberInfo,
+                        r,
+                        v,
+                    },
+                () => throw new NotImplementedException());
+            relationship = result.r;
+            value = result.v;
+            return result.memberInfo;
+        }
+
+        public static TResult MemberComparison<TResult>(this Expression expression,
+            Func<MemberInfo, ExpressionType, object, TResult> onResolved,
+            Func<TResult> onNotResolved)
+        {
             if (expression is UnaryExpression)
             {
                 var argUnary = expression as UnaryExpression;
-                return MemberComparison(argUnary.Operand, out relationship, out value);
+                return MemberComparison(argUnary.Operand,
+                    onResolved,
+                    onNotResolved);
             }
             if (expression is Expression<Func<object>>)
             {
                 var paramExpr = expression as Expression<Func<object>>;
-                return MemberComparison(paramExpr.Body, out relationship, out value);
+                return MemberComparison(paramExpr.Body,
+                    onResolved,
+                    onNotResolved);
             }
             if (expression is BinaryExpression)
             {
@@ -100,12 +122,12 @@ namespace EastFive.Reflection
                 {
                     var left = binaryExpr.Left as MemberExpression;
                     var memberInfo = left.Member;
-                    relationship = binaryExpr.NodeType;
-                    value = binaryExpr.Right.Resolve();
-                    return memberInfo;
+                    var relationship = binaryExpr.NodeType;
+                    var value = binaryExpr.Right.Resolve();
+                    return onResolved(memberInfo, relationship, value);
                 }
             }
-            throw new NotImplementedException();
+            return onNotResolved();
         }
     }
 }
