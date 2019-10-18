@@ -108,13 +108,6 @@ namespace EastFive.Reflection
                     onResolved,
                     onNotResolved);
             }
-            if (expression is Expression<Func<object>>)
-            {
-                var paramExpr = expression as Expression<Func<object>>;
-                return MemberComparison(paramExpr.Body,
-                    onResolved,
-                    onNotResolved);
-            }
             if (expression is BinaryExpression)
             {
                 var binaryExpr = expression as BinaryExpression;
@@ -126,6 +119,13 @@ namespace EastFive.Reflection
                     var value = binaryExpr.Right.Resolve();
                     return onResolved(memberInfo, relationship, value);
                 }
+            }
+            if(expression is LambdaExpression)
+            {
+                var paramExpr = expression as LambdaExpression;
+                return MemberComparison(paramExpr.Body,
+                    onResolved,
+                    onNotResolved);
             }
             return onNotResolved();
         }
