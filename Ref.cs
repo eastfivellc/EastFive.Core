@@ -69,12 +69,6 @@ namespace EastFive
         IRef<TType>[] refs { get; }
     }
 
-    public interface IRefObjs<TType> : IReferences
-        where TType : IReferenceable
-    {
-        IRefObj<TType>[] refs { get; }
-    }
-
     #endregion
 
     public struct Ref<TType> : IRef<TType>
