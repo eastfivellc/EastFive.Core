@@ -110,6 +110,19 @@ namespace EastFive.Reflection
                 method.IsDefined(typeof(System.Runtime.CompilerServices.ExtensionAttribute), false);
         }
 
+        public static bool NullableHasValue(this object valueTypeValue)
+        {
+            // ?
+            if (valueTypeValue == null)
+                return false;
+
+            var underlyingType = valueTypeValue.GetType();
+
+            var valueProp = underlyingType.GetProperty("HasValue",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            return (bool)valueProp.GetValue(valueTypeValue);
+        }
+
         public static object GetNullableValue(this object valueTypeValue)
         {
             // ?
