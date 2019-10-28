@@ -22,11 +22,6 @@ namespace BlackBarLabs.Extensions // Make user force extensions because this aff
         {
             return Task.FromResult(value);
         }
-
-        public static KeyValuePair<TKey, TValue> PairWithValue<TKey, TValue>(this TKey key, TValue value)
-        {
-            return new KeyValuePair<TKey, TValue>(key, value);
-        }
     }
 }
 
@@ -42,6 +37,11 @@ namespace EastFive.Extensions
         }
 
         public static KeyValuePair<TKey, TValue> PairWithKey<TKey, TValue>(this TValue value, TKey key)
+        {
+            return new KeyValuePair<TKey, TValue>(key, value);
+        }
+
+        public static KeyValuePair<TKey, TValue> PairWithValue<TKey, TValue>(this TKey key, TValue value)
         {
             return new KeyValuePair<TKey, TValue>(key, value);
         }

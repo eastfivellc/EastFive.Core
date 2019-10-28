@@ -3,11 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using EastFive;
-using BlackBarLabs;
-using BlackBarLabs.Extensions;
 using EastFive.Collections.Generic;
 using BlackBarLabs.Linq.Async;
 using EastFive.Linq;
+using EastFive.Extensions;
 
 namespace EastFive.Linq.Async
 {

@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using EastFive.Linq.Async;
 using EastFive.Linq;
+using EastFive.Extensions;
 
 namespace EastFive
 {
