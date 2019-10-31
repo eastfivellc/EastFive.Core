@@ -30,13 +30,6 @@ namespace EastFive
         // Guid id { get; }
     }
 
-    [Obsolete("Use IRef instead.")]
-    public interface IRefObj<TType>
-        where TType : IReferenceable
-    {
-        Guid id { get; }
-    }
-
     #endregion
 
     #region IRef(Obj)Optional
@@ -105,18 +98,6 @@ namespace EastFive
         public static IRef<TType> SecureRef()
         {
             return SecureGuid.Generate().AsRef<TType>();
-        }
-    }
-
-    [Obsolete("Use Ref<>")]
-    public struct RefObj<TType> : IRefObj<TType>
-        where TType : IReferenceable
-    {
-        public Guid id { get; set; }
-
-        public RefObj(Guid id) : this()
-        {
-            this.id = id;
         }
     }
 
