@@ -111,6 +111,11 @@ namespace EastFive
             return onNullable(Nullable.GetUnderlyingType(type));
         }
 
+        public static Type GetNullableUnderlyingType(this Type type)
+        {
+            return Nullable.GetUnderlyingType(type);
+        }
+
         public static bool IsNumeric(this Type type)
         {
             if (type.IsWholeNumber())

@@ -168,6 +168,15 @@ namespace EastFive
                 () => { throw new ArgumentException("Not a property expression", "parameterExpr"); });
         }
 
+        public static Uri RemoveQueryParameter(this Uri uri, string parameter)
+        {
+            var uriBuilder = new UriBuilder(uri);
+            var query = HttpUtility.ParseQueryString(uriBuilder.Query);
+            query.Remove(parameter);
+            uriBuilder.Query = query.ToString();
+            return uriBuilder.Uri;
+        }
+
         public static Uri AppendToPath(this Uri uri, string fileOrDirectory)
         {
             var uriBuilder = new UriBuilder(uri);

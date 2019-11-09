@@ -618,7 +618,16 @@ namespace EastFive.Serialization
         #endregion
 
         #region Hashes
-        
+
+        public static byte[] SHA256Hash(this byte[] bytes, SHA256 sha256 = default(SHA256))
+        {
+            if (sha256.IsDefaultOrNull())
+                sha256 = SHA256.Create();
+
+            byte[] data = sha256.ComputeHash(bytes);
+            return data;
+        }
+
         public static Guid MD5HashGuid(this byte[] bytes, MD5 md5 = default(MD5))
         {
             if (default(MD5) == md5)
