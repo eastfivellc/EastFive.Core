@@ -207,6 +207,50 @@ namespace EastFive.Linq.Async
                 });
         }
 
+        public static IEnumerableAsync<TItem> AsyncEnumerable<TItem>(this IEnumerable<Task<TItem>> items,
+            int readAhead)
+        {
+            var enumerator = items.GetEnumerator();
+            var batchQueue = new Queue<Task<TItem>>();
+
+            while(enumerator.MoveNext())
+            {
+                batchQueue.Enqueue(enumerator.Current);
+                if (batchQueue.Count >= readAhead)
+                    break;
+            }
+            bool fullyEnumerated = batchQueue.Count < readAhead;
+            return Yield<TItem>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    while (true)
+                    {
+                        if (!batchQueue.Any())
+                        {
+                            if (fullyEnumerated)
+                                return yieldBreak;
+                        }
+
+                        if (!fullyEnumerated)
+                        {
+                            if (!enumerator.MoveNext())
+                            {
+                                fullyEnumerated = true;
+                                continue;
+                            }
+
+                            batchQueue.Enqueue(enumerator.Current);
+                        }
+                        break;
+                    }
+
+                    var currentTask = batchQueue.Dequeue();
+                    var current = await currentTask;
+
+                    return yieldReturn(current);
+                });
+        }
+
         public static IEnumerableAsync<TItem> AsAsync<TItem>(this IEnumerable<TItem> items)
         {
             var enumerator = items.GetEnumerator();
