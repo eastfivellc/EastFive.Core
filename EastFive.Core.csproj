@@ -51,9 +51,6 @@
     <Compile Include="Analytics\ILogger.cs" />
     <Compile Include="Analytics\LoggingExtensions.cs" />
     <Compile Include="Analytics\ScopedLogger.cs" />
-    <Compile Include="Async\EnumerableAsync.cs" />
-    <Compile Include="Async\Extensions\DynamicDelegateExtensions.cs" />
-    <Compile Include="Async\Extensions\DynamicDelegateResultSwapExtension.cs" />
     <Compile Include="Async\IEnumerableDelegateAsync.cs" />
     <Compile Include="Async\IEnumeratorAsync.cs" />
     <Compile Include="Async\Transactions\ITransactionResult.cs" />
