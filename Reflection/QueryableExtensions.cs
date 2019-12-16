@@ -19,7 +19,7 @@ namespace EastFive.Reflection
         {
             var expression = urlQuery.Expression;
             //var provider = urlQuery.Provider;
-            return FlattenArgumentExpression(expression)
+            return FlattenArgumentExpression<TMethodAttribute>(expression)
                 .Aggregate(startingValue,
                     (aggr, methodArgsKvp) =>
                     {
@@ -39,21 +39,22 @@ namespace EastFive.Reflection
                     });
         }
 
-        private static IEnumerable<KeyValuePair<MethodInfo, Expression[]>> FlattenArgumentExpression(Expression argExpression)
+        private static IEnumerable<KeyValuePair<MethodInfo, Expression[]>> FlattenArgumentExpression<TMethodAttribute>(Expression argExpression)
         {
             if (argExpression is MethodCallExpression)
             {
                 var methodCallExpression = argExpression as MethodCallExpression;
                 var method = methodCallExpression.Method;
-                var isExtensionMethod = method.IsExtension();
+                var methodAttrs = method.GetAttributesInterface<TMethodAttribute>();
+                var isExtensionMethod = methodAttrs.Any();
                 if (isExtensionMethod)
                 {
-                    foreach (var subExpr in FlattenArgumentExpression(methodCallExpression.Arguments.First()))
+                    foreach (var subExpr in FlattenArgumentExpression<TMethodAttribute>(methodCallExpression.Arguments.First()))
                         yield return subExpr;
                 }
                 var nonExtensionThisArgs = methodCallExpression.Arguments
                     .If(isExtensionMethod, args => args.Skip(1))
-                    .Where(arg => !(arg is MethodCallExpression))
+                    //.Where(arg => !(arg is MethodCallExpression))
                     .ToArray();
                 yield return methodCallExpression.Method
                     .PairWithValue(nonExtensionThisArgs);
