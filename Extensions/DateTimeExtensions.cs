@@ -129,6 +129,15 @@ namespace EastFive
                 years--;
             return years;
         }
+
+        public static DateTime AsKindUnspecified(this DateTime date)
+        {
+            // Printing Kind=Unspecified for ISO formatting looks like this (without any Z or -0:00 formatting):
+            // 2019-12-18T00:00:00.0000000
+            // A javascript client will assume this time is in whatever local time it has and not attempt any conversion
+            // which is especially helpful for a date-only DateTime where we want what is sent to be displayed the same.
+            return new DateTime(date.Ticks, DateTimeKind.Unspecified);
+        }
         #endregion Misc
 
         #endregion
