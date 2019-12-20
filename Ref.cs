@@ -7,6 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -98,6 +99,18 @@ namespace EastFive
         public static IRef<TType> SecureRef()
         {
             return SecureGuid.Generate().AsRef<TType>();
+        }
+    }
+
+    public static class RefOptionalHelper
+    {
+        public static object CreateEmpty(Type type)
+        {
+            var emptyValue = typeof(RefOptional<>)
+                .MakeGenericType(type)
+                .GetMethod("Empty", BindingFlags.Static | BindingFlags.Public)
+                .Invoke(null, new object[] { });
+            return emptyValue;
         }
     }
 
