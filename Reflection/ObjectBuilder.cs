@@ -11,42 +11,42 @@ namespace EastFive
 {
     public static class ObjectBuilder
     {
-        public static Type BuildType(this IDictionary<string, Type> properties)
-        {
-            TypeBuilder tb = GetTypeBuilder();
-            ConstructorBuilder constructor = tb.DefineDefaultConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
+        //public static Type BuildType(this IDictionary<string, Type> properties)
+        //{
+        //    TypeBuilder tb = GetTypeBuilder();
+        //    ConstructorBuilder constructor = tb.DefineDefaultConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
 
-            #region Build Type and get methods for popluating properties
+        //    #region Build Type and get methods for popluating properties
 
-            var setMethods = properties
-                .Select(
-                    kvp =>
-                    {
-                        var fieldName = kvp.Key;
-                        var fieldType = kvp.Value;
-                        var setMethod = CreateProperty(tb, fieldName, fieldType);
-                        return new KeyValuePair<string, MethodBuilder>(fieldName, setMethod);
-                    })
-                .ToArray();
+        //    var setMethods = properties
+        //        .Select(
+        //            kvp =>
+        //            {
+        //                var fieldName = kvp.Key;
+        //                var fieldType = kvp.Value;
+        //                var setMethod = CreateProperty(tb, fieldName, fieldType);
+        //                return new KeyValuePair<string, MethodBuilder>(fieldName, setMethod);
+        //            })
+        //        .ToArray();
 
-            #endregion
+        //    #endregion
             
-            Type objectType = tb.CreateType();
-            return objectType;
-        }
+        //    Type objectType = tb.CreateType();
+        //    return objectType;
+        //}
 
-        public static object CompileResultType(this IDictionary<string, object> properties)
-        {
-            var propertyTypes = properties
-                .Select(kvp => new KeyValuePair<string, Type>(kvp.Key, kvp.Value.GetType()))
-                .ToDictionary();
-            var objectType = BuildType(propertyTypes);
-            var obj = Activator.CreateInstance(objectType);
+        //public static object CompileResultType(this IDictionary<string, object> properties)
+        //{
+        //    var propertyTypes = properties
+        //        .Select(kvp => new KeyValuePair<string, Type>(kvp.Key, kvp.Value.GetType()))
+        //        .ToDictionary();
+        //    var objectType = BuildType(propertyTypes);
+        //    var obj = Activator.CreateInstance(objectType);
             
-            PopulateType(obj, properties);
+        //    PopulateType(obj, properties);
             
-            return obj;
-        }
+        //    return obj;
+        //}
 
         public static T PopulateType<T>(this T obj, IDictionary<string, object> properties)
         {
@@ -63,22 +63,22 @@ namespace EastFive
             return obj;
         }
 
-        private static TypeBuilder GetTypeBuilder()
-        {
-            var typeSignature = "MyDynamicType";
-            var an = new AssemblyName(typeSignature);
-            AssemblyBuilder assemblyBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(an, AssemblyBuilderAccess.Run);
-            ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule("MainModule");
-            TypeBuilder tb = moduleBuilder.DefineType(typeSignature,
-                    TypeAttributes.Public |
-                    TypeAttributes.Class |
-                    TypeAttributes.AutoClass |
-                    TypeAttributes.AnsiClass |
-                    TypeAttributes.BeforeFieldInit |
-                    TypeAttributes.AutoLayout,
-                    null);
-            return tb;
-        }
+        //private static TypeBuilder GetTypeBuilder()
+        //{
+        //    var typeSignature = "MyDynamicType";
+        //    var an = new AssemblyName(typeSignature);
+        //    AssemblyBuilder assemblyBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(an, AssemblyBuilderAccess.Run);
+        //    ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule("MainModule");
+        //    TypeBuilder tb = moduleBuilder.DefineType(typeSignature,
+        //            TypeAttributes.Public |
+        //            TypeAttributes.Class |
+        //            TypeAttributes.AutoClass |
+        //            TypeAttributes.AnsiClass |
+        //            TypeAttributes.BeforeFieldInit |
+        //            TypeAttributes.AutoLayout,
+        //            null);
+        //    return tb;
+        //}
 
         private static MethodBuilder CreateProperty(TypeBuilder tb, string propertyName, Type propertyType)
         {
