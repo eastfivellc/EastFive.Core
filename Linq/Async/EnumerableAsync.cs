@@ -208,43 +208,59 @@ namespace EastFive.Linq.Async
         }
 
         public static IEnumerableAsync<TItem> AsyncEnumerable<TItem>(this IEnumerable<Task<TItem>> items,
-            int readAhead)
+            int readAhead = 1)
         {
-            var enumerator = items.GetEnumerator();
-            var batchQueue = new Queue<Task<TItem>>();
+            // No arg exception here because some items want to ready ahead 
+            // using a dynamic value which could be 0 and ...
+            if (readAhead < 1)
+                // ... the readAhead >= 1 requirement is based off the implementation of this method.
+                readAhead = 1; 
 
-            while(enumerator.MoveNext())
+            var enumerator = items.GetEnumerator();
+            var batchQueue = new Queue<Task<TItem>>(readAhead);
+            var batchQueueLock = new object();
+
+            bool moreDataToRead = enumerator.MoveNext();
+
+            bool ShouldQueueMoreItems()
+            {
+                if (!moreDataToRead)
+                    return false;
+
+                if (batchQueue.Count < readAhead)
+                    return true;
+
+                return false;
+            }
+
+            while (ShouldQueueMoreItems())
             {
                 batchQueue.Enqueue(enumerator.Current);
-                if (batchQueue.Count >= readAhead)
-                    break;
+                moreDataToRead = enumerator.MoveNext();
             }
-            bool fullyEnumerated = batchQueue.Count < readAhead;
+
             return Yield<TItem>(
                 async (yieldReturn, yieldBreak) =>
                 {
-                    while (true)
+                    Task<TItem> currentTask;
+                    lock (batchQueueLock)
                     {
-                        if (!batchQueue.Any())
+                        while (true)
                         {
-                            if (fullyEnumerated)
-                                return yieldBreak;
-                        }
-
-                        if (!fullyEnumerated)
-                        {
-                            if (!enumerator.MoveNext())
+                            while (ShouldQueueMoreItems())
                             {
-                                fullyEnumerated = true;
-                                continue;
+                                batchQueue.Enqueue(enumerator.Current);
+                                moreDataToRead = enumerator.MoveNext();
                             }
 
-                            batchQueue.Enqueue(enumerator.Current);
+                            if (batchQueue.Any())
+                                break;
+                            
+                            if (!moreDataToRead)
+                                return yieldBreak;
                         }
-                        break;
+                        currentTask = batchQueue.Dequeue();
                     }
-
-                    var currentTask = batchQueue.Dequeue();
                     var current = await currentTask;
 
                     return yieldReturn(current);

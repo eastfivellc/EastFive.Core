@@ -441,27 +441,32 @@ namespace EastFive.Linq.Async
                 });
         }
 
-        private static async Task BatchAsync<T>(this IEnumerableAsync<T> enumerable,
-            List<T> cache, EventWaitHandle moved, EventWaitHandle complete,
+        private static Task Prespool<T>(this IEnumerableAsync<T> enumerable,
+            Action<T> enqueue, EventWaitHandle moved, EventWaitHandle complete,
             EastFive.Analytics.ILogger diagnosticsTag = default(EastFive.Analytics.ILogger))
         {
             var enumerator = enumerable.GetEnumerator();
 
-            //return Task.Run(CycleAsync);
+            //var parallelRead = new Thread(new ThreadStart(Cycle));
+            //parallelRead.Name = $"Prespool - {Guid.NewGuid().ToString("N").Substring(0, 8)}";
+            //parallelRead.Priority = ThreadPriority.AboveNormal;
+            //parallelRead.Start();
+            //return parallelRead;
 
-            //async Task CycleAsync()
-            //{
+            var parallelRead = Task.Run(Cycle);
+            parallelRead.ConfigureAwait(false);
+            return parallelRead;
+
+            async Task Cycle()
+            {
                 try
                 {
                     diagnosticsTag.Trace($"Moving");
                     while (await enumerator.MoveNextAsync())
                     {
                         diagnosticsTag.Trace($"Adding Value");
-                        lock (cache)
-                        {
-                            cache.Add(enumerator.Current);
-                            moved.Set();
-                        }
+                        enqueue(enumerator.Current);
+                        moved.Set();
                         diagnosticsTag.Trace($"Added Value");
                     }
                     diagnosticsTag.Trace($"Moved");
@@ -477,17 +482,26 @@ namespace EastFive.Linq.Async
                     moved.Set();
                     diagnosticsTag.Trace($"Completed");
                 }
-            //}
+            }
         }
 
         public static IEnumerableAsync<T[]> Batch<T>(this IEnumerableAsync<T> enumerable,
-            EastFive.Analytics.ILogger diagnosticsTag = default(EastFive.Analytics.ILogger))
+            EastFive.Analytics.ILogger diagnostics = default(EastFive.Analytics.ILogger))
         {
             var segment = new List<T>();
+            var segmentLock = new object();
             var moved = new AutoResetEvent(false);
             var complete = new ManualResetEvent(false);
             var taskComplete = false; // Prevents call to WaitOne if task has already completed
-            var segmentTask = enumerable.BatchAsync(segment, moved, complete, diagnosticsTag);
+            var segmentTask = enumerable.Prespool(
+                (item) =>
+                {
+                    lock(segmentLock)
+                    {
+                        segment.Add(item);
+                    }
+                }, 
+                moved, complete, diagnostics);
             return Yield<T[]>(
                 async (yieldReturn, yieldBreak) =>
                 {
@@ -510,7 +524,7 @@ namespace EastFive.Linq.Async
                     {
                         moved.WaitOne();
                         T[] nextSegment;
-                        lock (segment)
+                        lock (segmentLock)
                         {
                             nextSegment = segment.ToArray();
                             segment.Clear();
@@ -520,9 +534,10 @@ namespace EastFive.Linq.Async
                         continue;
                     }
 
+                    // segmentTask.Join();
                     await segmentTask;
                     T[] lastSegment;
-                    lock (segment)
+                    lock (segmentLock)
                     {
                         lastSegment = segment.ToArray();
                         segment.Clear();
@@ -538,36 +553,59 @@ namespace EastFive.Linq.Async
             ILogger diagnostics = default(ILogger))
         {
             var segment = new List<Task<T>>();
+            var segmentLock = new object();
             var moved = new AutoResetEvent(false);
             var complete = new ManualResetEvent(false);
-            var segmentTask = enumerable.BatchAsync(segment, moved, complete, diagnostics);
+            var prespoolling = enumerable.Prespool(
+                (item) =>
+                {
+                    lock (segmentLock)
+                    {
+                        segment.Add(item);
+                    }
+                }, moved, complete, diagnostics);
             var taskComplete = false; // Prevents call to WaitOne if task has already completed
-            var taskLock = new AutoResetEvent(true); // Prevents parallel calls to MoveNextAsync from waiting the same segment task
+            var taskCompleteLock = new object();
+            var taskLock = new ManualResetEvent(true);
             return Yield<T>(
                 async (yieldReturn, yieldBreak) =>
                 {
-                    async Task<bool> CompleteAsync()
+                    async Task<bool> IsComplete()
                     {
-                        if (taskComplete)
+                        bool shouldAwaitPrespooling = false;
+                        lock (taskCompleteLock)
+                        {
+                            // If this section is not locked, two parallel threads could see taskComplete==false
+                            // Then both threads would see taskIsFinished = WaitOne(0) == true.
+                            // Both threads would then call Join() on prespolling.
+
+                            if (taskComplete)
+                                return true;
+
+                            taskComplete = complete.WaitOne(0);
+                            if (taskComplete)
+                                shouldAwaitPrespooling = true;
+                        }
+
+                        if (shouldAwaitPrespooling)
+                        {
+                            await prespoolling;
+                            //prespoolling.Join();
                             return true;
+                        }
 
-                        var taskIsFinished = complete.WaitOne(0);
-                        if (!taskIsFinished)
-                            return false;
-
-                        taskComplete = true; // prevent hanging on complete.WaitOne
-                        await segmentTask; // wrap up batch read-ahead task
-                        return true;
+                        return false;
                     }
 
-                    while (!await CompleteAsync())
+                    while (!await IsComplete())
                     {
-                        moved.WaitOne(TimeSpan.FromSeconds(5));
+                        moved.WaitOne(TimeSpan.FromSeconds(1));
 
                         var yieldKvp = await YieldResultAsync();
                         if (!yieldKvp.Key)
                             continue;
-                        return yieldKvp.Value;
+                        var result = await yieldKvp.Value;
+                        return yieldReturn(result);
                     }
 
                     var yieldFinalKvp = await YieldResultAsync();
@@ -575,32 +613,42 @@ namespace EastFive.Linq.Async
                     {
                         return yieldBreak;
                     }
-                    return yieldFinalKvp.Value;
+                    var resultFromFinalSegment = await yieldFinalKvp.Value;
+                    return yieldReturn(resultFromFinalSegment);
 
-                    async Task<KeyValuePair<bool, IYieldResult<T>>> YieldResultAsync()
+                    async Task<KeyValuePair<bool, Task<T>>> YieldResultAsync()
                     {
-                        Task<T>[] nextSegment;
-                        taskLock.WaitOne();
-                        lock (segment)
+                        taskLock.WaitOne(); // taskLock synchronizes yield calls
+                        
+                        Task<T>[] options;
+                        lock (segmentLock) // segmentLock synchronizes with prespool.
                         {
-                            nextSegment = segment.ToArray();
-                        }
-                        if (nextSegment.Any())
-                        {
-                            var finishedTaskNext = maintainOrder ?
-                                nextSegment.First()
-                                :
-                                await Task.WhenAny<T>(nextSegment);
-                            lock (segment)
+                            if (!segment.Any())
                             {
-                                segment.Remove(finishedTaskNext);
+                                taskLock.Set();
+                                return default(Task<T>).PairWithKey(false);
                             }
-                            taskLock.Set();
-                            var next = await finishedTaskNext;
-                            return yieldReturn(next).PairWithKey(true);
+                            
+                            if (maintainOrder)
+                            {
+                                var taskToWait = segment.First();
+                                segment.Remove(taskToWait);
+                                taskLock.Set();
+                                return taskToWait.PairWithKey(true);
+                            }
+                            
+                            options = segment.ToArray();
+                        }
+                        
+                        // It is okay to block inside of the taskLock critical section because
+                        // only one task can become available at a time.
+                        var finishedTaskNext = await Task.WhenAny(options);
+                        lock(segmentLock)
+                        {
+                            segment.Remove(finishedTaskNext);
                         }
                         taskLock.Set();
-                        return default(IYieldResult<T>).PairWithKey(false);
+                        return finishedTaskNext.PairWithKey(true);
                     }
                 });
         }
@@ -1121,7 +1169,8 @@ namespace EastFive.Linq.Async
                 });
         }
         
-        public static IEnumerableAsync<T> Await<T>(this IEnumerableAsync<Task<T>> enumerable, string tag = default(string))
+        public static IEnumerableAsync<T> Await<T>(this IEnumerableAsync<Task<T>> enumerable, 
+            string tag = default(string))
         {
             var enumerator = enumerable.GetEnumerator();
             return Yield<T>(
@@ -1144,6 +1193,61 @@ namespace EastFive.Linq.Async
                     if (!tag.IsNullOrWhiteSpace())
                         Console.WriteLine($"Await[{tag}]:Yielding value");
                     return yieldReturn(next);
+                });
+        }
+
+        public static IEnumerableAsync<TItem> Await<TItem>(this IEnumerableAsync<Task<TItem>> enumerable,
+            int readAhead)
+        {
+            // No arg exception here because some items want to ready ahead 
+            // using a dynamic value which could be 0 and ...
+            if (readAhead < 1)
+                // ... the readAhead >= 1 requirement is based off the implementation of this method.
+                readAhead = 1;
+
+            var enumerator = enumerable.GetEnumerator();
+            var batchQueue = new Queue<Task<TItem>>(readAhead);
+            var batchQueueLock = new AutoResetEvent(true);
+            var moreDataToRead = true;
+
+            return Yield<TItem>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    bool ShouldQueueMoreItems()
+                    {
+                        if (!moreDataToRead)
+                            return false;
+
+                        if (batchQueue.Count < readAhead)
+                            return true;
+
+                        return false;
+                    }
+
+                    Task<TItem> currentTask;
+                    batchQueueLock.WaitOne();
+                    while (true)
+                    {
+                        while (ShouldQueueMoreItems())
+                        {
+                            batchQueue.Enqueue(enumerator.Current);
+                            moreDataToRead = await enumerator.MoveNextAsync();
+                        }
+
+                        if (batchQueue.Any())
+                        {
+                            currentTask = batchQueue.Dequeue();
+                            batchQueueLock.Set();
+                            var current = await currentTask;
+                            return yieldReturn(current);
+                        }
+
+                        if (!moreDataToRead)
+                        {
+                            batchQueueLock.Set();
+                            return yieldBreak;
+                        }
+                    }
                 });
         }
 

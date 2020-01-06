@@ -668,6 +668,17 @@ namespace EastFive.Serialization
             return Convert.ToBase64String(data);
         }
 
+        public static string MD5HashHex(this string concatination, MD5 md5 = default(MD5))
+        {
+            if (default(MD5) == md5)
+                md5 = MD5.Create();
+
+            byte[] data = md5.ComputeHash(Encoding.UTF8.GetBytes(concatination));
+            return data
+                .Select(b => b.ToString("X2"))
+                .Join("");
+        }
+
         public static byte [] SHAHash(this byte[] bytes, SHA256 sha256 = default(SHA256))
         {
             if (default(SHA256) == sha256)

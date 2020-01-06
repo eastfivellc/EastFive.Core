@@ -1,5 +1,7 @@
-﻿using System;
+﻿using EastFive.Extensions;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,11 +12,13 @@ namespace EastFive.Analytics
     {
         private ILogger passthrough;
         private Queue<string> logMessages;
+        private Stopwatch timer;
 
-        public CaptureLog(ILogger passthrough)
+        public CaptureLog(ILogger passthrough, Stopwatch timer = default)
         {
             this.passthrough = passthrough;
             this.logMessages = new Queue<string>();
+            this.timer = timer;
         }
 
         public void LogInformation(string message)
@@ -25,7 +29,14 @@ namespace EastFive.Analytics
 
         public void LogTrace(string message)
         {
-            this.logMessages.Enqueue($"TRACE:{message}");
+            if (this.timer.IsDefaultOrNull())
+            {
+                this.logMessages.Enqueue($"TRACE:{message}");
+                passthrough.Trace(message);
+                return;
+            }
+            var elapsed = timer.Elapsed;
+            this.logMessages.Enqueue(String.Format("TRACE[{0:00.000}]:{1}", elapsed.TotalSeconds, message));
             passthrough.Trace(message);
         }
 
