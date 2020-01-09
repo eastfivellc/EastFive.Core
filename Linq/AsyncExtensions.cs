@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+
 using EastFive;
-using EastFive.Collections.Generic;
-using BlackBarLabs.Linq.Async;
 using EastFive.Linq;
 using EastFive.Extensions;
+using EastFive.Collections.Generic;
 
 namespace EastFive.Linq.Async
 {
@@ -162,16 +162,6 @@ namespace EastFive.Linq.Async
             var items = await itemsTask;
             return items.All(predicate);
         }
-    }
-}
-
-namespace BlackBarLabs.Linq.Async
-{
-    /// <summary>
-    /// Why Microsoft, why make us build this!?!?!?!
-    /// </summary>
-    public static class AsyncExtensions
-    {
 
         public static async Task<T[]> ToArrayAsync<T>(this Task<IEnumerable<T>> itemsTask)
         {
