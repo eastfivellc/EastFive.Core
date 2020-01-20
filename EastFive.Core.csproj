@@ -60,6 +60,7 @@
     <Compile Include="Extensions\FuncExtensions.cs" />
     <Compile Include="Extensions\NullableExtensions.cs" />
     <Compile Include="Linq\Expressions\IComposibleQuery.cs" />
+    <Compile Include="Reflection\Assignment.cs" />
     <Compile Include="Reflection\QueryableExtensions.cs" />
     <Compile Include="Extensions\XmlExtensions.cs" />
     <Compile Include="Linq\Async\EnumerableAsync.Async.cs" />

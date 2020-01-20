@@ -252,12 +252,24 @@ namespace EastFive.Linq.Expressions
                         var leftExpr = binaryExpr.Left;
                         var rightExpr = binaryExpr.Right;
                         if (leftExpr is MemberExpression)
+                            return OnMember(leftExpr as MemberExpression);
+
+                        // Catch Nullable casting
+                        if (leftExpr is UnaryExpression)
                         {
-                            var leftMemberExpr = leftExpr as MemberExpression;
+                            var unaryExpr = leftExpr as UnaryExpression;
+                            if(unaryExpr.Operand is MemberExpression)
+                                return OnMember(unaryExpr.Operand as MemberExpression);
+                        }
+
+                        TResult OnMember(MemberExpression leftMemberExpr)
+                        {
                             var member = leftMemberExpr.Member;
                             var value = rightExpr.Resolve();
                             return onBinaryAssignment(member, binaryExpr.NodeType, value);
                         }
+
+                        return onCouldNotParse();
                     }
                     if(lambdaExpr.Body is UnaryExpression)
                     {

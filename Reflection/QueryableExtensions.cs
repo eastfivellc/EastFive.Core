@@ -12,20 +12,20 @@ namespace EastFive.Reflection
 {
     public static class QueryableExtensions
     {
-        public static TAggr Compile<TAggr, TMethodAttribute>(this IQueryable urlQuery,
+        public static TAggr Compile<TAggr, TMethodAttributeInterface>(this IQueryable urlQuery,
                 TAggr startingValue,
-            Func<TAggr, TMethodAttribute, MethodInfo, Expression[], TAggr> onRecognizedAttribute,
+            Func<TAggr, TMethodAttributeInterface, MethodInfo, Expression[], TAggr> onRecognizedAttribute,
             Func<TAggr, MethodInfo, Expression[], TAggr> onUnrecognizedAttribute)
         {
             var expression = urlQuery.Expression;
             //var provider = urlQuery.Provider;
-            return FlattenArgumentExpression<TMethodAttribute>(expression)
+            return FlattenArgumentExpression<TMethodAttributeInterface>(expression)
                 .Aggregate(startingValue,
                     (aggr, methodArgsKvp) =>
                     {
                         var method = methodArgsKvp.Key;
                         var argumentExpressions = methodArgsKvp.Value;
-                        var methodAttrs = method.GetAttributesInterface<TMethodAttribute>();
+                        var methodAttrs = method.GetAttributesInterface<TMethodAttributeInterface>();
                         if (methodAttrs.Any())
                         {
                             var methodAttr = methodAttrs.First();
@@ -39,17 +39,17 @@ namespace EastFive.Reflection
                     });
         }
 
-        private static IEnumerable<KeyValuePair<MethodInfo, Expression[]>> FlattenArgumentExpression<TMethodAttribute>(Expression argExpression)
+        private static IEnumerable<KeyValuePair<MethodInfo, Expression[]>> FlattenArgumentExpression<TMethodAttributeInterface>(Expression argExpression)
         {
             if (argExpression is MethodCallExpression)
             {
                 var methodCallExpression = argExpression as MethodCallExpression;
                 var method = methodCallExpression.Method;
-                var methodAttrs = method.GetAttributesInterface<TMethodAttribute>();
-                var isExtensionMethod = methodAttrs.Any();
+                var methodAttrs = method.GetAttributesInterface<TMethodAttributeInterface>();
+                var isExtensionMethod = methodCallExpression.Arguments.First().Type.IsSubClassOfGeneric(typeof(IQueryable<>));
                 if (isExtensionMethod)
                 {
-                    foreach (var subExpr in FlattenArgumentExpression<TMethodAttribute>(methodCallExpression.Arguments.First()))
+                    foreach (var subExpr in FlattenArgumentExpression<TMethodAttributeInterface>(methodCallExpression.Arguments.First()))
                         yield return subExpr;
                 }
                 var nonExtensionThisArgs = methodCallExpression.Arguments
