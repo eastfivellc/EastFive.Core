@@ -210,17 +210,18 @@ namespace EastFive.Linq.Async
         public static IEnumerableAsync<TItem> AsyncEnumerable<TItem>(this IEnumerable<Task<TItem>> items,
             int readAhead = 1)
         {
-            // No arg exception here because some items want to ready ahead 
+            // No arg exception here because some items want to read ahead 
             // using a dynamic value which could be 0 and ...
             if (readAhead < 1)
                 // ... the readAhead >= 1 requirement is based off the implementation of this method.
                 readAhead = 1; 
 
             var enumerator = items.GetEnumerator();
-            var batchQueue = new Queue<Task<TItem>>(readAhead);
-            var batchQueueLock = new object();
-
             bool moreDataToRead = enumerator.MoveNext();
+
+            //var batchQueue = new Queue<Task<TItem>>(readAhead);
+            var batchQueue = new System.Collections.Concurrent.ConcurrentQueue<Task<TItem>>();
+            var batchQueueLock = new object();
 
             bool ShouldQueueMoreItems()
             {
@@ -243,6 +244,7 @@ namespace EastFive.Linq.Async
                 async (yieldReturn, yieldBreak) =>
                 {
                     Task<TItem> currentTask;
+
                     lock (batchQueueLock)
                     {
                         while (true)
@@ -253,16 +255,17 @@ namespace EastFive.Linq.Async
                                 moreDataToRead = enumerator.MoveNext();
                             }
 
-                            if (batchQueue.Any())
+                            //if (batchQueue.Any())
+                            if (batchQueue.TryDequeue(out currentTask))
                                 break;
-                            
+
                             if (!moreDataToRead)
                                 return yieldBreak;
                         }
-                        currentTask = batchQueue.Dequeue();
+                        //currentTask = batchQueue.Dequeue();
                     }
-                    var current = await currentTask;
 
+                    var current = await currentTask;
                     return yieldReturn(current);
                 });
         }
