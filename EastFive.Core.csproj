@@ -69,6 +69,7 @@
     <Compile Include="Reflection\FuncExtensions.cs" />
     <Compile Include="Reflection\TaskExtensions.cs" />
     <Compile Include="Reflection\TypeSystemExtensions.cs" />
+    <Compile Include="Serialization\Converter.cs" />
     <Compile Include="Serialization\ICast.cs" />
     <Compile Include="Serialization\IBind.cs" />
     <Compile Include="Serialization\ISerialize.cs" />
