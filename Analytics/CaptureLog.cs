@@ -46,9 +46,9 @@ namespace EastFive.Analytics
             passthrough.Warning(message);
         }
 
-        public string Dump()
+        public string[] Dump()
         {
-            return this.logMessages.Join("\n");
+            return this.logMessages.ToArray();
         }
     }
 }
