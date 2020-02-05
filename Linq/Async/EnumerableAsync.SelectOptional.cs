@@ -1,4 +1,5 @@
 ﻿using BlackBarLabs.Extensions;
+using EastFive.Analytics;
 using EastFive.Extensions;
 using System;
 using System.Collections;
@@ -175,22 +176,28 @@ namespace EastFive.Linq.Async
         }
 
         public static IEnumerableAsync<TResult> SelectAsyncOptional<TItem, TResult>(this IEnumerable<TItem> items,
-            Func<TItem, Func<TResult, ISelected<TResult>>, Func<ISelected<TResult>>, Task<ISelected<TResult>>> callback)
+            Func<TItem, Func<TResult, ISelected<TResult>>, Func<ISelected<TResult>>, Task<ISelected<TResult>>> callback,
+            ILogger logger = default)
         {
             var enumerator = items.GetEnumerator();
+            logger.Trace("Got Enumerator");
             return Yield<TResult>(
                 async (yieldReturn, yieldBreak) =>
                 {
+                    logger.Trace("Calling move next");
                     while (enumerator.MoveNext())
                     {
+                        logger.Trace("Getting current");
                         var item = enumerator.Current;
 
                         var nextValue = await callback(item,
                             (nextItem) => new SelectedValue<TResult>(nextItem),
                             () => new SelectedValue<TResult>(false));
+                        logger.Trace($"Next value HasValue = {nextValue.HasValue}");
                         if (nextValue.HasValue)
                             return yieldReturn(nextValue.Value);
                     }
+                    logger.Trace("Completion");
                     return yieldBreak;
                 });
         }
