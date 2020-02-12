@@ -106,6 +106,13 @@ namespace EastFive
 
         public static string GetClrString(this Type type)
         {
+            if(type.IsNullable())
+            {
+                var baseTypeClrString = type
+                    .GetNullableUnderlyingType()
+                    .GetClrString();
+                return $"{baseTypeClrString}?";
+            }
             if (type == typeof(string))
                 return "string";
             if (type == typeof(int))
@@ -122,7 +129,8 @@ namespace EastFive
                 return "number";
             if (type == typeof(bool))
                 return "boolean";
-            throw new InvalidDataException($"Type {type} not supported");
+            return type.AssemblyQualifiedName;
+            //throw new InvalidDataException($"Type {type} not supported");
         }
 
         public static string EscapeSingleQuote(this string parameter)
