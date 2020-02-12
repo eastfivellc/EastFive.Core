@@ -861,38 +861,58 @@ namespace EastFive.Linq.Async
                 });
         }
 
-        public static IEnumerableAsync<TItem> SelectMany<TItem>(this IEnumerableAsync<IEnumerable<TItem>> enumerables)
+        public static IEnumerableAsync<TItem> SelectMany<TItem>(
+            this IEnumerableAsync<IEnumerable<TItem>> enumerables,
+            ILogger logger = default)
         {
-            return enumerables.SelectMany<IEnumerable<TItem>, TItem>(x => x);
+            return enumerables.SelectMany<IEnumerable<TItem>, TItem>(x => x, logger:logger);
         }
         
-        public static IEnumerableAsync<TResult> SelectMany<T, TResult>(this IEnumerableAsync<T> enumerables, Func<T, IEnumerable<TResult>> selectMany)
+        public static IEnumerableAsync<TResult> SelectMany<T, TResult>(
+            this IEnumerableAsync<T> enumerables, Func<T, IEnumerable<TResult>> selectMany,
+            ILogger logger = default)
         {
             var enumerator = enumerables.GetEnumerator();
             var enumeratorInner = default(IEnumerator<TResult>);
+            var scopedLogger = logger.CreateScope($"SelectMany:{enumerables.GetHashCode()}");
             return Yield<TResult>(
                 async (yieldReturn, yieldBreak) =>
                 {
                     while (true)
                     {
+                        scopedLogger.Trace("Looping...");
                         if (enumeratorInner.IsDefaultOrNull())
                         {
+                            scopedLogger.Trace("Moving Outer");
                             if (!await enumerator.MoveNextAsync())
+                            {
+                                scopedLogger.Trace("Complete");
                                 return yieldBreak;
+                            }
+
                             var current = enumerator.Current;
                             var many = selectMany(current);
                             if (many.IsDefaultOrNull())
+                            {
+                                scopedLogger.Trace("FAILURE:selectMany returned null IEnumerable");
                                 continue;
+                            }
                             enumeratorInner = many.GetEnumerator();
                             continue;
                         }
+                        scopedLogger.Trace("Moving Inner");
                         if (!enumeratorInner.MoveNext())
                         {
+                            scopedLogger.Trace("Moving Outer");
                             if (!await enumerator.MoveNextAsync())
+                            {
+                                scopedLogger.Trace("Complete");
                                 return yieldBreak;
+                            }
                             enumeratorInner = selectMany(enumerator.Current).GetEnumerator();
                             continue;
                         }
+                        scopedLogger.Trace("Yielding value");
                         return yieldReturn(enumeratorInner.Current);
                     }
                 });
