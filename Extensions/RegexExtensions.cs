@@ -84,7 +84,7 @@ namespace EastFive
                                         .Where(
                                             group =>
                                             {
-                                                var groupName = (string)((dynamic)group).Name;
+                                                var groupName = group.Name;
                                                 return groupName == expKvp.Key;
                                             });
                                     if (!matchingGroups.Any())
@@ -168,7 +168,7 @@ namespace EastFive
                                                 if (!(groupMaybe is System.Text.RegularExpressions.Group))
                                                     return false;
                                                 var group = groupMaybe as System.Text.RegularExpressions.Group;
-                                                var groupName = (string)((dynamic)group).Name;
+                                                var groupName = group.Name;
                                                 return groupName == expKvp.Key;
                                             });
                                     if (!matchingGroups.Any())
@@ -310,7 +310,7 @@ namespace EastFive
                                                 if (!(groupMaybe is System.Text.RegularExpressions.Group))
                                                     return false;
                                                 var group = groupMaybe as System.Text.RegularExpressions.Group;
-                                                var groupName = (string)((dynamic)group).Name;
+                                                var groupName = group.Name;
                                                 return groupName == parameter.Name;
                                             });
                                     if (!matchingGroups.Any())

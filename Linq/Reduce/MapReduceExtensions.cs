@@ -266,75 +266,75 @@ namespace EastFive.Linq
             return complete(aggr, itemValue[0]);
         }
 
-        private async static Task<TResult> FlatMapGenericTailAsync<TItem, T1, TSelect, TResult>(this IEnumerable<TItem> items,
-                T1 item1,
-            Func<
-                TItem, T1,
-                Func<TSelect, T1, Task<TResult>>,  // next
-                Func<T1, Task<TResult>>, // skip
-                Func<Task<TResult>, Task<TResult>>, // tail
-                Task<TResult>> callback,
-            Func<TSelect[], T1, Task<TResult>> complete)
-        {
-            var globalSelection = new List<TSelect>();
-            var itemsEnumerator = items.GetEnumerator();
-            //var lastTask = default(Task<TResult>);
-            while (true)
-            {
-                if(!itemsEnumerator.MoveNext())
-                    return await complete(globalSelection.ToArray(), item1);
-                var item = itemsEnumerator.Current;
+        //private async static Task<TResult> FlatMapGenericTailAsync<TItem, T1, TSelect, TResult>(this IEnumerable<TItem> items,
+        //        T1 item1,
+        //    Func<
+        //        TItem, T1,
+        //        Func<TSelect, T1, Task<TResult>>,  // next
+        //        Func<T1, Task<TResult>>, // skip
+        //        Func<Task<TResult>, Task<TResult>>, // tail
+        //        Task<TResult>> callback,
+        //    Func<TSelect[], T1, Task<TResult>> complete)
+        //{
+        //    var globalSelection = new List<TSelect>();
+        //    var itemsEnumerator = items.GetEnumerator();
+        //    //var lastTask = default(Task<TResult>);
+        //    while (true)
+        //    {
+        //        if(!itemsEnumerator.MoveNext())
+        //            return await complete(globalSelection.ToArray(), item1);
+        //        var item = itemsEnumerator.Current;
 
-                //var block = new ManualResetEvent(false);
-                var tailed = false;
-                var tailedValue = default(TResult).ToTask();
-                var lastTask = callback(
-                    item, item1,
-                    (selection, item1Next) =>
-                    {
-                        globalSelection.Add(selection);
-                        //globalSelection = globalSelection.Add(selection).ToArray();
-                        item1 = item1Next;
-                        //block.Set();
-                        return tailedValue; // lastTask;
-                    },
-                    (item1Next) =>
-                    {
-                        item1 = item1Next;
-                        //block.Set();
-                        return tailedValue; // lastTask;
-                    },
-                    (tailResult) =>
-                    {
-                        tailed = true;
-                        //block.Set();
-                        tailedValue = tailResult;
-                        return tailResult;
-                    });
+        //        //var block = new ManualResetEvent(false);
+        //        var tailed = false;
+        //        var tailedValue = default(TResult).ToTask();
+        //        var lastTask = callback(
+        //            item, item1,
+        //            (selection, item1Next) =>
+        //            {
+        //                globalSelection.Add(selection);
+        //                //globalSelection = globalSelection.Add(selection).ToArray();
+        //                item1 = item1Next;
+        //                //block.Set();
+        //                return tailedValue; // lastTask;
+        //            },
+        //            (item1Next) =>
+        //            {
+        //                item1 = item1Next;
+        //                //block.Set();
+        //                return tailedValue; // lastTask;
+        //            },
+        //            (tailResult) =>
+        //            {
+        //                tailed = true;
+        //                //block.Set();
+        //                tailedValue = tailResult;
+        //                return tailResult;
+        //            });
 
 
-                var taskChainNext = (object)lastTask;
-                while (true)
-                {
-                    if (taskChainNext.IsDefaultOrNull())
-                        break;
+        //        var taskChainNext = (object)lastTask;
+        //        while (true)
+        //        {
+        //            if (taskChainNext.IsDefaultOrNull())
+        //                break;
 
-                    var taskChainNextType = taskChainNext.GetType();
-                    if (!taskChainNextType.IsGenericType)
-                        break;
-                    if (taskChainNextType.GetGenericTypeDefinition() != typeof(Task<>))
-                        break;
+        //            var taskChainNextType = taskChainNext.GetType();
+        //            if (!taskChainNextType.IsGenericType)
+        //                break;
+        //            if (taskChainNextType.GetGenericTypeDefinition() != typeof(Task<>))
+        //                break;
 
-                    var task = (Task)taskChainNext;
-                    await task.ConfigureAwait(false);
-                    // Harvest the result
-                    taskChainNext = (object)((dynamic)task).Result;
-                }
+        //            var task = (Task)taskChainNext;
+        //            await task.ConfigureAwait(false);
+        //            // Harvest the result
+        //            taskChainNext = task.Result;
+        //        }
 
-                if (tailed)
-                    return await tailedValue;
-            }
-        }
+        //        if (tailed)
+        //            return await tailedValue;
+        //    }
+        //}
         
         /// <summary>
         /// This method is tail optimized mean that calling methods should not use the return values from callback's next/skip

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using EastFive.Linq.Async;
 using EastFive.Reflection;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace EastFive.Serialization.Json
 {
@@ -73,7 +74,6 @@ namespace EastFive.Serialization.Json
 
             if (objectType.IsSubClassOfGeneric(typeof(IReferenceable)))
             {
-                
                 if (objectType.IsSubClassOfGeneric(typeof(IRef<>)))
                 {
                     var id = GetGuid();
@@ -109,22 +109,53 @@ namespace EastFive.Serialization.Json
 
             if (objectType.IsSubClassOfGeneric(typeof(IDictionary<,>)))
             {
+
                 var dictionaryType = typeof(Dictionary<,>).MakeGenericType(objectType.GenericTypeArguments);
                 var instance = Activator.CreateInstance(dictionaryType);
 
                 if (reader.TokenType != JsonToken.StartObject)
                     return instance;
+
                 if(!reader.Read())
                     return instance;
-
                 var addMethod = dictionaryType.GetMethod("Add", BindingFlags.Public | BindingFlags.Instance);
                 do
                 {
+                    Console.WriteLine($"{reader.Path} = ({reader.TokenType}) {reader.Value}");
                     if (reader.TokenType == JsonToken.EndObject)
                         return instance;
-                    addMethod.Invoke(instance, new object[] { reader.Path, reader.Value });
 
-                } while (reader.Read());
+                    if (reader.TokenType == JsonToken.PropertyName)
+                    {
+                        var jprop = JProperty.Load(reader);
+                        Console.WriteLine($"Property[{jprop.Name}] = {jprop.Value.Value<string>()}");
+                        var name = jprop.Name;
+                        //if (!reader.Read())
+                        //    return instance;
+                        var value = GetValue();
+                        object GetValue()
+                        {
+                            if (jprop.Value.Type == JTokenType.String)
+                                return jprop.Value.Value<string>();
+
+                            if (jprop.Value.Type == JTokenType.Guid)
+                                return jprop.Value.Value<Guid>();
+
+                            return jprop.Value.Value<object>();
+                        }
+
+                        // var value = ReadJson(jprop.Value, objectType.GenericTypeArguments[1], reader.Value, serializer);
+                        addMethod.Invoke(instance, new object[] { name, value });
+                        continue;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Using path for {reader.TokenType}: {reader.Path} = {reader.Value}");
+                        addMethod.Invoke(instance, new object[] { reader.Path, reader.Value });
+                        if (!reader.Read())
+                            return instance;
+                    }
+                } while (true);
             }
 
             if (objectType == typeof(byte[]))
@@ -135,6 +166,19 @@ namespace EastFive.Serialization.Json
                     return bytesString.FromBase64String();
                 }
             }
+
+            if (objectType == typeof(Type))
+            {
+                if (reader.TokenType == JsonToken.String)
+                {
+                    var bytesString = reader.Value as string;
+                    return bytesString.GetClrType(
+                        matched => matched,
+                        () => default(Type));
+                }
+                return default(Type);
+            }
+
             return existingValue;
         }
 
