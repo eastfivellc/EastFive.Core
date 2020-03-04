@@ -106,56 +106,112 @@ namespace EastFive.Serialization.Json
                 }
             }
 
-
             if (objectType.IsSubClassOfGeneric(typeof(IDictionary<,>)))
             {
 
                 var dictionaryType = typeof(Dictionary<,>).MakeGenericType(objectType.GenericTypeArguments);
                 var instance = Activator.CreateInstance(dictionaryType);
-
-                if (reader.TokenType != JsonToken.StartObject)
-                    return instance;
-
-                if(!reader.Read())
-                    return instance;
-                var addMethod = dictionaryType.GetMethod("Add", BindingFlags.Public | BindingFlags.Instance);
-                do
+                
+                if (reader.TokenType == JsonToken.StartArray)
                 {
-                    Console.WriteLine($"{reader.Path} = ({reader.TokenType}) {reader.Value}");
-                    if (reader.TokenType == JsonToken.EndObject)
-                        return instance;
-
-                    if (reader.TokenType == JsonToken.PropertyName)
+                    var addMethod = dictionaryType.GetMethod("Add", BindingFlags.Public | BindingFlags.Instance);
+                    while(reader.Read())
                     {
-                        var jprop = JProperty.Load(reader);
-                        Console.WriteLine($"Property[{jprop.Name}] = {jprop.Value.Value<string>()}");
-                        var name = jprop.Name;
-                        //if (!reader.Read())
-                        //    return instance;
-                        var value = GetValue();
-                        object GetValue()
+                        if (reader.TokenType == JsonToken.EndArray)
+                            return instance;
+
+                        if (reader.TokenType != JsonToken.StartObject)
                         {
-                            if (jprop.Value.Type == JTokenType.String)
-                                return jprop.Value.Value<string>();
-
-                            if (jprop.Value.Type == JTokenType.Guid)
-                                return jprop.Value.Value<Guid>();
-
-                            return jprop.Value.Value<object>();
+                            Console.WriteLine($"{reader.TokenType} != JsonToken.StartObject");
+                            continue;
+                        }
+                        if (!reader.Read())
+                        {
+                            Console.WriteLine($"Reader terminated w/o finding JsonToken.EndArray");
+                            return instance;
                         }
 
-                        // var value = ReadJson(jprop.Value, objectType.GenericTypeArguments[1], reader.Value, serializer);
-                        addMethod.Invoke(instance, new object[] { name, value });
-                        continue;
+                        if (!GetValue("key", objectType.GenericTypeArguments.First(), out object keyValue))
+                            continue;
+
+                        if (!GetValue("value", objectType.GenericTypeArguments.Last(), out object valueValue))
+                            continue;
+
+                        addMethod.Invoke(instance, new object[] { keyValue, valueValue });
+
+                        if (reader.TokenType != JsonToken.EndObject)
+                            Console.WriteLine($"{reader.TokenType} != JsonToken.EndObject");
+                        //if (!reader.Read())
+                        //{
+                        //    Console.WriteLine($"Reader terminated w/o finding JsonToken.EndArray (after kvp).");
+                        //    return instance;
+                        //}
+                        bool GetValue(string expectedName, Type type, out object value)
+                        {
+                            if (reader.TokenType != JsonToken.PropertyName)
+                            {
+                                value = null;
+                                return false;
+                            }
+
+                            var jprop = JProperty.Load(reader);
+                            //Console.WriteLine($"Property[{jprop.Name}] = ({type.FullName}) {jprop.Value.Value<string>()}");
+                            var name = jprop.Name;
+                            var valueReader = jprop.Value.CreateReader();
+                            value = serializer.Deserialize(valueReader, type);
+                            if (expectedName.Equals(name, StringComparison.InvariantCultureIgnoreCase))
+                                return true;
+
+                            Console.WriteLine($"`{expectedName}` != `{name}`.");
+                            return false;
+                        }
                     }
-                    else
+                    return instance;
+                }
+
+                if (reader.TokenType == JsonToken.StartObject)
+                {
+                    if (!reader.Read())
+                        return instance;
+                    var addMethod = dictionaryType.GetMethod("Add", BindingFlags.Public | BindingFlags.Instance);
+                    do
                     {
-                        Console.WriteLine($"Using path for {reader.TokenType}: {reader.Path} = {reader.Value}");
-                        addMethod.Invoke(instance, new object[] { reader.Path, reader.Value });
-                        if (!reader.Read())
+                        Console.WriteLine($"{reader.Path} = ({reader.TokenType}) {reader.Value}");
+                        if (reader.TokenType == JsonToken.EndObject)
                             return instance;
-                    }
-                } while (true);
+
+                        if (reader.TokenType == JsonToken.PropertyName)
+                        {
+                            var jprop = JProperty.Load(reader);
+                            var type = objectType.GenericTypeArguments.Last();
+                            Console.WriteLine($"Property[{jprop.Name}] = ({type.FullName}) {jprop.Value.Value<string>()}");
+                            var name = jprop.Name;
+                            var value = serializer.Deserialize(jprop.Value.CreateReader(), type);
+                            //var value = GetValue();
+                            //object GetValue()
+                            //{
+                            //    if (jprop.Value.Type == JTokenType.String)
+                            //        return jprop.Value.Value<string>();
+
+                            //    if (jprop.Value.Type == JTokenType.Guid)
+                            //        return jprop.Value.Value<Guid>();
+
+                            //    return jprop.Value.Value<object>();
+                            //}
+                            //var value = serializer.Deserialize(reader, type);
+                            addMethod.Invoke(instance, new object[] { name, value });
+                            continue;
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Using path for {reader.TokenType}: {reader.Path} = {reader.Value}");
+                            addMethod.Invoke(instance, new object[] { reader.Path, reader.Value });
+                            if (!reader.Read())
+                                return instance;
+                        }
+                    } while (true);
+                }
+                return instance;
             }
 
             if (objectType == typeof(byte[]))
