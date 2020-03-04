@@ -1250,8 +1250,10 @@ namespace EastFive.Linq.Async
                     {
                         while (ShouldQueueMoreItems())
                         {
-                            batchQueue.Enqueue(enumerator.Current);
                             moreDataToRead = await enumerator.MoveNextAsync();
+                            if (!moreDataToRead)
+                                break;
+                            batchQueue.Enqueue(enumerator.Current);
                         }
 
                         if (batchQueue.Any())
