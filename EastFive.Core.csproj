@@ -36,6 +36,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Numerics" />
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
@@ -55,6 +56,7 @@
     <Compile Include="Async\IEnumeratorAsync.cs" />
     <Compile Include="Async\Transactions\ITransactionResult.cs" />
     <Compile Include="Async\Transactions\TransactionExtensions.cs" />
+    <Compile Include="Extensions\Base58Extensions.cs" />
     <Compile Include="Extensions\ConditionalExtensions.cs" />
     <Compile Include="Extensions\EnumExtensions.cs" />
     <Compile Include="Extensions\FuncExtensions.cs" />

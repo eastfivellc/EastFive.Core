@@ -863,14 +863,17 @@ namespace EastFive.Linq.Async
 
         public static IEnumerableAsync<TItem> SelectMany<TItem>(
             this IEnumerableAsync<IEnumerable<TItem>> enumerables,
-            ILogger logger = default)
+            ILogger logger = default,
+            CancellationToken cancellationToken = default)
         {
-            return enumerables.SelectMany<IEnumerable<TItem>, TItem>(x => x, logger:logger);
+            return enumerables.SelectMany(x => x,
+                logger:logger, cancellationToken:cancellationToken);
         }
         
         public static IEnumerableAsync<TResult> SelectMany<T, TResult>(
             this IEnumerableAsync<T> enumerables, Func<T, IEnumerable<TResult>> selectMany,
-            ILogger logger = default)
+            ILogger logger = default,
+            System.Threading.CancellationToken cancellationToken = default)
         {
             var enumerator = enumerables.GetEnumerator();
             var enumeratorInner = default(IEnumerator<TResult>);
@@ -880,6 +883,9 @@ namespace EastFive.Linq.Async
                 {
                     while (true)
                     {
+                        if(!cancellationToken.IsDefault())
+                            if (cancellationToken.IsCancellationRequested)
+                                return yieldBreak;
                         scopedLogger.Trace("Looping...");
                         if (enumeratorInner.IsDefaultOrNull())
                         {
