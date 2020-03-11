@@ -156,10 +156,11 @@ namespace EastFive.Linq.Async
         }
 
         public static IEnumerableAsync<T> YieldBatch<T>(
-            YieldDelegateAsync<T[]> generateFunction)
+            YieldDelegateAsync<T[]> generateFunction,
+            CancellationToken cancellationToken = default)
         {
             return Yield<T[]>(generateFunction)
-                .SelectMany();
+                .SelectMany(cancellationToken:cancellationToken);
         }
 
         public static IEnumerableAsync<T> Range<T>(int start, int count,
