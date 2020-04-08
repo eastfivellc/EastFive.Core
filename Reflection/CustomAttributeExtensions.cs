@@ -92,7 +92,15 @@ namespace EastFive
             if (!typeof(T).IsInterface)
                 throw new ArgumentException($"{typeof(T).FullName} is not an interface.");
             var attributes = type.GetCustomAttributes(inherit)
-                .Where(attr => attr.GetType().IsSubClassOfGeneric(typeof(T)))
+                //.Where(
+                //    attr =>
+                //    {
+                //        var isSubclass = attr.GetType().IsSubClassOfGeneric(typeof(T));
+                //        if (typeof(T).GetGenericArguments().Length < typeof(T).GenericTypeArguments.Length)
+                //            return isSubclass;
+                //        return typeof(T).IsAssignableFrom(attr.GetType());
+                //    })
+                .Where(attr => typeof(T).IsAssignableFrom(attr.GetType()))
                 .Select(attr => (T)attr)
                 .ToArray();
             if(!multiple)

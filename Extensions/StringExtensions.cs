@@ -192,6 +192,13 @@ namespace EastFive
             return !String.IsNullOrWhiteSpace(value);
         }
 
+        public static string NullToEmpty(this string value)
+        {
+            if (value == null)
+                return string.Empty;
+            return value;
+        }
+
         /// <summary>
         /// 
         /// </summary>

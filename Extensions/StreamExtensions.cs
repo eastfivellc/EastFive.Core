@@ -6,16 +6,17 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace EastFive
 {
     public static class StreamExtensions
     {
-        public static byte [] ToBytes(this Stream stream)
+        public static async Task<byte []> ToBytesAsync(this Stream stream)
         {
             using (var memoryStream = new MemoryStream())
             {
-                stream.CopyTo(memoryStream);
+                await stream.CopyToAsync(memoryStream);
                 var bytes = memoryStream.ToArray();
                 return bytes;
             }
@@ -50,14 +51,14 @@ namespace EastFive
             return result;
         }
 
-        public static string ReadAsString(this Stream stream, 
+        public static Task<string> ReadAsStringAsync(this Stream stream, 
             Encoding encoding = default(Encoding))
         {
             if (encoding.IsDefault())
                 encoding = Encoding.UTF8;
             using (var reader = new StreamReader(stream, Encoding.UTF8))
             {
-                string value = reader.ReadToEnd();
+                var value = reader.ReadToEndAsync();
                 return value;
             }
         }
