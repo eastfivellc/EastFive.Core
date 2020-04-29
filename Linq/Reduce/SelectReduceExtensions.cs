@@ -457,22 +457,6 @@ namespace EastFive.Linq
                 (v1next) => items.ReduceItems(v1next, callback, complete));
         }
 
-        //private static IEnumerable<TResult> ReduceItems<T1, TItem, TResult>(this IEnumerator<TItem> items,
-        //    T1 v1,
-        //    Func<
-        //        T1, TItem,
-        //        Func<TResult, T1, IEnumerable<TResult>>,  // next
-        //        Func<T1, IEnumerable<TResult>>, // skip
-        //        IEnumerable<TResult>> callback)
-        //{
-        //    if (!items.MoveNext())
-        //        return new TResult[] { };
-
-        //    return callback(v1, items.Current,
-        //        (r, v1next) => items.ReduceItems(v1next, callback).Append(r),
-        //        (v1next) => items.ReduceItems(v1next, callback));
-        //}
-
         public static IEnumerable<TResult> ReduceItems<T1, T2, TItem, TResult>(this IEnumerable<TItem> items,
             T1 v1, T2 v2,
             Func<

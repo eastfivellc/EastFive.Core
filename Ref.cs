@@ -168,11 +168,6 @@ namespace EastFive
     public struct Refs<TType> : IRefs<TType>
         where TType : IReferenceable
     {
-        public Refs(IEnumerableAsync<TType> valueTask)
-        {
-            this.ids = default(Guid[]);
-        }
-
         public Refs(Guid[] ids) : this()
         {
             this.ids = ids;
@@ -190,19 +185,18 @@ namespace EastFive
             }
         }
 
-        public IEnumerator<Guid> GetEnumerator()
-        {
-            return this.ids.Cast<Guid>().GetEnumerator();
-        }
-
         IEnumerator<IRef<TType>> IEnumerable<IRef<TType>>.GetEnumerator()
         {
-            return this.ids.Cast<IRef<TType>>().GetEnumerator();
+            return this.ids
+                .Select(id => (IRef<TType>)new Ref<TType>(id))
+                .GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return this.ids.GetEnumerator();
+            return this.ids
+                .Select(id => (IRef<TType>)new Ref<TType>(id))
+                .GetEnumerator();
         }
 
         public static implicit operator Refs<TType>(Guid [] values)

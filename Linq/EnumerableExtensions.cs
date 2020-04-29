@@ -345,6 +345,42 @@ namespace EastFive.Linq
             return items.NullToEmpty().Any();
         }
 
+        public static bool IsSingle<TItem>(this IEnumerable<TItem> items)
+        {
+            if (items.IsDefaultOrNull())
+                return false; // Is Null
+
+            var enumerator = items.GetEnumerator();
+
+            if (!enumerator.MoveNext())
+                return false; // Is Empty
+
+            if (enumerator.MoveNext())
+                return false; // Has two or more
+
+            return true; // Is Single
+        }
+
+        public static TResult Single<TItem, TResult>(this IEnumerable<TItem> items,
+            Func<TItem, TResult> onSingle,
+            Func<TResult> onNoneOrMultiple)
+        {
+            if (items.IsDefaultOrNull())
+                return onNoneOrMultiple(); // Is Null
+
+            var enumerator = items.GetEnumerator();
+
+            if (!enumerator.MoveNext())
+                return onNoneOrMultiple(); // Is Empty
+
+            var item = enumerator.Current;
+
+            if (enumerator.MoveNext())
+                return onNoneOrMultiple(); // Has two or more
+
+            return onSingle(item); // Is Single
+        }
+
         public static TResult Min<TItem, TComparable, TResult>(this IEnumerable<TItem> items,
             Func<TItem, TComparable> sortCriteria,
             Func<TComparable, TComparable, int> comparer,
@@ -461,7 +497,22 @@ namespace EastFive.Linq
                 index += batchsize;
             }
         }
-        
+
+        public static IEnumerable<TAs> IsAs<TItem, TAs>(this IEnumerable<TItem> items)
+        {
+            return items
+                .Where(item => item is TAs)
+                .Cast<TAs>();
+        }
+
+        public static IEnumerable<TAs> IsAs<TItem, TAs>(this IEnumerable<TItem> items,
+            Func<TItem, TAs> tCastAs)
+        {
+            return items
+                .Where(item => item is TAs)
+                .Select(tCastAs);
+        }
+
         public static T Random<T>(this IEnumerable<T> items, int total, Random rand = null)
         {
             if (rand == null)
@@ -530,8 +581,11 @@ namespace EastFive.Linq
             return found(value.First().Value);
         }
 
-        public static IEnumerable<TResult> Select<TItem, TResult>(this IEnumerable<TItem> items,
-             Func<TItem, TResult> single, Func<TItem, TItem, TResult> first, Func<TItem, TItem, TItem, TResult> middle, Func<TItem, TItem, TResult> last)
+        public static IEnumerable<TResult> SelectBySegment<TItem, TResult>(this IEnumerable<TItem> items,
+             Func<TItem, TResult> single,
+             Func<TItem, TItem, TResult> first, 
+             Func<TItem, TItem, TItem, TResult> middle, 
+             Func<TItem, TItem, TResult> last)
         {
             var iter = items.GetEnumerator();
             if (!iter.MoveNext())
@@ -801,6 +855,14 @@ namespace EastFive.Linq
                 .Select(item => item);
         }
 
+        /// <summary>
+        /// Sort items by removing a group of items at a time. 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="items"></param>
+        /// <param name="sorter"></param>
+        /// <param name="comparison"></param>
+        /// <returns></returns>
         public static IEnumerable<T> Sort<T>(this IEnumerable<T> items, 
             Func<IEnumerable<T>, IEnumerable<T>, IEnumerable<T>> sorter,
             Func<T, T, bool> comparison)
@@ -827,6 +889,50 @@ namespace EastFive.Linq
                 sorted = newSorted;
             }
         }
+
+        public struct Collated<T1, T2>
+        {
+            public double value;
+            public T1 item1;
+            public T2 item2;
+        }
+
+        public static IEnumerable<Collated<T1, T2>> Collate<T1, T2>(this IEnumerable<T1> items1,
+                IEnumerable<T2> items2,
+            Func<T1, T2, double> collater)
+        {
+            var items1Knockout = items1.ToList();
+            var items2Knockout = items2.ToList();
+            return items1
+                .SelectMany(
+                    item1 => items2
+                        .Select(
+                            item2 =>
+                            {
+                                var value = collater(item1, item2);
+                                return new Collated<T1, T2>
+                                {
+                                    item1 = item1,
+                                    item2 = item2,
+                                    value = value,
+                                };
+                            }))
+                .OrderBy(collation => collation.value)
+                .Where(
+                    collation =>
+                    {
+                        if (!items1Knockout.Contains(collation.item1))
+                            return false;
+                        if (!items2Knockout.Contains(collation.item2))
+                            return false;
+                        if (!items1Knockout.Remove(collation.item1))
+                            throw new Exception();
+                        if (!items2Knockout.Remove(collation.item2))
+                            throw new Exception();
+                        return true;
+                    });
+        }
+
 
         public static IEnumerable<T> Compress<T>(this IEnumerable<T> items, Func<T, T, T[]> compressor)
         {

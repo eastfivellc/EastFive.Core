@@ -177,9 +177,28 @@ namespace EastFive
             return uriBuilder.Uri;
         }
 
-        public static Uri AppendToPath(this Uri uri, string fileOrDirectory)
+        public static Uri AppendToPath(this Uri uri, string fileOrDirectory,
+            bool postPendFile = false)
         {
             var uriBuilder = new UriBuilder(uri);
+            if(postPendFile)
+            {
+                var pathComponents = uriBuilder.Path
+                    .Split('/'.AsArray())
+                    .ToArray();
+                if (!pathComponents.Any())
+                {
+                    uriBuilder.Path = $"{fileOrDirectory}/{uriBuilder.Path}";
+                    return uriBuilder.Uri;
+                }
+
+                uriBuilder.Path = pathComponents.SkipLast(1)
+                    .Append(fileOrDirectory)
+                    .Append(pathComponents.Last())
+                    .Join('/');
+                return uriBuilder.Uri;
+            }
+
             uriBuilder.Path = uriBuilder.Path.EndsWith("/") ?
                 uriBuilder.Path + fileOrDirectory
                 :
