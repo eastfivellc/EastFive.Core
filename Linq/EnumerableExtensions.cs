@@ -855,6 +855,32 @@ namespace EastFive.Linq
                 .Select(item => item);
         }
 
+        public static IEnumerable<TMatch> Match<T1, T2, TMatch, TKey>(this IEnumerable<T1> items1,
+                IEnumerable<T2> items2,
+            Func<T1, T2, TMatch> matcher,
+            Func<TMatch, TKey> valueSelector)
+        {
+            return items1
+                .Select(
+                    item1 =>
+                    {
+                        var item1c = item1;
+                        return items2
+                            .Select(
+                                item2 =>
+                                {
+                                    var value = matcher(item1c, item2);
+                                    return value;
+                                })
+                            .OrderBy(value => valueSelector(value))
+                            .First(
+                                (tuple, next) => (true, (TMatch)tuple),
+                                () => (false, default(TMatch)));
+                    })
+                .Where(tuple => tuple.Item1)
+                .Select(tuple => tuple.Item2);
+        }
+
         /// <summary>
         /// Sort items by removing a group of items at a time. 
         /// </summary>
@@ -890,16 +916,35 @@ namespace EastFive.Linq
             }
         }
 
-        public struct Collated<T1, T2>
+        public struct Collated<T1, T2, TKey>
         {
-            public double value;
+            public TKey value;
             public T1 item1;
             public T2 item2;
         }
 
-        public static IEnumerable<Collated<T1, T2>> Collate<T1, T2>(this IEnumerable<T1> items1,
+        public static IEnumerable<Collated<T1, T2, TKey>> Collate<T1, T2, TKey>(this IEnumerable<T1> items1,
                 IEnumerable<T2> items2,
-            Func<T1, T2, double> collater)
+            Func<T1, T2, TKey> collater)
+        {
+            return items1.Collate(items2,
+                (item1, item2) =>
+                {
+                    var value = collater(item1, item2);
+                    return new Collated<T1, T2, TKey>
+                    {
+                        item1 = item1,
+                        item2 = item2,
+                        value = value,
+                    };
+                },
+                collation => collation.value);
+        }
+
+        public static IEnumerable<TCollate> Collate<T1, T2, TCollate, TKey>(this IEnumerable<T1> items1,
+                IEnumerable<T2> items2,
+            Func<T1, T2, TCollate> collater,
+            Func<TCollate, TKey> valueSelector)
         {
             var items1Knockout = items1.ToList();
             var items2Knockout = items2.ToList();
@@ -910,14 +955,9 @@ namespace EastFive.Linq
                             item2 =>
                             {
                                 var value = collater(item1, item2);
-                                return new Collated<T1, T2>
-                                {
-                                    item1 = item1,
-                                    item2 = item2,
-                                    value = value,
-                                };
+                                return (value, item1, item2);
                             }))
-                .OrderBy(collation => collation.value)
+                .OrderBy(tuple => valueSelector(tuple.value))
                 .Where(
                     collation =>
                     {
@@ -930,9 +970,9 @@ namespace EastFive.Linq
                         if (!items2Knockout.Remove(collation.item2))
                             throw new Exception();
                         return true;
-                    });
+                    })
+                .Select(tuple => tuple.value);
         }
-
 
         public static IEnumerable<T> Compress<T>(this IEnumerable<T> items, Func<T, T, T[]> compressor)
         {

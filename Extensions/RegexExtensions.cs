@@ -354,5 +354,149 @@ namespace EastFive
                                 .ToArray());
                     });
         }
+
+        /// <summary>
+        /// Invokes expression if there is a match for <paramref name="regularExpression"/> in <paramref name="input"/>.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="input">String to match against.</param>
+        /// <param name="regularExpression">
+        /// To populate expression parameters named `verb1`, and `noun1` use "The (?<noun1>[a-zA-Z]+) (?<verb1>[a-zA-Z]+)."
+        /// To ignore case: ".*(?i)IgNore CaSE oF THIS(?-i)
+        /// </param>
+        /// <param name="expression">
+        /// Invoked if there is a match. The arguments must be named. For example, <code>(string verb1, string noun1, string noun2) =>...</code>"
+        /// </param>
+        /// <returns>True if input matches regular expression, otherwise false.</returns>
+        public static bool TryMatchRegex<T>(this string input, string regularExpression,
+            Expression<Func<string, string, T>> expression,
+            out T result)
+        {
+            var exec = expression.Compile();
+            return input.TryParseRegexDynamic(regularExpression,
+                expression.Parameters.ToArray(),
+                invokeArgs => (T)exec.Invoke(
+                    invokeArgs[0], invokeArgs[1]),
+                out result);
+        }
+
+        /// <summary>
+        /// Invokes expression if there is a match for <paramref name="regularExpression"/> in <paramref name="input"/>.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="input">String to match against.</param>
+        /// <param name="regularExpression">
+        /// To populate expression parameters named `verb1`, `noun1`, and `noun2` use "The (?<noun2>[a-zA-Z]+) (?<verb1>[a-zA-Z]+) the (?<noun1>[a-zA-Z]+)."
+        /// To ignore case: ".*(?i)IgNore CaSE oF THIS(?-i)
+        /// </param>
+        /// <param name="expression">
+        /// Invoked if there is a match. The arguments must be named. For example, <code>(string verb1, string noun1, string noun2) =>...</code>"
+        /// </param>
+        /// <returns>True if input matches regular expression, otherwise false.</returns>
+        public static bool TryMatchRegex<T>(this string input, string regularExpression,
+            Expression<Func<string, string, string, T>> expression,
+            out T result)
+        {
+            var exec = expression.Compile();
+            return input.TryParseRegexDynamic(regularExpression,
+                expression.Parameters.ToArray(),
+                invokeArgs => (T)exec.Invoke(
+                    invokeArgs[0], invokeArgs[1], invokeArgs[2]),
+                out result);
+        }
+
+        /// <summary>
+        /// Invokes expression if there is a match for <paramref name="regularExpression"/> in <paramref name="input"/>.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="input">String to match against.</param>
+        /// <param name="regularExpression">
+        /// To populate expression parameters named `verb1`, `noun1`, and `noun2` use "The (?<noun2>[a-zA-Z]+) (?<verb1>[a-zA-Z]+) the (?<noun1>[a-zA-Z]+)."
+        /// To ignore case: ".*(?i)IgNore CaSE oF THIS(?-i)
+        /// </param>
+        /// <param name="expression">
+        /// Invoked if there is a match. The arguments must be named. For example, <code>(string verb1, string noun1, string noun2) =>...</code>"
+        /// </param>
+        /// <returns>True if input matches regular expression, otherwise false.</returns>
+        public static bool TryMatchRegex<T>(this string input, string regularExpression,
+            Expression<Func<string, string, string, string, string, T>> expression,
+            out T result)
+        {
+            var exec = expression.Compile();
+            return input.TryParseRegexDynamic(regularExpression,
+                expression.Parameters.ToArray(),
+                invokeArgs => (T)exec.Invoke(
+                    invokeArgs[0], invokeArgs[1], invokeArgs[2],
+                    invokeArgs[3], invokeArgs[4]),
+                out result);
+        }
+
+        private static bool TryParseRegexDynamic<T>(this string input, string regularExpression,
+            ParameterExpression[] parameterSet,
+            Func<string[], T> invoker,
+            out T result)
+        {
+            var regex = new Regex(regularExpression);
+            if(input == null)
+            {
+                result = default;
+                return false;
+            }
+            var kvp = regex
+                .Matches(input)
+                .AsMatches()
+                .Where(match => match.Success)
+                .Select(
+                    (match) =>
+                    {
+                        var groups = match.Groups.AsGroups().Skip(1).ToArray();
+
+                        var assignmentCollection = parameterSet
+                            .Select(
+                                parameter =>
+                                {
+                                    var matchingGroups = groups
+                                        .Where(
+                                            groupMaybe =>
+                                            {
+                                                if (!(groupMaybe is System.Text.RegularExpressions.Group))
+                                                    return false;
+                                                var group = groupMaybe as System.Text.RegularExpressions.Group;
+                                                var groupName = group.Name;
+                                                return groupName == parameter.Name;
+                                            });
+                                    if (!matchingGroups.Any())
+                                        return default(KeyValuePair<ParameterExpression, string>?);
+
+                                    return parameter.PairWithValue(matchingGroups.First().Value);
+                                })
+                            .SelectWhereHasValue()
+                            .ToArray();
+
+                        return assignmentCollection;
+                    })
+                .Where(parameterAndValues => parameterAndValues.Length == parameterSet.Length)
+                .First(
+                    (parameterAndValues, next) =>
+                    {
+                        var nextArgs = parameterSet
+                            .Aggregate(
+                                new string[] { },
+                                (invokeArgs, parameter) =>
+                                {
+                                    var valuesMaybe = parameterAndValues.Where(pAndV => pAndV.Key == parameter);
+                                    if (!valuesMaybe.Any())
+                                        throw new ArgumentException();
+                                    var value = valuesMaybe.First();
+                                    return invokeArgs.Append(value.Value).ToArray();
+                                });
+                        var result = invoker(nextArgs);
+                        return result.PairWithKey(true);
+                    },
+                    () => default(T).PairWithKey(false));
+
+            result = kvp.Value;
+            return kvp.Key;
+        }
     }
 }
