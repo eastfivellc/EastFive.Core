@@ -122,10 +122,11 @@ namespace EastFive
         #endregion
 
         #region Misc
-        public static int BirthDateToAge(this DateTime dateOfBirth)
+        public static int BirthDateToAge(this DateTime dateOfBirth, DateTime? asOfMaybe = default)
         {
-            int years = DateTime.Now.Year - dateOfBirth.Year;
-            if ((dateOfBirth.Month > DateTime.Now.Month) || (dateOfBirth.Month == DateTime.Now.Month && dateOfBirth.Day > DateTime.Now.Day))
+            var asOf = asOfMaybe.HasValue ? asOfMaybe.Value : DateTime.Now;
+            int years = asOf.Year - dateOfBirth.Year;
+            if ((dateOfBirth.Month > asOf.Month) || (dateOfBirth.Month == asOf.Month && dateOfBirth.Day > asOf.Day))
                 years--;
             return years;
         }
