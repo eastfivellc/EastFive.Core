@@ -355,6 +355,32 @@ namespace EastFive
                     });
         }
 
+
+        /// <summary>
+        /// Invokes expression if there is a match for <paramref name="regularExpression"/> in <paramref name="input"/>.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="input">String to match against.</param>
+        /// <param name="regularExpression">
+        /// To populate expression parameter named `noun1` use "The (?<noun1>[a-zA-Z]+) jumped"
+        /// To ignore case: ".*(?i)IgNore CaSE oF THIS(?-i)
+        /// </param>
+        /// <param name="expression">
+        /// Invoked if there is a match. The arguments must be named. For example, <code>(string verb1, string noun1, string noun2) =>...</code>"
+        /// </param>
+        /// <returns>True if input matches regular expression, otherwise false.</returns>
+        public static bool TryMatchRegex<T>(this string input, string regularExpression,
+            Expression<Func<string, T>> expression,
+            out T result)
+        {
+            var exec = expression.Compile();
+            return input.TryParseRegexDynamic(regularExpression,
+                expression.Parameters.ToArray(),
+                invokeArgs => (T)exec.Invoke(
+                    invokeArgs[0]),
+                out result);
+        }
+
         /// <summary>
         /// Invokes expression if there is a match for <paramref name="regularExpression"/> in <paramref name="input"/>.
         /// </summary>

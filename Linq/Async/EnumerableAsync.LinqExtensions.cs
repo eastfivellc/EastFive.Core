@@ -998,14 +998,24 @@ namespace EastFive.Linq.Async
                 });
         }
         
-        public static IEnumerableAsync<T> Append<T>(this IEnumerableAsync<T> enumerable1, T enumerable2)
+        public static IEnumerableAsync<T> Append<T>(this IEnumerableAsync<T> enumerable, T item)
         {
-            return (new IEnumerableAsync<T>[]
-            {
-                enumerable1,
-                enumerable2.EnumerableAsyncStart(),
-            })
-            .AsyncConcat();
+            var enumerator = enumerable.GetEnumerator();
+            bool needToAppend = true;
+            return Yield<T>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    if (await enumerator.MoveNextAsync())
+                        return yieldReturn(enumerator.Current);
+
+                    if (needToAppend)
+                    {
+                        needToAppend = false;
+                        return yieldReturn(item);
+                    }
+
+                    return yieldBreak;
+                });
         }
 
         public static IEnumerableAsync<T> AsyncAppend<T>(this IEnumerableAsync<T> enumerable1, Task<T> enumerable2)

@@ -222,6 +222,42 @@ namespace EastFive.Linq.Async
                 });
         }
 
+        public static IEnumerableAsync<T> OnCompleteJoin<T>(this IEnumerableAsync<T> enumerableAsync,
+            Func<T[], IEnumerableAsync<T>> onComplete)
+        {
+            var enumerator = enumerableAsync.GetEnumerator();
+            var stack = new Stack<T>();
+            var called = false;
+            return EnumerableAsync.Yield<T>(
+                async (next, last) =>
+                {
+                    if (!called)
+                    {
+                        if (await enumerator.MoveNextAsync())
+                        {
+                            var current = enumerator.Current;
+                            //if (!tag.IsNullOrWhiteSpace())
+                            //    Console.WriteLine($"Join[{tag}] Passthrough on value.");
+                            stack.Push(current);
+                            return next(current);
+                        }
+
+                        var allValues = stack.ToArray();
+                        var completeItems = onComplete(allValues);
+                        called = true;
+                        enumerator = completeItems.GetEnumerator();
+                    }
+
+                    if (await enumerator.MoveNextAsync())
+                    {
+                        var current = enumerator.Current;
+                        return next(current);
+                    }
+
+                    return last;
+                });
+        }
+
         public static IEnumerableAsync<T> OnCompleteAsync<T>(this IEnumerableAsync<T> enumerableAsync,
             Func<T[], Task> onComplete,
             ILogger logger = default(ILogger))
