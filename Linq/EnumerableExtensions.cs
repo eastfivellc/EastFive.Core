@@ -345,6 +345,15 @@ namespace EastFive.Linq
             return items.NullToEmpty().Any();
         }
 
+        public static IEnumerable<TAs> IsAs<TItem, TAs>(this IEnumerable<TItem> items)
+            where TItem : class
+            where TAs : class
+        {
+            return items
+                .Where(item => item is TAs)
+                .Select(item => item as TAs);
+        }
+
         public static TResult Min<TItem, TComparable, TResult>(this IEnumerable<TItem> items,
             Func<TItem, TComparable> sortCriteria,
             Func<TComparable, TComparable, int> comparer,
