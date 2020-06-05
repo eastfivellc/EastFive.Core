@@ -502,18 +502,18 @@ namespace EastFive.Serialization
             }
         }
 
-        public static Nullable<T>[] ToNullablesFromByteArray<T>(this byte[] byteArrayOfNullables, Func<byte[], T> convert, int constantSize = -1)
+        public static Nullable<T>[] ToNullablesFromByteArray<T>(this byte[] byteArrayOfNullables, Func<byte[], T> convert)
             where T : struct
         {
             if (byteArrayOfNullables == null)
                 return new T?[] { };
 
             return byteArrayOfNullables
-                .ToNullableEnumerableFromByteArray(convert, constantSize)
+                .ToNullableEnumerableFromByteArray(convert)
                 .ToArray();
         }
 
-        private static IEnumerable<Nullable<T>> ToNullableEnumerableFromByteArray<T>(this byte[] byteArrayOfNullables, Func<byte[], T> convert, int constantSize)
+        private static IEnumerable<Nullable<T>> ToNullableEnumerableFromByteArray<T>(this byte[] byteArrayOfNullables, Func<byte[], T> convert)
             where T : struct
         {
             int storageLength;
@@ -526,37 +526,35 @@ namespace EastFive.Serialization
             {
                 yield break;
             }
+            if (storageLength <= 0)
+                yield break; // TODO: Data warning
             var byteArrayOfNullable = new byte[storageLength];
-            var index = sizeof(int);
+
+            var index = sizeof(int); // Read first byte after size array
             while (index < byteArrayOfNullables.Length)
             {
-                if (byteArrayOfNullables[index] == 0)
+                var nullIndicator = byteArrayOfNullables[index];
+                var isNull = nullIndicator == 0;
+                index++;
+                if (isNull)
                 {
                     yield return new Nullable<T>();
-                    if (constantSize > 0)
-                        index += constantSize;
+                    continue;
                 }
-                else
-                {
-                    if (byteArrayOfNullables.Length < index + 1 + storageLength)
-                        yield break; // TODO: Data warning
-
-                    Array.Copy(byteArrayOfNullables, index + 1, byteArrayOfNullable, 0, storageLength);
-                    yield return convert(byteArrayOfNullable);
-                    index += storageLength;
-                }
-                index++;
+                
+                if (byteArrayOfNullables.Length < index + storageLength)
+                    yield break; // TODO: Data warning
+                
+                Array.Copy(byteArrayOfNullables, index, byteArrayOfNullable, 0, storageLength);
+                yield return convert(byteArrayOfNullable);
+                index += storageLength;
             }
         }
 
-        public static byte[] ToByteArrayOfNullables<T>(this IEnumerable<Nullable<T>> nullables, Func<T, byte[]> convert, int constantSize = -1)
+        public static byte[] ToByteArrayOfNullables<T>(this IEnumerable<Nullable<T>> nullables, Func<T, byte[]> convert)
             where T : struct
         {
-            int size = constantSize;
-            if (size < 0)
-            {
-                size = convert(default(T)).Length;
-            }
+            int size = convert(default(T)).Length;
 
             var bytes = nullables
                 .SelectMany(
@@ -564,9 +562,7 @@ namespace EastFive.Serialization
                     {
                         if (nullable.HasValue)
                             return new byte[] { 1 }.Concat(convert(nullable.Value));
-                        if (-1 == constantSize)
-                            return new byte[] { 0 };
-                        return Enumerable.Repeat((byte)0, constantSize + 1).ToArray();
+                        return new byte[] { 0 };
                     });
             return BitConverter.GetBytes(size).Concat(bytes).ToArray();
         }

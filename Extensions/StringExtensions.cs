@@ -222,5 +222,12 @@ namespace EastFive
         {
             return (TEnum)Enum.Parse(typeof(TEnum), value);
         }
+
+        public static string ToLowerNullSafe(this string value)
+        {
+            if (value.IsNullOrWhiteSpace())
+                return value;
+            return value.ToLower();
+        }
     }
 }
