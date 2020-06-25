@@ -193,7 +193,7 @@ namespace EastFive.Linq.Async
         
         public static IEnumerableAsync<T> OnComplete<T>(this IEnumerableAsync<T> enumerableAsync,
             Action<T[]> onComplete,
-            string tag = default(string))
+            EastFive.Analytics.ILogger logger = default(ILogger))
         {
             var enumerator = enumerableAsync.GetEnumerator();
             var stack = new Stack<T>();
@@ -212,11 +212,11 @@ namespace EastFive.Linq.Async
                     }
 
                     var allValues = stack.ToArray();
-                    if (!tag.IsNullOrWhiteSpace())
-                        Console.WriteLine($"OnComplete[{tag}] Accumulated `{allValues.Length}` Values.");
+                    if (!logger.IsDefaultOrNull())
+                        Console.WriteLine($"OnComplete Accumulated `{allValues.Length}` Values.");
                     onComplete(allValues);
-                    if (!tag.IsNullOrWhiteSpace())
-                        Console.WriteLine($"OnComplete[{tag}] Complete.");
+                    if (!logger.IsDefaultOrNull())
+                        Console.WriteLine($"OnComplete Complete.");
 
                     return last;
                 });
@@ -236,8 +236,6 @@ namespace EastFive.Linq.Async
                         if (await enumerator.MoveNextAsync())
                         {
                             var current = enumerator.Current;
-                            //if (!tag.IsNullOrWhiteSpace())
-                            //    Console.WriteLine($"Join[{tag}] Passthrough on value.");
                             stack.Push(current);
                             return next(current);
                         }
@@ -281,6 +279,49 @@ namespace EastFive.Linq.Async
                     scopedLogger.Trace($"Accumulated `{allValues.Length}` Values.");
                     await onComplete(allValues);
                     scopedLogger.Trace($"Complete.");
+
+                    return last;
+                });
+        }
+
+        public static IEnumerableAsync<T> OnCompleteAsyncJoin<T>(this IEnumerableAsync<T> enumerableAsync,
+            Func<T[], Task<IEnumerableAsync<T>>> onComplete)
+        {
+            return enumerableAsync.OnCompleteJoin(
+                items => onComplete(items).FoldTask());
+        }
+
+        public static IEnumerableAsync<T> OnCompleteAsyncAppend<T>(this IEnumerableAsync<T> enumerableAsync,
+            Func<T[], Task<T[]>> onComplete)
+        {
+            var enumerator = enumerableAsync.GetEnumerator();
+            var stack = new Stack<T>();
+            var called = false;
+            var completeItemsIndex = 0;
+            var completeItems = default(T[]);
+            return EnumerableAsync.Yield<T>(
+                async (next, last) =>
+                {
+                    if (!called)
+                    {
+                        if (await enumerator.MoveNextAsync())
+                        {
+                            var current = enumerator.Current;
+                            stack.Push(current);
+                            return next(current);
+                        }
+
+                        var allValues = stack.ToArray();
+                        completeItems = await onComplete(allValues);
+                        called = true;
+                    }
+
+                    if (completeItemsIndex < completeItems.Length)
+                    {
+                        var current = completeItems[completeItemsIndex];
+                        completeItemsIndex++;
+                        return next(current);
+                    }
 
                     return last;
                 });

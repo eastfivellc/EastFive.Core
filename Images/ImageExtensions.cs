@@ -6,7 +6,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-
+using EastFive.Extensions;
 using EastFive.Linq;
 
 namespace EastFive.Images
@@ -14,7 +14,8 @@ namespace EastFive.Images
     public static class ImageExtensions
     {
         public static Image ResizeImage(this Image image,
-            int? width = default(int?), int? height = default(int?), bool? fill = default(bool?))
+            int? width = default(int?), int? height = default(int?), bool? fill = default(bool?),
+            Brush background = default)
         {
             if (!width.HasValue)
                 if (!height.HasValue)
@@ -46,8 +47,9 @@ namespace EastFive.Images
             using (var graphics = Graphics.FromImage(newImage))
             {
                 graphics.CompositingMode = CompositingMode.SourceCopy;
-                var brush = System.Drawing.Brushes.White;
-                graphics.FillRectangle(brush, 0, 0, newWidth, newHeight);
+                if(background.IsDefaultOrNull())
+                    background = System.Drawing.Brushes.White;
+                graphics.FillRectangle(background, 0, 0, newWidth, newHeight);
 
                 //set some encoding specs
                 graphics.CompositingMode = CompositingMode.SourceOver;
@@ -57,6 +59,32 @@ namespace EastFive.Images
                 graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
 
                 graphics.DrawImage(image, 0, 0, newWidth, newHeight);
+                return newImage;
+            }
+        }
+
+        public static Image SetBackground(this Image image,
+            Brush background)
+        {
+            var newImage = new Bitmap(image.Width, image.Height, PixelFormat.Format24bppRgb);
+
+            //set the new resolution
+            newImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
+
+            //start the resizing
+            using (var graphics = Graphics.FromImage(newImage))
+            {
+                graphics.CompositingMode = CompositingMode.SourceCopy;
+                graphics.FillRectangle(background, 0, 0, image.Width, image.Height);
+
+                //set some encoding specs
+                graphics.CompositingMode = CompositingMode.SourceOver;
+                graphics.CompositingQuality = CompositingQuality.HighQuality;
+                graphics.SmoothingMode = SmoothingMode.HighQuality;
+                graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+                graphics.DrawImage(image, 0, 0, image.Width, image.Height);
                 return newImage;
             }
         }
@@ -78,6 +106,19 @@ namespace EastFive.Images
             image.Save(outputStream, imageCodecUsed, encoderQuality);
         }
 
+        public static byte [] Save(this Image image,
+            out ImageCodecInfo imageCodecUsed,
+            string encodingMimeType = "image/jpeg", long encoderQuality = 80L)
+        {
+            using(var stream = new MemoryStream())
+            {
+                image.Save(stream, out imageCodecUsed,
+                    encodingMimeType: encodingMimeType,
+                    encoderQuality: encoderQuality);
+                return stream.ToArray();
+            }
+        }
+
         public static ImageCodecInfo ParseImageCodecInfo(this string mimeType)
         {
             return ImageCodecInfo
@@ -92,30 +133,22 @@ namespace EastFive.Images
                     () => ImageCodecInfo.GetImageEncoders().First());
         }
 
-
         public static bool TryParseImage(this string imageDataEncoding, out Image image)
         {
-            var componentss = imageDataEncoding.MatchRegexInvoke(
+            if(!imageDataEncoding.TryMatchRegex(
                 "data:(?<contentType>[^;]+);(?<encoding>[^,]+),(?<data>[\\S\\s]+)",
-                (contentType, encoding, data) =>
-                    new
-                    {
-                        contentType,
-                        encoding,
-                        data,
-                    },
-                cs => cs);
-
-            if (!componentss.AnyNullSafe())
+                (contentType, encoding, data) => Tuple.Create(contentType, encoding, data),
+                out Tuple<string, string, string> components))
             {
                 image = default;
                 return false;
             }
 
-            var components = componentss.First();
-            if (components.encoding.Equals("base64", StringComparison.OrdinalIgnoreCase))
+            var encoding = components.Item2;
+            var dataEncoded = components.Item3;
+            if (encoding.Equals("base64", StringComparison.OrdinalIgnoreCase))
             {
-                var data = components.data.FromBase64String();
+                var data = dataEncoded.FromBase64String();
                 using (var stream = new MemoryStream(data))
                 {
                     image = new Bitmap(stream);
@@ -123,9 +156,9 @@ namespace EastFive.Images
                 }
             }
 
-            if (components.encoding.Equals("base58", StringComparison.OrdinalIgnoreCase))
+            if (encoding.Equals("base58", StringComparison.OrdinalIgnoreCase))
             {
-                var data = components.data.Base58Decode();
+                var data = dataEncoded.Base58Decode();
                 using (var stream = new MemoryStream(data))
                 {
                     image = new Bitmap(stream);
@@ -137,6 +170,15 @@ namespace EastFive.Images
             return false;
         }
         
+        public static string Base64Encode(this Image image,
+            string encodingMimeType = "image/jpeg", long encoderQuality = 80L)
+        {
+            var mediaContents = image.Save(out ImageCodecInfo imageCodecInfo,
+                encodingMimeType:encodingMimeType, encoderQuality:encoderQuality);
+            var contentType = imageCodecInfo.MimeType;
+            return $"data:{contentType};base64,{mediaContents.ToBase64String()}";
+        }
+
         public static Image Crop(this Image image, int x, int y, int w, int h)
         {
             var newImage = new Bitmap(w, h, PixelFormat.Format32bppArgb);
@@ -224,6 +266,33 @@ namespace EastFive.Images
                 graphics.DrawImage(image, 0, 0, newWidth, newHeight);
             }
             return newImage;
+        }
+
+        public static Image MaxAspect(this Image image, double viewportAspect)
+        {
+            var imageAspect = image.AspectRatio();
+            if(imageAspect < viewportAspect)
+            {
+                var newHeight = image.Width / viewportAspect;
+                var heightCrop = (image.Height - newHeight) + 1.0;
+                var newY = (int)(heightCrop / 2);
+                return image.Crop(0, newY, image.Width, (int)(newHeight + 0.5));
+            }
+            if (imageAspect > viewportAspect)
+            {
+                var newWidth = image.Height * viewportAspect;
+                var widthCrop = image.Width - newWidth;
+                var newX = (int)(widthCrop / 2);
+                return image.Crop(newX, 0, (int)(newWidth + 0.5), image.Height);
+            }
+            return image;
+        }
+
+        public static double AspectRatio(this Image image)
+        {
+            var width = (double)image.Width;
+            var height = (double)image.Height;
+            return width / height;
         }
 
         public static string GetMimeType(this Image image)
