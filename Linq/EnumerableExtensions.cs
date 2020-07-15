@@ -104,6 +104,26 @@ namespace EastFive.Linq
             return items.Distinct(item => item.Key);
         }
 
+        public static IEnumerable<T> DistinctSets<T, TSetItem>(this IEnumerable<T> items,
+            Func<T, TSetItem[]> breakSet)
+        {
+            var uniques = new HashSet<TSetItem>();
+
+            foreach (var item in items)
+            {
+                var alreadyUsed = false;
+                foreach (var setItem in breakSet(item))
+                {
+                    var itemAlreadyUsed = uniques.Contains(setItem);
+                    if(!itemAlreadyUsed)
+                        uniques.Add(setItem);
+                    alreadyUsed = alreadyUsed || itemAlreadyUsed;
+                }
+                if (!alreadyUsed)
+                    yield return item;
+            }
+        }
+
         public static T[] Duplicates<T>(this IEnumerable<T> items, Func<T, T, bool> predicate)
         {
             var array = items.ToArray();
@@ -511,6 +531,21 @@ namespace EastFive.Linq
             return items
                 .Where(item => item is TAs)
                 .Select(tCastAs);
+        }
+
+        public delegate bool TryPredicate<TItem, TOut>(TItem item, out TOut result);
+        public static IEnumerable<(TItem item, TOut @out)> TryWhere<TItem, TOut>(this IEnumerable<TItem> items,
+            TryPredicate<TItem, TOut> tryPredicate)
+        {
+            return items
+                .Select(
+                    (item) =>
+                    {
+                        var success = tryPredicate(item, out TOut @out);
+                        return (success, item, @out);
+                    })
+                .Where(item => item.success)
+                .Select(item => (item.item, item.@out));
         }
 
         public static T Random<T>(this IEnumerable<T> items, int total, Random rand = null)
@@ -1023,6 +1058,26 @@ namespace EastFive.Linq
                 .Append(new[] { item })
                 .ToArray();
             return combinations;
+        }
+
+        public static IEnumerable<(T, T)> Pairs<T>(this IEnumerable<T> items)
+        {
+            var itemsArray = items.ToArray();
+
+            if (itemsArray.Length < 2)
+                yield break;
+
+            var index1 = 0;
+            while(index1 < itemsArray.Length - 1)
+            {
+                var index2 = index1 + 1;
+                while (index2 < itemsArray.Length)
+                {
+                    yield return (itemsArray[index1], itemsArray[index2]);
+                    index2++;
+                }
+                index1++;
+            }
         }
 
         public static TAccumulate Aggregate<TSource, TAccumulate>(this IEnumerable<TSource> items,

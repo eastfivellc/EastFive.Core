@@ -288,6 +288,42 @@ namespace EastFive.Images
             return image;
         }
 
+        public static Image MinAspect(this Image image, double viewportAspect)
+        {
+            var imageAspect = image.AspectRatio();
+            if (imageAspect > viewportAspect)
+            {
+                var newHeight = image.Width / viewportAspect;
+                var heightMargin = (newHeight - image.Height) + 1.0;
+                var newY = (int)(heightMargin / 2);
+                return image.Crop(0, newY, image.Width, (int)(newHeight + 0.5));
+            }
+            if (imageAspect < viewportAspect)
+            {
+                var newWidth = image.Height * viewportAspect;
+                var widthMargin = newWidth - image.Width;
+                var newX = (int)(widthMargin / 2);
+                return image.Crop(newX, 0, (int)(newWidth + 0.5), image.Height);
+            }
+            return image;
+        }
+
+        public static Image ScaleAspect(this Image image, double viewportAspect)
+        {
+            var imageAspect = image.AspectRatio();
+            if (imageAspect > viewportAspect)
+            {
+                var newHeight = image.Width / viewportAspect;
+                return image.Scale(image.Width, (int)(newHeight + 0.5), true);
+            }
+            if (imageAspect < viewportAspect)
+            {
+                var newWidth = image.Height * viewportAspect;
+                return image.Scale((int)(newWidth + 0.5), image.Height, true);
+            }
+            return image;
+        }
+
         public static double AspectRatio(this Image image)
         {
             var width = (double)image.Width;
