@@ -22,6 +22,16 @@ namespace EastFive.Linq
             }
         }
 
+        public static double StdDev(this IEnumerable<float> list)
+        {
+            return list.StdDev(x => (double)x);
+        }
+
+        public static double StdDev(this IEnumerable<double> list)
+        {
+            return list.StdDev(x => x);
+        }
+
         public static double StdDev<T>(this IEnumerable<T> list, Func<T, double> values)
         {
             // ref: https://stackoverflow.com/questions/2253874/linq-equivalent-for-standard-deviation
