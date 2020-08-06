@@ -11,7 +11,7 @@ using EastFive.Linq;
 
 namespace EastFive.Images
 {
-    public static class ImageExtensions
+    public static class ImageManipulationExtensions
     {
         public static Image ResizeImage(this Image image,
             int? width = default(int?), int? height = default(int?), bool? fill = default(bool?),
@@ -87,96 +87,6 @@ namespace EastFive.Images
                 graphics.DrawImage(image, 0, 0, image.Width, image.Height);
                 return newImage;
             }
-        }
-
-        public static void Save(this Image image, Stream outputStream,
-            ImageCodecInfo imageCodec, long encoderQuality = 80L)
-        {
-            var encoderParameters = new EncoderParameters(1);
-            encoderParameters.Param[0] = new EncoderParameter(Encoder.Quality, encoderQuality);
-
-            image.Save(outputStream, imageCodec, encoderParameters);
-        }
-
-        public static void Save(this Image image, Stream outputStream,
-            out ImageCodecInfo imageCodecUsed,
-            string encodingMimeType = "image/jpeg", long encoderQuality = 80L)
-        {
-            imageCodecUsed = ParseImageCodecInfo(encodingMimeType);
-            image.Save(outputStream, imageCodecUsed, encoderQuality);
-        }
-
-        public static byte [] Save(this Image image,
-            out ImageCodecInfo imageCodecUsed,
-            string encodingMimeType = "image/jpeg", long encoderQuality = 80L)
-        {
-            using(var stream = new MemoryStream())
-            {
-                image.Save(stream, out imageCodecUsed,
-                    encodingMimeType: encodingMimeType,
-                    encoderQuality: encoderQuality);
-                return stream.ToArray();
-            }
-        }
-
-        public static ImageCodecInfo ParseImageCodecInfo(this string mimeType)
-        {
-            return ImageCodecInfo
-                .GetImageEncoders()
-                .First(
-                    (encoder, next) =>
-                    {
-                        if (encoder.MimeType.Equals(mimeType, StringComparison.OrdinalIgnoreCase))
-                            return encoder;
-                        return next();
-                    },
-                    () => ImageCodecInfo.GetImageEncoders().First());
-        }
-
-        public static bool TryParseImage(this string imageDataEncoding, out Image image)
-        {
-            if(!imageDataEncoding.TryMatchRegex(
-                "data:(?<contentType>[^;]+);(?<encoding>[^,]+),(?<data>[\\S\\s]+)",
-                (contentType, encoding, data) => Tuple.Create(contentType, encoding, data),
-                out Tuple<string, string, string> components))
-            {
-                image = default;
-                return false;
-            }
-
-            var encoding = components.Item2;
-            var dataEncoded = components.Item3;
-            if (encoding.Equals("base64", StringComparison.OrdinalIgnoreCase))
-            {
-                var data = dataEncoded.FromBase64String();
-                using (var stream = new MemoryStream(data))
-                {
-                    image = new Bitmap(stream);
-                    return true;
-                }
-            }
-
-            if (encoding.Equals("base58", StringComparison.OrdinalIgnoreCase))
-            {
-                var data = dataEncoded.Base58Decode();
-                using (var stream = new MemoryStream(data))
-                {
-                    image = new Bitmap(stream);
-                    return true;
-                }
-            }
-
-            image = default;
-            return false;
-        }
-        
-        public static string Base64Encode(this Image image,
-            string encodingMimeType = "image/jpeg", long encoderQuality = 80L)
-        {
-            var mediaContents = image.Save(out ImageCodecInfo imageCodecInfo,
-                encodingMimeType:encodingMimeType, encoderQuality:encoderQuality);
-            var contentType = imageCodecInfo.MimeType;
-            return $"data:{contentType};base64,{mediaContents.ToBase64String()}";
         }
 
         public static Image Crop(this Image image, int x, int y, int w, int h)
@@ -270,22 +180,45 @@ namespace EastFive.Images
 
         public static Image MaxAspect(this Image image, double viewportAspect)
         {
+            if (!image.ComputeMaxAspect(viewportAspect, 
+                    out int x, out int y, out int width, out int height))
+                return image;
+
+            return image.Crop(x, y, width, height);
+        }
+
+        public static bool ComputeMaxAspect(this Image image, double viewportAspect,
+            out int xOffset, out int yOffset, out int width, out int height)
+        {
             var imageAspect = image.AspectRatio();
-            if(imageAspect < viewportAspect)
+
+            if (imageAspect < viewportAspect)
             {
                 var newHeight = image.Width / viewportAspect;
                 var heightCrop = (image.Height - newHeight) + 1.0;
-                var newY = (int)(heightCrop / 2);
-                return image.Crop(0, newY, image.Width, (int)(newHeight + 0.5));
+                xOffset = 0;
+                yOffset = (int)(heightCrop / 2);
+                width = image.Width;
+                height = (int)(newHeight + 0.5);
+                return true;
             }
+
             if (imageAspect > viewportAspect)
             {
-                var newWidth = image.Height * viewportAspect;
-                var widthCrop = image.Width - newWidth;
-                var newX = (int)(widthCrop / 2);
-                return image.Crop(newX, 0, (int)(newWidth + 0.5), image.Height);
+                var exactWidth = image.Height * viewportAspect;
+                var widthCrop = image.Width - exactWidth;
+                xOffset = (int)(widthCrop / 2);
+                yOffset = 0;
+                width = (int)(exactWidth + 0.5);
+                height = image.Height;
+                return true;
             }
-            return image;
+
+            xOffset = 0;
+            yOffset = 0;
+            width = image.Width;
+            height = image.Height;
+            return false;
         }
 
         public static Image MinAspect(this Image image, double viewportAspect)
@@ -331,15 +264,5 @@ namespace EastFive.Images
             return width / height;
         }
 
-        public static string GetMimeType(this Image image)
-        {
-            return image.RawFormat.GetMimeType();
-        }
-
-        public static string GetMimeType(this ImageFormat imageFormat)
-        {
-            ImageCodecInfo[] codecs = ImageCodecInfo.GetImageEncoders();
-            return codecs.First(codec => codec.FormatID == imageFormat.Guid).MimeType;
-        }
     }
 }

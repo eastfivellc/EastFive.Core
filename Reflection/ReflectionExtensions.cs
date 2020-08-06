@@ -116,9 +116,14 @@ namespace EastFive.Reflection
             if (valueTypeValue == null)
                 return false;
 
-            var underlyingType = valueTypeValue.GetType();
+            var underlyingOrValueType = valueTypeValue.GetType();
 
-            var valueProp = underlyingType.GetProperty("HasValue",
+            // If the value is not Nullable.Value == false, it is just the value.
+            // Yeah, Nullable is an odd thing is C#
+            if (!underlyingOrValueType.IsNullable())
+                return true;
+
+            var valueProp = underlyingOrValueType.GetProperty("HasValue",
                 System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
             return (bool)valueProp.GetValue(valueTypeValue);
         }
