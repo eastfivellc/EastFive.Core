@@ -19,7 +19,7 @@ namespace EastFive.Images
             {
                 image = Bitmap.FromStream(mediaContents);
                 return true;
-            } catch(ArgumentException ex)
+            } catch(ArgumentException)
             {
                 mediaContents.Position = 0;
                 image = default;
@@ -76,7 +76,6 @@ namespace EastFive.Images
             if(!imageDataEncoding.TryParseImage(
                 out byte [] data, out string contentType))
             {
-
                 image = default;
                 return false;
             }
