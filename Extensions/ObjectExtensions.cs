@@ -51,6 +51,12 @@ namespace EastFive.Extensions
             return Task.FromResult(value);
         }
 
+        public static Task<T?> AsTaskOptional<T>(this T value)
+            where T : struct
+        {
+            return Task.FromResult(value.AsOptional());
+        }
+
         public static T? AsOptional<T>(this T value)
             where T : struct
         {

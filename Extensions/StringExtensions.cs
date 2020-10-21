@@ -225,9 +225,16 @@ namespace EastFive
 
         public static string ToLowerNullSafe(this string value)
         {
-            if (value.IsNullOrWhiteSpace())
+            if (value == null)
                 return value;
             return value.ToLower();
+        }
+
+        public static string ToUpperNullSafe(this string value)
+        {
+            if (value == null)
+                return value;
+            return value.ToUpper();
         }
     }
 }

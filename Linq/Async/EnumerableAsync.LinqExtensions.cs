@@ -176,6 +176,32 @@ namespace EastFive.Linq.Async
                 });
         }
 
+        public static IEnumerableAsync<(TResult, TAggr)> SelectWithAggregate<T, TAggr, TResult>(
+            this IEnumerableAsync<T> enumerable,
+            TAggr aggr,
+            Func<T, TAggr, (TResult, TAggr)> selection)
+        {
+            var selectId = Guid.NewGuid();
+            var eventId = 0;
+            var enumeratorAsync = enumerable.GetEnumerator();
+            return EnumerableAsync.Yield<(TResult, TAggr)>(
+                async (moved, ended) =>
+                {
+                    var index = eventId;
+                    if (enumeratorAsync.IsDefaultOrNull())
+                        return ended;
+
+                    if (!await enumeratorAsync.MoveNextAsync())
+                        return ended;
+
+                    var current = enumeratorAsync.Current;
+
+                    var (next, aggrNext) = selection(current, aggr);
+                    aggr = aggrNext;
+                    return moved((next, aggrNext));
+                });
+        }
+
         public static IEnumerableAsync<T> SelectWhereHasValue<T>(this IEnumerableAsync<Nullable<T>> enumerable)
             where T : struct
         {
