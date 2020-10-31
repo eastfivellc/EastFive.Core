@@ -293,5 +293,15 @@ namespace EastFive
             uriBuilder.Query = query.ToString();
             return uriBuilder.Uri;
         }
+
+        public static Uri ReplaceBase(this Uri startingUrl, Uri baseUri)
+        {
+            var builder = new UriBuilder(startingUrl);
+            builder.Host = baseUri.Host;
+            builder.Scheme = baseUri.Scheme;
+            if (baseUri.Port > 0)
+                builder.Port = baseUri.Port;
+            return builder.Uri;
+        }
     }
 }

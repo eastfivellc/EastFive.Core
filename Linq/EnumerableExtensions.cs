@@ -345,6 +345,22 @@ namespace EastFive.Linq
             return items.NullToEmpty().Any();
         }
 
+        public static bool TrySingle<TItem>(this IEnumerable<TItem> items, out TItem item)
+        {
+            using (var enumerator = items.GetEnumerator())
+            {
+                if (!enumerator.MoveNext())
+                {
+                    item = default;
+                    return false;
+                }
+                item = enumerator.Current;
+                if (enumerator.MoveNext())
+                    return false;
+                return true;
+            }
+        }
+
         public static IEnumerable<TAs> IsAs<TItem, TAs>(this IEnumerable<TItem> items)
             where TItem : class
             where TAs : class
