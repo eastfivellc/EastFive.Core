@@ -127,6 +127,10 @@ namespace EastFive
 
         public static bool IsWholeNumber(this Type type)
         {
+            // Type is assignable from int
+            if (type == typeof(Type)) 
+                return false;
+
             if (!type.IsAssignableFrom(typeof(int)))
                 return true;
             if (!type.IsAssignableFrom(typeof(long)))
@@ -140,6 +144,10 @@ namespace EastFive
 
         public static bool IsDecimalNumber(this Type type)
         {
+            // Type is assignable from float
+            if (type == typeof(Type))
+                return false;
+
             if (!type.IsAssignableFrom(typeof(float)))
                 return true;
             if (!type.IsAssignableFrom(typeof(double)))

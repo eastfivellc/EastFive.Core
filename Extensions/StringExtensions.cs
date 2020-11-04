@@ -60,48 +60,95 @@ namespace EastFive
             Func<Type, TResult> matched,
             Func<TResult> noMatch)
         {
-            if (string.IsNullOrWhiteSpace(type))
-                return noMatch();
-            try
-            {
-                var typeClr = GetClrType(type);
-                return matched(typeClr);
-            }
-            catch (InvalidDataException)
-            {
-                return noMatch();
-            }
+            if (type.TryGetClrType(out Type clrType))
+                return matched(clrType);
+            return noMatch();
         }
 
         public static Type GetClrType(this string type)
         {
+            return GetClrType(type,
+                matchedType => matchedType,
+                () =>
+                {
+                    throw new InvalidDataException($"Type {type} not supported");
+                });
+        }
+
+        public static bool TryGetClrType(this string type, out Type clrType)
+        {
+            if (type.IsNullOrWhiteSpace())
+            {
+                clrType = default;
+                return false;
+            }
             if (type.ToLower() == "string")
-                return typeof (string);
+            {
+                clrType = typeof(string);
+                return true;
+            }
             if (type.ToLower() == "int")
-                return typeof (int);
+            {
+                clrType = typeof(int);
+                return true;
+            }
             if (type.ToLower() == "count")
-                return typeof(int);
+            {
+                clrType = typeof(int);
+                return true;
+            }
             if (type.ToLower() == "number")
-                return typeof (decimal);
+            {
+                clrType = typeof(decimal);
+                return true;
+            }
             if (type.ToLower() == "decimal")
-                return typeof (decimal);
+            {
+                clrType = typeof(decimal);
+                return true;
+            }
             if (type.ToLower() == "double")
-                return typeof (double);
+            {
+                clrType = typeof(double);
+                return true;
+            }
             if (type.ToLower() == "long")
-                return typeof (long);
+            {
+                clrType = typeof(long);
+                return true;
+            }
             if (type.ToLower() == "single")
-                return typeof (float);
+            {
+                clrType = typeof(float);
+                return true;
+            }
             if (type.ToLower() == "integer")
-                return typeof (int);
+            {
+                clrType = typeof(int);
+                return true;
+            }
             if (type.ToLower() == "int32")
-                return typeof (int);
+            {
+                clrType = typeof(int);
+                return true;
+            }
             if (type.ToLower() == "bool")
-                return typeof (bool);
+            {
+                clrType = typeof(bool);
+                return true;
+            }
             if (type.ToLower() == "boolean")
-                return typeof (bool);
+            {
+                clrType = typeof(bool);
+                return true;
+            }
             if (type.ToLower() == "text")
-                return typeof(string);
-            throw new InvalidDataException($"Type {type} not supported");
+            {
+                clrType = typeof(string);
+                return true;
+            }
+            clrType = default;
+            return false;
         }
 
         public static string GetClrString(this Type type)
