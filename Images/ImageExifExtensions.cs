@@ -22,6 +22,7 @@ namespace EastFive.Images
                 return;
 
             image.RotateFlip(orientation);
+            image.ExifSetRotateFlip(RotateFlipType.RotateNoneFlipNone);
         }
 
         public static RotateFlipType Invert(this RotateFlipType xform)
@@ -77,7 +78,7 @@ namespace EastFive.Images
                 case Orientation.rotated180:
                     return RotateFlipType.Rotate180FlipNone;
                 case Orientation.rotated180Mirrored:
-                    return RotateFlipType.RotateNoneFlipX;
+                    return RotateFlipType.Rotate180FlipX;
                 case Orientation.rotated270:
                     return RotateFlipType.Rotate270FlipNone;
                 case Orientation.rotated270Mirrored:
@@ -86,7 +87,79 @@ namespace EastFive.Images
             return RotateFlipType.RotateNoneFlipNone;
         }
 
+        public static bool ExifSetRotateFlip(this Image image, RotateFlipType rotateFlip)
+        {
+            var orientation = GetExifOrientation(rotateFlip);
+            return image.PropertyItems
+                   .Where(item => item.Id == PropertyIdTags.PropertyTagOrientation)
+                   .First(
+                        (propertyItem, next) =>
+                        {
+                            propertyItem.SetValue((int)orientation);
+                            return true;
+                        },
+                        () =>
+                        {
+                            return false;
+                        });
+
+            Orientation GetExifOrientation(RotateFlipType orientation)
+            {
+                switch (orientation)
+                {
+                    case RotateFlipType.RotateNoneFlipNone:
+                        return Orientation.rotated0;
+                    case RotateFlipType.RotateNoneFlipX:
+                        return Orientation.rotated0Mirrored;
+                    case RotateFlipType.Rotate90FlipNone:
+                        return Orientation.rotated90;
+                    case RotateFlipType.Rotate90FlipX:
+                        return Orientation.rotated90Mirrored;
+                    case RotateFlipType.Rotate180FlipNone:
+                        return Orientation.rotated180;
+                    case RotateFlipType.Rotate180FlipX:
+                        return Orientation.rotated180Mirrored;
+                    case RotateFlipType.Rotate270FlipNone:
+                        return Orientation.rotated270;
+                    case RotateFlipType.Rotate270FlipX:
+                        return Orientation.rotated270Mirrored;
+                }
+                return Orientation.rotated0;
+            }
+        }
+
         #region PropertyItem Value Extensions
+
+        public static void SetValue(this PropertyItem propertyItem, int value)
+        {
+            if (propertyItem.Type == PropertyTypes.PropertyTagTypeShort)
+            {
+                propertyItem.Value = BitConverter.GetBytes((ushort)value);
+                return;
+            }
+            if (propertyItem.Type == PropertyTypes.PropertyTagTypeSShort)
+            {
+                propertyItem.Value = BitConverter.GetBytes((short)value);
+                return;
+            }
+            if (propertyItem.Type == PropertyTypes.PropertyTagTypeSByte)
+            {
+                sbyte s = (sbyte)value;
+                unchecked // probably uncessary
+                {
+                    byte b = (byte)s;
+                    propertyItem.Value = b.AsArray();
+                }
+                return;
+            }
+            if (propertyItem.Type == PropertyTypes.PropertyTagTypeByte)
+            {
+                var b = (byte)value;
+                propertyItem.Value = b.AsArray();
+                return;
+            }
+            throw new ArgumentException($"Cannot cast int to type `{propertyItem.Type}`");
+        }
 
         public static int GetIntValue(this PropertyItem propertyItem)
         {
