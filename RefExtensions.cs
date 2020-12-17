@@ -80,6 +80,12 @@ namespace EastFive
             return sourceRef.id.AsRef<TCast>();
         }
 
+        public static bool IsPopulated<T>(this IRefOptional<T> refOptional)
+            where T : IReferenceable
+        {
+            return refOptional.HasValue && !refOptional.Ref.id.IsDefault();
+        }
+
         public static bool HasValueNotNull<T>(this IRefOptional<T> refOptional) 
             where T : IReferenceable
         {
