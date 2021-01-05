@@ -555,6 +555,38 @@ namespace EastFive.Linq
                 .Select(item => (item.item, item.@out));
         }
 
+        public delegate bool TryPredicate2<TItem, TOut1, TOut2>(TItem item,
+            out TOut1 result1, out TOut2 result2);
+        public static IEnumerable<(TItem item, TOut1 @out1, TOut2 @out2)> TryWhere<TItem, TOut1, TOut2>(this IEnumerable<TItem> items,
+            TryPredicate2<TItem, TOut1, TOut2> tryPredicate)
+        {
+            return items
+                .Select(
+                    (item) =>
+                    {
+                        var success = tryPredicate(item, out TOut1 @out1, out TOut2 @out2);
+                        return (success, item, @out1, @out2);
+                    })
+                .Where(item => item.success)
+                .Select(item => (item.item, item.@out1, item.@out2));
+        }
+
+        public delegate bool TryPredicate3<TItem, TOut1, TOut2, TOut3>(TItem item,
+            out TOut1 result1, out TOut2 result2, out TOut3 result3);
+        public static IEnumerable<(TItem item, TOut1 @out1, TOut2 @out2, TOut3 @out3)> TryWhere<TItem, TOut1, TOut2, TOut3>(this IEnumerable<TItem> items,
+            TryPredicate3<TItem, TOut1, TOut2, TOut3> tryPredicate)
+        {
+            return items
+                .Select(
+                    (item) =>
+                    {
+                        var success = tryPredicate(item, out TOut1 @out1, out TOut2 @out2, out TOut3 @out3);
+                        return (success, item, @out1, @out2, @out3);
+                    })
+                .Where(item => item.success)
+                .Select(item => (item.item, item.@out1, item.@out2, item.@out3));
+        }
+
         public static T Random<T>(this IEnumerable<T> items, int total, Random rand = null)
         {
             if (rand == null)
