@@ -727,12 +727,22 @@ namespace EastFive.Serialization
             {
                 return default(T);
             }
-            var reader = XmlReader.Create(new StringReader(value));
-            var serializer = new DataContractSerializer(typeof(T));
             try
             {
-                T result = (T)serializer.ReadObject(reader);
-                return result;
+                var settings = new XmlReaderSettings
+                {
+                    DtdProcessing = DtdProcessing.Ignore, // prevents XXE attacks, such as Billion Laughs
+                    MaxCharactersFromEntities = 1024,
+                    XmlResolver = null,                   // prevents external entity DoS attacks, such as slow loading links or large file requests
+                };
+
+                using (var strReader = new StringReader(value))
+                using (var xmlReader = XmlReader.Create(strReader, settings))
+                {
+                    var serializer = new DataContractSerializer(typeof(T));
+                    T result = (T)serializer.ReadObject(xmlReader);
+                    return result;
+                }
             }
             catch (SerializationException)
             {

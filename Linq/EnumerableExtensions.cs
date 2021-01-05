@@ -408,6 +408,37 @@ namespace EastFive.Linq
             return onSingle(item); // Is Single
         }
 
+        public static bool TrySingle<TItem>(this IEnumerable<TItem> items, out TItem item)
+        {
+            using (var enumerator = items.GetEnumerator())
+            {
+                if (!enumerator.MoveNext())
+                {
+                    item = default;
+                    return false;
+                }
+                item = enumerator.Current;
+                if (enumerator.MoveNext())
+                    return false;
+                return true;
+            }
+        }
+
+        public static IEnumerable<TAs> IsAs<TItem, TAs>(this IEnumerable<TItem> items)
+        {
+            return items
+                .Where(item => item is TAs)
+                .Cast<TAs>();
+        }
+
+        public static IEnumerable<TAs> IsAs<TItem, TAs>(this IEnumerable<TItem> items,
+            Func<TItem, TAs> tCastAs)
+        {
+            return items
+                .Where(item => item is TAs)
+                .Select(tCastAs);
+        }
+
         public static TResult Min<TItem, TComparable, TResult>(this IEnumerable<TItem> items,
             Func<TItem, TComparable> sortCriteria,
             Func<TComparable, TComparable, int> comparer,
@@ -523,21 +554,6 @@ namespace EastFive.Linq
                 itemsCopy = itemsCopy.Skip(batchsize);
                 index += batchsize;
             }
-        }
-
-        public static IEnumerable<TAs> IsAs<TItem, TAs>(this IEnumerable<TItem> items)
-        {
-            return items
-                .Where(item => item is TAs)
-                .Cast<TAs>();
-        }
-
-        public static IEnumerable<TAs> IsAs<TItem, TAs>(this IEnumerable<TItem> items,
-            Func<TItem, TAs> tCastAs)
-        {
-            return items
-                .Where(item => item is TAs)
-                .Select(tCastAs);
         }
 
         public delegate bool TryPredicate<TItem, TOut>(TItem item, out TOut result);
