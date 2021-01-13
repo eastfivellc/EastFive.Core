@@ -44,7 +44,7 @@ namespace EastFive.Images
             newImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
 
             //start the resizing
-            using (var graphics = Graphics.FromImage(newImage))
+            using (var graphics = System.Drawing.Graphics.FromImage(newImage))
             {
                 graphics.CompositingMode = CompositingMode.SourceCopy;
                 if(background.IsDefaultOrNull())
@@ -72,7 +72,7 @@ namespace EastFive.Images
             newImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
 
             //start the resizing
-            using (var graphics = Graphics.FromImage(newImage))
+            using (var graphics = System.Drawing.Graphics.FromImage(newImage))
             {
                 graphics.CompositingMode = CompositingMode.SourceCopy;
                 graphics.FillRectangle(background, 0, 0, image.Width, image.Height);
@@ -97,7 +97,7 @@ namespace EastFive.Images
             newImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
 
             //start the resizing
-            using (var graphics = Graphics.FromImage(newImage))
+            using (var graphics = System.Drawing.Graphics.FromImage(newImage))
             {
                 graphics.CompositingMode = CompositingMode.SourceCopy;
                 var brush = System.Drawing.Brushes.Transparent;
@@ -160,7 +160,7 @@ namespace EastFive.Images
             newImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
 
             //start the resizing
-            using (var graphics = Graphics.FromImage(newImage))
+            using (var graphics = System.Drawing.Graphics.FromImage(newImage))
             {
                 graphics.CompositingMode = CompositingMode.SourceCopy;
                 var brush = System.Drawing.Brushes.Transparent;
