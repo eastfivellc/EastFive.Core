@@ -51,9 +51,37 @@ namespace EastFive
             return Convert.FromBase64String(base64String);
         }
 
-        public static string ToBase64String(this byte[] bytes)
+        public static bool TryParseBase64String(this string base64String, out byte[] bytes)
         {
-            return Convert.ToBase64String(bytes);
+            string incoming = base64String
+                .Replace('_', '/')
+                .Replace('-', '+');
+            switch (base64String.Length % 4)
+            {
+                case 2: incoming += "=="; break;
+                case 3: incoming += "="; break;
+            }
+            try
+            {
+                bytes = Convert.FromBase64String(incoming);
+                return true;
+            }catch(Exception)
+            {
+                bytes = default;
+                return false;
+            }
+        }
+
+
+        public static string ToBase64String(this byte[] bytes, bool urlSafe = false)
+        {
+            var encoding = Convert.ToBase64String(bytes);
+            if (!urlSafe)
+                return encoding;
+            return encoding
+                .Replace('+', '-')
+                .Replace('/', '_')
+                .Replace("=", "");
         }
 
         public static TResult GetClrType<TResult>(this string type,
