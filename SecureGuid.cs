@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace EastFive.Security
 {
@@ -10,7 +7,10 @@ namespace EastFive.Security
         public static Guid Generate()
         {
             var guidData = new byte[0x10];
-            System.Security.Cryptography.RandomNumberGenerator.Create().GetBytes(guidData);
+            using (var rng = System.Security.Cryptography.RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(guidData);
+            }
             return new Guid(guidData);
         }
     }
