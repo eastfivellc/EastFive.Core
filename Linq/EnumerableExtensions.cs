@@ -1006,6 +1006,19 @@ namespace EastFive.Linq
             }
         }
 
+        public static IEnumerable<(T1, T2)> CollateSimple<T1, T2>(this IEnumerable<T1> items1,
+                IEnumerable<T2> items2)
+        {
+            var iterator1 = items1.GetEnumerator();
+            var iterator2 = items2.GetEnumerator();
+            while(iterator1.MoveNext())
+            {
+                if(!iterator2.MoveNext())
+                    yield break;
+                yield return (iterator1.Current, iterator2.Current);
+            }
+        }
+
         public struct Collated<T1, T2, TKey>
         {
             public TKey value;

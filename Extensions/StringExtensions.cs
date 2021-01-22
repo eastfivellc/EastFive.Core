@@ -48,7 +48,15 @@ namespace EastFive
 
         public static byte[] FromBase64String(this string base64String)
         {
-            return Convert.FromBase64String(base64String);
+            string incoming = base64String
+                   .Replace('_', '/')
+                   .Replace('-', '+');
+            switch (base64String.Length % 4)
+            {
+                case 2: incoming += "=="; break;
+                case 3: incoming += "="; break;
+            }
+            return Convert.FromBase64String(incoming);
         }
 
         public static bool TryParseBase64String(this string base64String, out byte[] bytes)
