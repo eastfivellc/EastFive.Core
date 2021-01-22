@@ -702,6 +702,27 @@ namespace EastFive.Linq
             yield return last(lastValue, current);
         }
 
+        public static IEnumerable<T2> SelectWhere<T1, T2>(this IEnumerable<(T1, T2)> items, 
+            Func<(T1, T2), bool> isWhere)
+        {
+            foreach(var item in items)
+            {
+                if (isWhere(item))
+                    yield return item.Item2;
+            }
+        }
+
+        public static IEnumerable<(T4, T5)> SelectWhere<T1, T2, T3, T4, T5>(this IEnumerable<(T1, T2, T3)> items,
+            Func<(T1, T2, T3), (bool, T4, T5)> isWhere)
+        {
+            foreach (var item in items)
+            {
+                var (isSelected, r1, r2) = isWhere(item);
+                if (isSelected)
+                    yield return (r1, r2);
+            }
+        }
+
         public delegate TResult SelectWithDelegate<TWith, TItem, TResult>(TWith previous, TItem current, out TWith next);
         public static IEnumerable<TResult> SelectWith<TWith, TItem, TResult>(this IEnumerable<TItem> items,
             TWith seed, SelectWithDelegate<TWith, TItem, TResult> callback)

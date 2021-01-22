@@ -499,6 +499,66 @@ namespace EastFive.Linq.Async
                 });
         }
 
+        public static IEnumerableAsync<TResult> SelectAsyncWith<TWith, TItem, TResult>(this IEnumerable<TItem> items,
+            TWith seed, Func<TWith, TItem, Task<(TResult, TWith)>> callback)
+        {
+            var carry = seed;
+            var enumerator = items.GetEnumerator();
+            return Yield<TResult>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    if (!enumerator.MoveNext())
+                        return yieldBreak;
+                    var (next, newCarry) = await callback(carry, enumerator.Current);
+                    return yieldReturn(next);
+                });
+        }
+
+        #region SelectWhere Tuples
+
+        public static IEnumerableAsync<T3> SelectWhere<T1, T2, T3>(this IEnumerableAsync<(T1, T2)> items,
+            Func<(T1, T2), (bool, T3)> isWhere)
+        {
+            var enumerator = items.GetEnumerator();
+            return EnumerableAsync.Yield<T3>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    while (true)
+                    {
+                        if (!await enumerator.MoveNextAsync())
+                            return yieldBreak;
+
+                        var current = enumerator.Current;
+                        var (isSelected, r) = isWhere(current);
+                        if (isSelected)
+                            return yieldReturn(r);
+                    }
+                });
+        }
+
+        public static IEnumerableAsync<T> SelectWhere<T>(this IEnumerableAsync<(bool, T)> items)
+        {
+            return items.SelectWhere(
+                item => (item.Item1, item.Item2));
+        }
+
+        public static IEnumerableAsync<(T4, T5)> SelectWhere<T1, T2, T3, T4, T5>(this IEnumerableAsync<(T1, T2, T3)> items,
+            Func<(T1, T2, T3), (bool, T4, T5)> isWhere)
+        {
+            return items
+                .Select(item => isWhere(item))
+                .Select(tpl => (tpl.Item1, (tpl.Item2, tpl.Item3)))
+                .SelectWhere();
+        }
+
+        public static IEnumerableAsync<(T2, T3)> SelectWhere<T2, T3>(this IEnumerableAsync<(bool, T2, T3)> items)
+        {
+            return items.SelectWhere(
+                item => (item.Item1, item.Item2, item.Item3));
+        }
+
+        #endregion
+
         public interface ISelected<T>
         {
             bool HasValue { get; }

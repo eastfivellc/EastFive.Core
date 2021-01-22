@@ -342,6 +342,28 @@ namespace EastFive.Linq.Async
             return onOne(item);
         }
 
+        public static async Task<T> MinAsync<T, TCompare>(this IEnumerableAsync<T> enumerable,
+            Func<T, TCompare> compare)
+            where TCompare : IComparable
+        {
+            var enumerator = enumerable.GetEnumerator();
+            var item = default(T);
+            var value = default(TCompare);
+            while (await enumerator.MoveNextAsync())
+            {
+                var contestedValue = compare(enumerator.Current);
+                bool selectCurrent = value.IsDefault()
+                    ||
+                    contestedValue.CompareTo(value) < 0;
+                if(selectCurrent)
+                {
+                    value = contestedValue;
+                    item = enumerator.Current;
+                }
+            }
+            return item;
+        }
+
         public static IEnumerableAsync<T> Empty<T>()
         {
             return EnumerableAsync.Yield<T>(
