@@ -621,71 +621,77 @@ namespace EastFive.Serialization
 
         public static byte[] SHA256Hash(this byte[] bytes, SHA256 sha256 = default(SHA256))
         {
-            if (sha256.IsDefaultOrNull())
-                sha256 = SHA256.Create();
+            byte[] getHash(SHA256 algorithm) => algorithm.ComputeHash(bytes);
 
-            byte[] data = sha256.ComputeHash(bytes);
-            return data;
+            if (default(SHA256) != sha256)
+                return getHash(sha256);
+
+            using (var algorithm = SHA256.Create())
+                return getHash(algorithm);
         }
 
         public static Guid MD5HashGuid(this byte[] bytes, MD5 md5 = default(MD5))
         {
-            if (default(MD5) == md5)
-                md5 = MD5.Create();
+            Guid getHashGuid(MD5 algorithm) => new Guid(algorithm.ComputeHash(bytes));
 
-            byte[] data = md5.ComputeHash(bytes);
-            return new Guid(data);
+            if (default(MD5) != md5)
+                return getHashGuid(md5);
+
+            using (var algorithm = MD5.Create())
+                return getHashGuid(algorithm);
         }
 
         public static Guid MD5HashGuid(this string concatination, MD5 md5 = default(MD5))
         {
-            if (default(MD5) == md5)
-                md5 = MD5.Create();
-
-            var md5Bytes = concatination.HasBlackSpace() ?
+            var bytes = concatination.HasBlackSpace() ?
                 Encoding.UTF8.GetBytes(concatination)
                 :
                 new byte[] { };
-            byte[] data = md5.ComputeHash(md5Bytes);
-            return new Guid(data);
+
+            return bytes.MD5HashGuid(md5);
         }
 
         public static Guid MD5HashGuid(this Stream stream, MD5 md5 = default(MD5))
         {
-            if (default(MD5) == md5)
-                md5 = MD5.Create();
+            Guid getHashGuid(MD5 algorithm) => new Guid(algorithm.ComputeHash(stream));
 
-            byte[] data = md5.ComputeHash(stream);
-            return new Guid(data);
+            if (default(MD5) != md5)
+                return getHashGuid(md5);
+
+            using (var algorithm = MD5.Create())
+                return getHashGuid(algorithm);
         }
 
         public static string MD5HashString(this string concatination, MD5 md5 = default(MD5))
         {
-            if (default(MD5) == md5)
-                md5 = MD5.Create();
+            string getHashString(MD5 algorithm) => Convert.ToBase64String(
+                algorithm.ComputeHash(
+                    Encoding.UTF8.GetBytes(concatination)));
 
-            byte[] data = md5.ComputeHash(Encoding.UTF8.GetBytes(concatination));
-            return Convert.ToBase64String(data);
+            if (default(MD5) != md5)
+                return getHashString(md5);
+
+            using (var algorithm = MD5.Create())
+                return getHashString(algorithm);
         }
 
         public static string MD5HashHex(this string concatination, MD5 md5 = default(MD5))
         {
-            if (default(MD5) == md5)
-                md5 = MD5.Create();
-
-            byte[] data = md5.ComputeHash(Encoding.UTF8.GetBytes(concatination));
-            return data
+            string getHashHex(MD5 algorithm) => algorithm
+                .ComputeHash(Encoding.UTF8.GetBytes(concatination))
                 .Select(b => b.ToString("X2"))
                 .Join("");
+
+            if (default(MD5) != md5)
+                return getHashHex(md5);
+
+            using (var algorithm = MD5.Create())
+                return getHashHex(algorithm);
         }
 
-        public static byte [] SHAHash(this byte[] bytes, SHA256 sha256 = default(SHA256))
+        public static byte[] SHAHash(this byte[] bytes, SHA256 sha256 = default(SHA256))
         {
-            if (default(SHA256) == sha256)
-                sha256 = SHA256.Create();
-
-            byte[] data = sha256.ComputeHash(bytes);
-            return data;
+            return bytes.SHA256Hash(sha256);
         }
 
         public static byte[] SHAHash(this string stringToHash,
@@ -698,7 +704,7 @@ namespace EastFive.Serialization
                 encoding.GetBytes(stringToHash)
                 :
                 new byte[] { };
-            return bytes.SHAHash();
+            return bytes.SHA256Hash(sha256);
         }
 
         #endregion

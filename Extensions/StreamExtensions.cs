@@ -34,20 +34,26 @@ namespace EastFive
 
         public static string Md5Checksum(this Stream stream)
         {
-            var hash = new MD5CryptoServiceProvider().ComputeHash(stream);
-            var result = hash.Select(hex => hex.ToString("X2"))
-                .Join("")
-                .ToUpper();
-            return result;
+            using (var algorithm = new MD5CryptoServiceProvider())
+            {
+                var hash = algorithm.ComputeHash(stream);
+                var result = hash.Select(hex => hex.ToString("X2"))
+                    .Join("")
+                    .ToUpper();
+                return result;
+            }
         }
 
-        public static string Md5Checksum(this byte[] stream)
+        public static string Md5Checksum(this byte[] bytes)
         {
-            var hash = new MD5CryptoServiceProvider().ComputeHash(stream);
-            var result = hash.Select(hex => hex.ToString("X2"))
-                .Join("")
-                .ToUpper();
-            return result;
+            using (var algorithm = new MD5CryptoServiceProvider())
+            {
+                var hash = algorithm.ComputeHash(bytes);
+                var result = hash.Select(hex => hex.ToString("X2"))
+                    .Join("")
+                    .ToUpper();
+                return result;
+            }
         }
 
         public static string ReadAsString(this Stream stream, 
@@ -55,7 +61,7 @@ namespace EastFive
         {
             if (encoding.IsDefault())
                 encoding = Encoding.UTF8;
-            using (var reader = new StreamReader(stream, Encoding.UTF8))
+            using (var reader = new StreamReader(stream, encoding))
             {
                 string value = reader.ReadToEnd();
                 return value;

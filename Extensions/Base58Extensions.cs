@@ -169,14 +169,15 @@ namespace EastFive
 
 		private static byte[] GetCheckSum(byte[] data)
 		{
-			var sha256 = new SHA256Managed();
-			byte[] hash1 = sha256.ComputeHash(data);
-			byte[] hash2 = sha256.ComputeHash(hash1);
+			using (var algorithm = new SHA256Managed())
+			{
+				byte[] hash1 = algorithm.ComputeHash(data);
+				byte[] hash2 = algorithm.ComputeHash(hash1);
 
-			var result = new byte[CheckSumSizeInBytes];
-			Buffer.BlockCopy(hash2, 0, result, 0, result.Length);
-
-			return result;
+				var result = new byte[CheckSumSizeInBytes];
+				Buffer.BlockCopy(hash2, 0, result, 0, result.Length);
+				return result;
+			}
 		}
 
 		public class ArrayHelpers
