@@ -1,4 +1,5 @@
 ﻿using EastFive.Extensions;
+using EastFive.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -96,10 +97,44 @@ namespace EastFive.Reflection
                 var kvpType = kvpObj.GetType();
                 var keyProperty = kvpType.GetProperty("Key");
                 var keyValue = keyProperty.GetValue(kvpObj);
-                var valueProperty = kvpObj.GetType().GetProperty("Value");
+                var valueProperty = kvpType.GetProperty("Value");
                 var valueValue = valueProperty.GetValue(kvpObj);
                 yield return valueValue.PairWithKey(keyValue);
             }
+        }
+
+        public static object KeyValuePairsToDictionary(this object [] kvps,
+            Type keyType, Type valueType)
+        {
+            var dictType = typeof(Dictionary<,>).MakeGenericType(keyType, valueType);
+            var dict = Activator.CreateInstance(dictType);
+            var addMethod = dictType.GetMethod("Add", BindingFlags.Instance | BindingFlags.Public);
+            foreach (var kvpObj in kvps)
+            {
+                var kvpType = kvpObj.GetType();
+                var keyProperty = kvpType.GetProperty("Key");
+                var valueProperty = kvpType.GetProperty("Value");
+                var keyValue = keyProperty.GetValue(kvpObj);
+                var valueValue = valueProperty.GetValue(kvpObj);
+                addMethod.Invoke(dict, new object[] { keyValue, valueValue });
+            }
+            return dict;
+        }
+
+        public static object ArraysToDictionary(this object[] keys, object[] values,
+            Type keyType, Type valueType)
+        {
+            var dictType = typeof(Dictionary<,>).MakeGenericType(keyType, valueType);
+            var dict = Activator.CreateInstance(dictType);
+            var addMethod = dictType.GetMethod("Add", BindingFlags.Instance | BindingFlags.Public);
+            foreach (var kvpObj in keys.CollateSimple(values))
+            {
+                var keyValue = kvpObj.Item1;
+                var valueValue = kvpObj.Item2;
+                addMethod.Invoke(dict, 
+                    new object[] { keyValue, valueValue });
+            }
+            return dict;
         }
 
         public static bool IsExtension(this MethodInfo method)
