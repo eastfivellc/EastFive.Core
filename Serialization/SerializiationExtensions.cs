@@ -417,6 +417,26 @@ namespace EastFive.Serialization
             } while(segmentSize > 0 && items.MoveNext());
         }
 
+        public static IEnumerable<TItem[]> Segment<TItem>(this IEnumerable<TItem> items,
+            Func<TItem[], int, bool> shouldSplit)
+        {
+            var enumerator = items.GetEnumerator();
+            int index = 0;
+            var set = new TItem[] { };
+            while (enumerator.MoveNext())
+            {
+                set = set.Append(enumerator.Current).ToArray();
+                index = index + 1;
+                if (shouldSplit(set, index))
+                {
+                    yield return set;
+                    set = new TItem[] { };
+                }
+            }
+            if (set.Any())
+                yield return set;
+        }
+
         /// <summary>
         /// Index 0 is even so starts with even (comp sci, not math)
         /// </summary>

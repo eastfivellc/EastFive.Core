@@ -147,6 +147,8 @@ namespace EastFive
             {
                 if (!this.HasValue)
                     return default(Guid?);
+                if(this.baseRef == null)
+                    return default(Guid?);
                 return baseRef.id;
             }
         }
