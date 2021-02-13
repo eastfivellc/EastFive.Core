@@ -176,6 +176,11 @@ namespace EastFive.Linq.Async
                 });
         }
 
+        public static IEnumerableAsync<(T, int)> AddIndexes<T>(this IEnumerableAsync<T> enumerable)
+        {
+            return enumerable.SelectWithIndex((x, i) => (x, i));
+        }
+
         public static IEnumerableAsync<(TResult, TAggr)> SelectWithAggregate<T, TAggr, TResult>(
             this IEnumerableAsync<T> enumerable,
             TAggr aggr,
