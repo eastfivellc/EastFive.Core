@@ -127,32 +127,32 @@ namespace EastFive
 
         public static bool IsWholeNumber(this Type type)
         {
-            // Type is assignable from int
-            if (type == typeof(Type)) 
-                return false;
-
-            if (!type.IsAssignableFrom(typeof(int)))
+            if (type == typeof(int))
                 return true;
-            if (!type.IsAssignableFrom(typeof(long)))
+            if (type == typeof(long))
                 return true;
-            if (!type.IsAssignableFrom(typeof(short)))
+            if (type == typeof(short))
                 return true;
-            if (!type.IsAssignableFrom(typeof(byte)))
+            if (type == typeof(byte))
+                return true;
+            if (type == typeof(uint))
+                return true;
+            if (type == typeof(ulong))
+                return true;
+            if (type == typeof(ushort))
+                return true;
+            if (type == typeof(sbyte))
                 return true;
             return false;
         }
 
         public static bool IsDecimalNumber(this Type type)
         {
-            // Type is assignable from float
-            if (type == typeof(Type))
-                return false;
-
-            if (!type.IsAssignableFrom(typeof(float)))
+            if (type == typeof(float))
                 return true;
-            if (!type.IsAssignableFrom(typeof(double)))
+            if (type == typeof(double))
                 return true;
-            if (!type.IsAssignableFrom(typeof(decimal)))
+            if (type == typeof(decimal))
                 return true;
             return false;
         }
