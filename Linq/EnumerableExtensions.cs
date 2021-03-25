@@ -471,7 +471,32 @@ namespace EastFive.Linq
                 (long a, long b) => a < b ? -1 : (a == b ? 0 : 1),
                 success, emptyItems);
         }
-        
+
+        public static TResult MinOrEmpty<TItem, TResult>(this IEnumerable<TItem> items,
+            Func<TItem, IComparable> sortCriteria,
+            Func<TItem, TResult> success,
+            Func<TResult> emptyItems)
+        {
+            var enumerator = items.GetEnumerator();
+            if (!enumerator.MoveNext())
+                return emptyItems();
+
+            var best = enumerator.Current;
+            var bestCriteria = sortCriteria(best);
+            
+            while (enumerator.MoveNext())
+            {
+                var challenger = enumerator.Current;
+                var challengerCriteria = sortCriteria(challenger);
+                if(challengerCriteria.CompareTo(bestCriteria) < 0)
+                {
+                    best = challenger;
+                    bestCriteria = challengerCriteria;
+                }
+            }
+            return success(best);
+        }
+
         public static TResult Max<TItem, TResult>(this IEnumerable<TItem> items,
             Func<TItem, long> sortCriteria,
             Func<TItem, TResult> success,
