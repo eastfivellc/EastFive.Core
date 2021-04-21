@@ -253,6 +253,18 @@ namespace EastFive.Linq.Async
             return count;
         }
 
+
+        public static async Task<long> SumAsync<T>(this IEnumerableAsync<long> enumerable)
+        {
+            var enumerator = enumerable.GetEnumerator();
+            long sum = 0;
+            while (await enumerator.MoveNextAsync())
+            {
+                sum = sum + enumerator.Current;
+            }
+            return sum;
+        }
+
         public static async Task<TResult> FirstAsync<T, TResult>(this IEnumerableAsync<T> enumerable,
             Func<T, TResult> onOne,
             Func<TResult> onNone)
