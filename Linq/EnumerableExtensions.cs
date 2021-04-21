@@ -213,6 +213,25 @@ namespace EastFive.Linq
             return items.Distinct(comparer);
         }
 
+        public static IEnumerable<T> Exclude<T>(this IEnumerable<T> items, 
+            T itemToExclude, int limit = int.MaxValue)
+        {
+            foreach(var item in items)
+            {
+                if (limit <= 0)
+                {
+                    yield return item;
+                    continue;
+                }
+                if (!EqualityComparer<T>.Default.Equals(item, itemToExclude))
+                {
+                    yield return item;
+                    continue;
+                }
+                limit--;
+            }
+        }
+
         public static IEnumerable<T> Except<T>(this IEnumerable<T> items, IEnumerable<T> itemsToExclude,
             Func<T, T, int> comparer,
             Func<T, int> hash = default(Func<T, int>))
@@ -472,10 +491,11 @@ namespace EastFive.Linq
                 success, emptyItems);
         }
 
-        public static TResult MinOrEmpty<TItem, TResult>(this IEnumerable<TItem> items,
-            Func<TItem, IComparable> sortCriteria,
-            Func<TItem, TResult> success,
+        public static TResult MinOrEmpty<TItem, TCriteria, TResult>(this IEnumerable<TItem> items,
+            Func<TItem, TCriteria> sortCriteria,
+            Func<TItem, TCriteria, TResult> success,
             Func<TResult> emptyItems)
+            where TCriteria : IComparable
         {
             var enumerator = items.GetEnumerator();
             if (!enumerator.MoveNext())
@@ -494,7 +514,7 @@ namespace EastFive.Linq
                     bestCriteria = challengerCriteria;
                 }
             }
-            return success(best);
+            return success(best, bestCriteria);
         }
 
         public static TResult Max<TItem, TResult>(this IEnumerable<TItem> items,
@@ -1152,7 +1172,7 @@ namespace EastFive.Linq
                     yield return item1.PairWithValue(item2);
         }
 
-        public static T[][] Combinations<T>(this IEnumerable<T> items)
+        public static T[][] Combinations<T>(this IEnumerable<T> items, bool fullSetsOnly = false)
         {
             var itemsArray = items.ToArray();
 
@@ -1165,13 +1185,81 @@ namespace EastFive.Linq
             var item = itemsArray[0];
             var remainder = items.Skip(1).ToArray();
             var combinationsRemainder = remainder
-                .Combinations();
+                .Combinations(fullSetsOnly:fullSetsOnly);
+            if(fullSetsOnly)
+            {
+                var combinationsFullSets = combinationsRemainder
+                    .Select(co => co.Append(item).ToArray())
+                    .ToArray();
+                return combinationsFullSets;
+            }
             var combinations = combinationsRemainder
                 .Select(co => co.Append(item).ToArray())
                 .Concat(combinationsRemainder)
                 .Append(new[] { item })
                 .ToArray();
             return combinations;
+        }
+
+        public static IEnumerable<(T1, T2)[]> Combinations<T1, T2>(this IEnumerable<T1> items1, IEnumerable<T2> items2)
+        {
+            if (items1.IsDefaultNullOrEmpty())
+                yield break;
+            if (items2.IsDefaultNullOrEmpty())
+                yield break;
+
+            var items1Array = items1.ToArray();
+            var items2Array = items2.ToArray();
+
+            //if(items1Array.Length > items2Array.Length)
+            //{
+            //    var leftOvers = items2Array
+            //        .Skip(items1Array.Length)
+            //        .ToArray();
+            //    items1Array
+            //        .Permutations()
+            //        .Select(
+            //            permutation =>
+            //            {
+            //                permutation.Select()
+            //            })
+            //}
+
+            if (items1Array.Length == 1)
+            {
+                var item1 = items1Array.First();
+                foreach (var item2 in items2Array)
+                    yield return (item1, item2).AsArray();
+                yield break;
+            }
+
+            if (items2Array.Length == 1)
+            {
+                var item2 = items2Array.First();
+                foreach (var item1 in items1Array)
+                    yield return (item1, item2).AsArray();
+                yield break;
+            }
+
+            foreach (var item1 in items1Array)
+            {
+                var items1Remainder = items1Array
+                    .Exclude(item1, limit: 1)
+                    .ToArray();
+                foreach (var item2 in items2Array)
+                {
+                    var items2Remainder = items2Array
+                        .Exclude(item2, limit: 1)
+                        .ToArray();
+                    var subCombinations = items1Remainder
+                        .Combinations(items2Remainder)
+                        .ToArray();
+                    foreach(var subCombination in subCombinations)
+                        yield return subCombination
+                                .Append((item1, item2))
+                                .ToArray();
+                }
+            }
         }
 
         public static IEnumerable<(T, T)> Pairs<T>(this IEnumerable<T> items)
