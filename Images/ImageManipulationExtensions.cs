@@ -190,34 +190,46 @@ namespace EastFive.Images
         public static bool ComputeMaxAspect(this Image image, double viewportAspect,
             out int xOffset, out int yOffset, out int width, out int height)
         {
-            var imageAspect = image.AspectRatio();
+            var imageWidth = image.Width;
+            var imageHeight = image.Height;
+            return ComputeMaxAspect(viewportAspect, imageWidth, imageHeight,
+                out xOffset, out yOffset, out width, out height);
+        }
+
+        public static bool ComputeMaxAspect(double viewportAspect,
+            int imageWidth, int imageHeight,
+            out int xOffset, out int yOffset, out int width, out int height)
+        {
+            var widthD = (double)imageWidth;
+            var heightD = (double)imageHeight;
+            double imageAspect =  widthD / heightD;
 
             if (imageAspect < viewportAspect)
             {
-                var newHeight = image.Width / viewportAspect;
-                var heightCrop = (image.Height - newHeight) + 1.0;
+                var newHeight = imageWidth / viewportAspect;
+                var heightCrop = (imageHeight - newHeight) + 1.0;
                 xOffset = 0;
                 yOffset = (int)(heightCrop / 2);
-                width = image.Width;
+                width = imageWidth;
                 height = (int)(newHeight + 0.5);
                 return true;
             }
 
             if (imageAspect > viewportAspect)
             {
-                var exactWidth = image.Height * viewportAspect;
-                var widthCrop = image.Width - exactWidth;
+                var exactWidth = imageHeight * viewportAspect;
+                var widthCrop = imageWidth - exactWidth;
                 xOffset = (int)(widthCrop / 2);
                 yOffset = 0;
                 width = (int)(exactWidth + 0.5);
-                height = image.Height;
+                height = imageHeight;
                 return true;
             }
 
             xOffset = 0;
             yOffset = 0;
-            width = image.Width;
-            height = image.Height;
+            width = imageWidth;
+            height = imageHeight;
             return false;
         }
 
