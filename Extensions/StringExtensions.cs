@@ -33,12 +33,27 @@ namespace EastFive
             return String.Join(separator.ToString(), strings.NullToEmpty());
         }
 
+        public static string Join(this IEnumerable<char> chars)
+        {
+#if NETCOREAPP2_1_OR_GREATER
+            return String.Concat(chars);
+#else
+            var sb = new System.Text.StringBuilder();
+            foreach (var c in chars)
+            {
+                sb.Append(c);
+            }
+
+            return sb.ToString();
+#endif
+        }
+
         public static string Base64(this string value, System.Text.Encoding encoding = default(System.Text.Encoding))
         {
-            #region per https://tools.ietf.org/html/rfc4648#section-10 null/empty string are encoded as ""
+#region per https://tools.ietf.org/html/rfc4648#section-10 null/empty string are encoded as ""
             if (value.IsNullOrEmpty())
                 return string.Empty;
-            #endregion
+#endregion
 
             if (default(System.Text.Encoding) == encoding)
                 encoding = System.Text.Encoding.UTF8;
