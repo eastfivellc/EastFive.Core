@@ -1014,7 +1014,8 @@ namespace EastFive.Linq
         public static IEnumerable<TMatch> Match<T1, T2, TMatch, TKey>(this IEnumerable<T1> items1,
                 IEnumerable<T2> items2,
             Func<T1, T2, TMatch> matcher,
-            Func<TMatch, TKey> valueSelector)
+            Func<TMatch, TKey> valueSelector,
+            Func<T1, TMatch> unmatchedValueSelection = default)
         {
             return items1
                 .Select(
@@ -1031,7 +1032,13 @@ namespace EastFive.Linq
                             .OrderBy(value => valueSelector(value))
                             .First(
                                 (tuple, next) => (true, (TMatch)tuple),
-                                () => (false, default(TMatch)));
+                                () =>
+                                {
+                                    if(unmatchedValueSelection.IsDefaultOrNull())
+                                        return (false, default(TMatch));
+                                    var emptyMatch = unmatchedValueSelection(item1c);
+                                    return (true, emptyMatch);
+                                });
                     })
                 .Where(tuple => tuple.Item1)
                 .Select(tuple => tuple.Item2);
