@@ -1,5 +1,6 @@
 ﻿using EastFive.Extensions;
 using EastFive.Linq;
+using EastFive.Linq.Expressions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -131,6 +132,27 @@ namespace EastFive
                 return attributes;
             var baseAttrs = typeType.BaseType.GetAttributesInterface<T>(inherit, multiple);
             return attributes.Concat(baseAttrs).Distinct().ToArray();
+        }
+
+        public static T[] GetAttributesAndPropertyAttributesInterface<T>(this System.Reflection.MemberInfo member,
+            bool inherit = false)
+        {
+            if (!typeof(T).IsInterface)
+                throw new ArgumentException($"{typeof(T).FullName} is not an interface.");
+            var attributes = member.GetCustomAttributes(inherit)
+                .Where(attr => typeof(T).IsAssignableFrom(attr.GetType()))
+                .Select(attr => (T)attr)
+                .ToArray();
+
+            var memberAttributes = GetMemberAttributes();
+            return attributes.Concat(memberAttributes).Distinct().ToArray();
+
+            IEnumerable<T>  GetMemberAttributes()
+            {
+                foreach (var subMember in member.GetMemberType().GetMembers(BindingFlags.Public))
+                    foreach (var attr in subMember.GetAttributesInterface<T>(inherit))
+                        yield return attr;
+            }
         }
 
         public static T[] GetAttributesInterface<T>(this System.Reflection.MethodInfo method, bool inherit = false)
