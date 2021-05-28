@@ -94,6 +94,12 @@ namespace EastFive
             return refOptional.HasValue;
         }
 
+        public static bool EqualsRef<T>(this IRef<T> refValue1, IRef<T> refValue2)
+            where T : IReferenceable
+        {
+            return refValue1.id == refValue2.id;
+        }
+
         public static bool EqualsRef<T>(this IRef<T> refValue,  IRefOptional<T> refOptional)
             where T : IReferenceable
         {
@@ -101,9 +107,18 @@ namespace EastFive
                 return false;
             if (!refOptional.HasValue)
                 return false;
-            if (!refOptional.id.HasValue)
-                return false;
-            return refValue.id == refOptional.id.Value;
+            return refValue.EqualsRef(refOptional.Ref);
+        }
+
+        public static bool EqualsRef<T>(this IRefOptional<T> refOptional1, IRefOptional<T> refOptional2)
+            where T : IReferenceable
+        {
+            if (refOptional1.HasValueNotNull())
+            {
+                var refValue = refOptional1.Ref;
+                return refValue.EqualsRef(refOptional2);
+            }
+            return !refOptional2.HasValueNotNull();
         }
     }
 }
