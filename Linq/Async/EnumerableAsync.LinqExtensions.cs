@@ -73,6 +73,9 @@ namespace EastFive.Linq.Async
         public static IEnumerableAsync<TResult> Select<T, TResult>(this IEnumerableAsync<T> enumerable, Func<T, TResult> selection,
             ILogger log = default(ILogger))
         {
+            if (enumerable.IsDefaultOrNull())
+                return EnumerableAsync.Empty<TResult>();
+
             var selectId = Guid.NewGuid();
             var logSelect = log.CreateScope($"Select[{selectId}]");
             var eventId = 1;
