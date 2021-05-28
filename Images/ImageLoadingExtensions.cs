@@ -27,6 +27,12 @@ namespace EastFive.Images
             }
         }
 
+        public static bool TryReadImage(this byte [] mediaContents, out Image image)
+        {
+            using (var stream = new MemoryStream(mediaContents))
+                return stream.TryReadImage(out image);
+        }
+
         public static void Save(this Image image, Stream outputStream,
             ImageCodecInfo imageCodec, long encoderQuality = 80L)
         {
