@@ -124,6 +124,14 @@ namespace EastFive
 
         public static Uri AddQueryParameter(this Uri uri, string parameter, string value)
         {
+            if(!uri.IsAbsoluteUri)
+            {
+                var uriStr = uri.OriginalString.Contains('?')?
+                    $"{uri.OriginalString}&{parameter}={HttpUtility.UrlEncode(value)}"
+                    :
+                    $"{uri.OriginalString}?{parameter}={HttpUtility.UrlEncode(value)}";
+                return new Uri(uriStr, UriKind.Relative);
+            }
             var uriBuilder = new UriBuilder(uri);
             var query = HttpUtility.ParseQueryString(uriBuilder.Query);
             query[parameter] = value;
