@@ -93,5 +93,17 @@ namespace EastFive
                 return false;
             return refOptional.HasValue;
         }
+
+        public static bool EqualsRef<T>(this IRef<T> refValue,  IRefOptional<T> refOptional)
+            where T : IReferenceable
+        {
+            if (refOptional.IsDefaultOrNull())
+                return false;
+            if (!refOptional.HasValue)
+                return false;
+            if (!refOptional.id.HasValue)
+                return false;
+            return refValue.id == refOptional.id.Value;
+        }
     }
 }
