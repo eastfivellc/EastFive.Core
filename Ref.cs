@@ -111,6 +111,12 @@ namespace EastFive
         {
             return SecureGuid.Generate().AsRef<TType>();
         }
+
+        public override string ToString()
+        {
+            var typeName = typeof(TType).FullName;
+            return $"{this.id}<{typeName}>";
+        }
     }
 
     public static class RefOptionalHelper
@@ -175,6 +181,15 @@ namespace EastFive
                     throw new InvalidOperationException("Attempt to de-option empty value");
                 return baseRef;
             }
+        }
+
+        public override string ToString()
+        {
+            var typeName = typeof(TType).FullName;
+            return this.HasValue ?
+                $"{this.id.Value}?<{typeName}>"
+                :
+                $"null?<{typeName}>";
         }
     }
 

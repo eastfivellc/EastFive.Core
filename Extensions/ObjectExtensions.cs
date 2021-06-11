@@ -1,12 +1,9 @@
-﻿using BlackBarLabs.Collections.Generic;
-using BlackBarLabs.Linq;
-using EastFive.Collections.Generic;
+﻿using EastFive.Collections.Generic;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using BlackBarLabs.Extensions;
 using EastFive.Linq;
 
 namespace BlackBarLabs.Extensions // Make user force extensions because this affects _every_ object

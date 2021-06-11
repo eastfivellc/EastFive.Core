@@ -484,33 +484,5 @@ namespace EastFive.Linq
                 (v1next, v2next, r) => items.ReduceItems(v1next, v2next, callback).Append(r),
                 (v1next, v2next) => items.ReduceItems(v1next, v2next, callback));
         }
-
-        public static TResult First<TITem, TResult>(this IEnumerable<TITem> items,
-            Func<TITem, Func<TResult>, TResult> next,
-            Func<TResult> onNotFound)
-        {
-            var enumerator = items.GetEnumerator();
-            return enumerator.First(next, onNotFound);
-        }
-
-        private static TResult First<TITem, TResult>(this IEnumerator<TITem> items,
-            Func<TITem, Func<TResult>, TResult> next,
-            Func<TResult> onNotFound)
-        {
-            if (!items.MoveNext())
-                return onNotFound();
-
-            return next(items.Current, () => items.First(next, onNotFound));
-        }
-
-        public static TResult LastOrEmpty<TITem, TResult>(this IEnumerable<TITem> items,
-            Func<TITem, TResult> onLast,
-            Func<TResult> onEmpty)
-        {
-            var enumerator = items.GetEnumerator();
-            if (!enumerator.MoveNext())
-                return onEmpty();
-            return onLast(items.Last());
-        }
     }
 }

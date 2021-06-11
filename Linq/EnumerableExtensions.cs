@@ -1,17 +1,25 @@
-﻿using BlackBarLabs.Collections.Generic;
-using BlackBarLabs.Extensions;
-using EastFive.Collections.Generic;
-using EastFive.Extensions;
-using EastFive.Linq;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+
+using EastFive.Collections.Generic;
+using EastFive.Extensions;
+using EastFive.Linq;
 
 namespace EastFive.Linq
 {
     public static class EnumerableExtensions
     {
+#if !NETCOREAPP2_1_OR_GREATER
+        public static IEnumerable<T> Append<T>(this IEnumerable<T> items, T addition)
+        {
+            foreach (var item in items.NullToEmpty())
+                yield return item;
+            yield return addition;
+        }
+#endif
+
         public static IEnumerable<TSource> NullToEmpty<TSource>(
             this IEnumerable<TSource> source)
         {
@@ -46,7 +54,7 @@ namespace EastFive.Linq
             var enumerator = source.GetEnumerator();
             var queueAhead = new TSource[less];
             var index = 0;
-            while(index < less)
+            while (index < less)
             {
                 if (!enumerator.MoveNext())
                     yield break;
@@ -54,7 +62,7 @@ namespace EastFive.Linq
                 index++;
             }
             var swapIndex = 0;
-            while(enumerator.MoveNext())
+            while (enumerator.MoveNext())
             {
                 yield return queueAhead[swapIndex];
                 queueAhead[swapIndex] = enumerator.Current;
@@ -115,7 +123,7 @@ namespace EastFive.Linq
                 foreach (var setItem in breakSet(item))
                 {
                     var itemAlreadyUsed = uniques.Contains(setItem);
-                    if(!itemAlreadyUsed)
+                    if (!itemAlreadyUsed)
                         uniques.Add(setItem);
                     alreadyUsed = alreadyUsed || itemAlreadyUsed;
                 }
@@ -213,10 +221,10 @@ namespace EastFive.Linq
             return items.Distinct(comparer);
         }
 
-        public static IEnumerable<T> Exclude<T>(this IEnumerable<T> items, 
+        public static IEnumerable<T> Exclude<T>(this IEnumerable<T> items,
             T itemToExclude, int limit = int.MaxValue)
         {
-            foreach(var item in items)
+            foreach (var item in items)
             {
                 if (limit <= 0)
                 {
@@ -307,7 +315,7 @@ namespace EastFive.Linq
                 predicateComparer, hash);
         }
 
-        public static TResult Merge<T0, T1, T2, TResult>(this IEnumerable<T1> items1, 
+        public static TResult Merge<T0, T1, T2, TResult>(this IEnumerable<T1> items1,
                 IEnumerable<T2> items2,
                 Func<T1, T0> propertySelection1,
                 Func<T2, T0> propertySelection2,
@@ -503,12 +511,12 @@ namespace EastFive.Linq
 
             var best = enumerator.Current;
             var bestCriteria = sortCriteria(best);
-            
+
             while (enumerator.MoveNext())
             {
                 var challenger = enumerator.Current;
                 var challengerCriteria = sortCriteria(challenger);
-                if(challengerCriteria.CompareTo(bestCriteria) < 0)
+                if (challengerCriteria.CompareTo(bestCriteria) < 0)
                 {
                     best = challenger;
                     bestCriteria = challengerCriteria;
@@ -555,7 +563,7 @@ namespace EastFive.Linq
         public static IEnumerable<T> ToEndlessLoop<T>(this IEnumerable<T> items)
         {
             bool operated = false;
-            while(true)
+            while (true)
             {
                 foreach (var item in items)
                 {
@@ -580,7 +588,7 @@ namespace EastFive.Linq
 
         public static bool Contains<T>(this IEnumerable<T> items, Func<T, bool> doesContain)
         {
-            foreach(var item in items.NullToEmpty())
+            foreach (var item in items.NullToEmpty())
             {
                 if (doesContain(item))
                     return true;
@@ -600,6 +608,9 @@ namespace EastFive.Linq
                 index += batchsize;
             }
         }
+
+
+#if NETCOREAPP2_1_OR_GREATER
 
         public delegate bool TryPredicate<TItem, TOut>(TItem item, out TOut result);
         public static IEnumerable<(TItem item, TOut @out)> TryWhere<TItem, TOut>(this IEnumerable<TItem> items,
@@ -647,6 +658,8 @@ namespace EastFive.Linq
                 .Where(item => item.success)
                 .Select(item => (item.item, item.@out1, item.@out2, item.@out3));
         }
+
+#endif
 
         public static T Random<T>(this IEnumerable<T> items, int total, Random rand = null)
         {
@@ -699,6 +712,34 @@ namespace EastFive.Linq
             return notFound();
         }
 
+        public static TResult First<TITem, TResult>(this IEnumerable<TITem> items,
+            Func<TITem, Func<TResult>, TResult> next,
+            Func<TResult> onNotFound)
+        {
+            var enumerator = items.GetEnumerator();
+            return enumerator.First(next, onNotFound);
+        }
+
+        private static TResult First<TITem, TResult>(this IEnumerator<TITem> items,
+            Func<TITem, Func<TResult>, TResult> next,
+            Func<TResult> onNotFound)
+        {
+            if (!items.MoveNext())
+                return onNotFound();
+
+            return next(items.Current, () => items.First(next, onNotFound));
+        }
+
+        public static TResult LastOrEmpty<TITem, TResult>(this IEnumerable<TITem> items,
+            Func<TITem, TResult> onLast,
+            Func<TResult> onEmpty)
+        {
+            var enumerator = items.GetEnumerator();
+            if (!enumerator.MoveNext())
+                return onEmpty();
+            return onLast(items.Last());
+        }
+
         public static TResult GetDistinctKvpValueByKey<TResult>(this IEnumerable<KeyValuePair<string, object>> kvps, string key,
             Func<object, TResult> found,
             Func<string, TResult> notFound,
@@ -718,8 +759,8 @@ namespace EastFive.Linq
 
         public static IEnumerable<TResult> SelectBySegment<TItem, TResult>(this IEnumerable<TItem> items,
              Func<TItem, TResult> single,
-             Func<TItem, TItem, TResult> first, 
-             Func<TItem, TItem, TItem, TResult> middle, 
+             Func<TItem, TItem, TResult> first,
+             Func<TItem, TItem, TItem, TResult> middle,
              Func<TItem, TItem, TResult> last)
         {
             var iter = items.GetEnumerator();
@@ -738,7 +779,7 @@ namespace EastFive.Linq
 
             yield return first(lastValue, current);
 
-            while(iter.MoveNext())
+            while (iter.MoveNext())
             {
                 yield return middle(lastValue, current, iter.Current);
                 lastValue = current;
@@ -747,10 +788,12 @@ namespace EastFive.Linq
             yield return last(lastValue, current);
         }
 
-        public static IEnumerable<T2> SelectWhere<T1, T2>(this IEnumerable<(T1, T2)> items, 
+#if NETCOREAPP2_1_OR_GREATER
+
+        public static IEnumerable<T2> SelectWhere<T1, T2>(this IEnumerable<(T1, T2)> items,
             Func<(T1, T2), bool> isWhere)
         {
-            foreach(var item in items)
+            foreach (var item in items)
             {
                 if (isWhere(item))
                     yield return item.Item2;
@@ -768,12 +811,14 @@ namespace EastFive.Linq
             }
         }
 
+#endif
+
         public delegate TResult SelectWithDelegate<TWith, TItem, TResult>(TWith previous, TItem current, out TWith next);
         public static IEnumerable<TResult> SelectWith<TWith, TItem, TResult>(this IEnumerable<TItem> items,
             TWith seed, SelectWithDelegate<TWith, TItem, TResult> callback)
         {
             var carry = seed;
-            foreach(var item in items)
+            foreach (var item in items)
             {
                 yield return callback(carry, item, out carry);
             }
@@ -790,7 +835,7 @@ namespace EastFive.Linq
         {
             var enumerator = items.GetEnumerator();
             bool peeked = false;
-            while(peeked || enumerator.MoveNext())
+            while (peeked || enumerator.MoveNext())
             {
                 yield return callback(enumerator.Current,
                     (next, end) =>
@@ -824,7 +869,7 @@ namespace EastFive.Linq
                 this.Value = nextItem;
             }
 
-            public bool HasValue {get; private set;}
+            public bool HasValue { get; private set; }
 
             public T Value { get; private set; }
         }
@@ -846,19 +891,19 @@ namespace EastFive.Linq
             TCarry carry, Func<TCarry, TItem, bool> selectNextItem, Func<TItem, TCarry> selectNextCarry)
         {
             var itemsAvailable = items.NullToEmpty().ToArray();
-            while(itemsAvailable.Any())
+            while (itemsAvailable.Any())
             {
                 bool found = false;
                 var nextItem = default(TItem);
                 itemsAvailable = itemsAvailable.Where(candidate =>
+                {
+                    if (!found && selectNextItem(carry, candidate))
                     {
-                        if (!found && selectNextItem(carry, candidate))
-                        {
-                            nextItem = candidate;
-                            return false;
-                        }
-                        return true;
-                    })
+                        nextItem = candidate;
+                        return false;
+                    }
+                    return true;
+                })
                     .ToArray();
                 if (!found)
                 {
@@ -891,7 +936,7 @@ namespace EastFive.Linq
             Func<TOption2, TResult> option2)
         {
             IEnumerable<TOption1> option1s = new TOption1[] { };
-            foreach(var item in items)
+            foreach (var item in items)
             {
                 var dr = callback(item,
                     r => new SelectDiscriminateResult<TOption1, TOption2>(r),
@@ -1011,6 +1056,44 @@ namespace EastFive.Linq
                 .Select(item => item);
         }
 
+
+        /// <summary>
+        /// Sort items by removing a group of items at a time. 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="items"></param>
+        /// <param name="sorter"></param>
+        /// <param name="comparison"></param>
+        /// <returns></returns>
+        public static IEnumerable<T> Sort<T>(this IEnumerable<T> items,
+            Func<IEnumerable<T>, IEnumerable<T>, IEnumerable<T>> sorter,
+            Func<T, T, bool> comparison)
+        {
+            var sorted = new T[] { };
+            var unsorted = items.ToArray();
+            while (true)
+            {
+                var newSorted = sorter(unsorted, sorted).ToArray();
+                var newUnsorted = unsorted
+                    .Where(i1 => !newSorted.Where(i2 => comparison(i1, i2)).Any())
+                    .ToArray();
+
+                // sorting is done
+                if (!newUnsorted.Any())
+                    return newSorted;
+
+                // sorting has stalled, TODO: Message?
+                if (newUnsorted.Length == unsorted.Length)
+                    return newSorted;
+
+                // Prepare to sort again
+                unsorted = newUnsorted;
+                sorted = newSorted;
+            }
+        }
+
+#if NETCOREAPP2_1_OR_GREATER
+
         public static IEnumerable<TMatch> Match<T1, T2, TMatch, TKey>(this IEnumerable<T1> items1,
                 IEnumerable<T2> items2,
             Func<T1, T2, TMatch> matcher,
@@ -1034,7 +1117,7 @@ namespace EastFive.Linq
                                 (tuple, next) => (true, (TMatch)tuple),
                                 () =>
                                 {
-                                    if(unmatchedValueSelection.IsDefaultOrNull())
+                                    if (unmatchedValueSelection.IsDefaultOrNull())
                                         return (false, default(TMatch));
                                     var emptyMatch = unmatchedValueSelection(item1c);
                                     return (true, emptyMatch);
@@ -1044,49 +1127,14 @@ namespace EastFive.Linq
                 .Select(tuple => tuple.Item2);
         }
 
-        /// <summary>
-        /// Sort items by removing a group of items at a time. 
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="items"></param>
-        /// <param name="sorter"></param>
-        /// <param name="comparison"></param>
-        /// <returns></returns>
-        public static IEnumerable<T> Sort<T>(this IEnumerable<T> items, 
-            Func<IEnumerable<T>, IEnumerable<T>, IEnumerable<T>> sorter,
-            Func<T, T, bool> comparison)
-        {
-            var sorted = new T[] { };
-            var unsorted = items.ToArray();
-            while(true)
-            {
-                var newSorted = sorter(unsorted, sorted).ToArray();
-                var newUnsorted = unsorted
-                    .Where(i1 => !newSorted.Where(i2 => comparison(i1, i2)).Any())
-                    .ToArray();
-
-                // sorting is done
-                if (!newUnsorted.Any())
-                    return newSorted;
-
-                // sorting has stalled, TODO: Message?
-                if (newUnsorted.Length == unsorted.Length)
-                    return newSorted;
-
-                // Prepare to sort again
-                unsorted = newUnsorted;
-                sorted = newSorted;
-            }
-        }
-
         public static IEnumerable<(T1, T2)> CollateSimple<T1, T2>(this IEnumerable<T1> items1,
                 IEnumerable<T2> items2)
         {
             var iterator1 = items1.GetEnumerator();
             var iterator2 = items2.GetEnumerator();
-            while(iterator1.MoveNext())
+            while (iterator1.MoveNext())
             {
-                if(!iterator2.MoveNext())
+                if (!iterator2.MoveNext())
                     yield break;
                 yield return (iterator1.Current, iterator2.Current);
             }
@@ -1149,6 +1197,7 @@ namespace EastFive.Linq
                     })
                 .Select(tuple => tuple.value);
         }
+#endif
 
         public static IEnumerable<T> Compress<T>(this IEnumerable<T> items, Func<T, T, T[]> compressor)
         {
@@ -1157,7 +1206,7 @@ namespace EastFive.Linq
                 yield break;
             var current = iterator.Current;
 
-            while(iterator.MoveNext())
+            while (iterator.MoveNext())
             {
                 var compressedResults = compressor(current, iterator.Current);
                 if (!compressedResults.Any())
@@ -1174,8 +1223,8 @@ namespace EastFive.Linq
 
         public static IEnumerable<KeyValuePair<T1, T2>> Combine<T1, T2>(this IEnumerable<T1> items1, IEnumerable<T2> combineWith)
         {
-            foreach(var item1 in items1)
-                foreach(var item2 in combineWith)
+            foreach (var item1 in items1)
+                foreach (var item2 in combineWith)
                     yield return item1.PairWithValue(item2);
         }
 
@@ -1192,8 +1241,8 @@ namespace EastFive.Linq
             var item = itemsArray[0];
             var remainder = items.Skip(1).ToArray();
             var combinationsRemainder = remainder
-                .Combinations(fullSetsOnly:fullSetsOnly);
-            if(fullSetsOnly)
+                .Combinations(fullSetsOnly: fullSetsOnly);
+            if (fullSetsOnly)
             {
                 var combinationsFullSets = combinationsRemainder
                     .Select(co => co.Append(item).ToArray())
@@ -1208,6 +1257,7 @@ namespace EastFive.Linq
             return combinations;
         }
 
+#if NETCOREAPP2_1_OR_GREATER
         public static IEnumerable<(T1, T2)[]> Combinations<T1, T2>(this IEnumerable<T1> items1, IEnumerable<T2> items2)
         {
             if (items1.IsDefaultNullOrEmpty())
@@ -1261,7 +1311,7 @@ namespace EastFive.Linq
                     var subCombinations = items1Remainder
                         .Combinations(items2Remainder)
                         .ToArray();
-                    foreach(var subCombination in subCombinations)
+                    foreach (var subCombination in subCombinations)
                         yield return subCombination
                                 .Append((item1, item2))
                                 .ToArray();
@@ -1277,7 +1327,7 @@ namespace EastFive.Linq
                 yield break;
 
             var index1 = 0;
-            while(index1 < itemsArray.Length - 1)
+            while (index1 < itemsArray.Length - 1)
             {
                 var index2 = index1 + 1;
                 while (index2 < itemsArray.Length)
@@ -1288,6 +1338,7 @@ namespace EastFive.Linq
                 index1++;
             }
         }
+#endif
 
         public static TAccumulate Aggregate<TSource, TAccumulate>(this IEnumerable<TSource> items,
             TAccumulate seed,
@@ -1320,7 +1371,7 @@ namespace EastFive.Linq
             return aggr(start, items.Current,
                 (next) => Aggregate(items, next, aggr, onComplete));
         }
-        
+
         public static TResult AggregateConsume<TItem, TResult>(this IEnumerable<TItem> items,
             Func<TItem, Func<TResult>, TResult> aggr,
             Func<TResult> noItems)
@@ -1403,37 +1454,6 @@ namespace EastFive.Linq
             return items1Arr
                 .CollateSimple(items2Arr)
                 .All(tpl => tpl.Item1.Equals(tpl.Item2, stringComparison));
-        }
-
-        public static TResult Bucket<TItem1, TItem2, Selector1, Selector2, TResult>(this IEnumerable<TItem1> items1, IEnumerable<TItem2> items2,
-            Func<TItem1, Selector1> selector1,
-            Func<TItem2, Selector2> selector2,
-            Func<Selector1, Selector2, bool> matchPredicate,
-            Func<KeyValuePair<TItem1[], TItem2[]>[], TItem1 [], TItem2[], TResult> onGetResult)
-        {
-            var items1Grouped = items1.GroupBy(selector1);
-            var items2Grouped = items2.GroupBy(selector2).ToArray();
-            return items1Grouped.FlatMap<IGrouping<Selector1, TItem1>, TItem1[], IGrouping<Selector2, TItem2>[], KeyValuePair<TItem1[], TItem2[]>, Func<TResult>>(
-                    new TItem1[] { }, items2Grouped,
-                (item1, items1Unmatched, items2Unmatched, next, skip) =>
-                {
-                    return items2Unmatched.SplitReduce(
-                        item2 => matchPredicate(item1.Key, item2.Key),
-                        (items2Matching, items2UnmatchedNew) =>
-                        {
-                            if (!items2Matching.Any())
-                                return skip(items1Unmatched.Concat(item1).ToArray(), items2Unmatched);
-                            return next(
-                                item1.ToArray().PairWithValue(items2Matching.Select(grp => grp).SelectMany().ToArray()),
-                                items1Unmatched,
-                                items2UnmatchedNew.ToArray());
-                        });
-                },
-                (KeyValuePair<TItem1[], TItem2[]>[] itemsMatched, TItem1 [] items1Unmatched, IGrouping<Selector2, TItem2>[] items2Unmatched) =>
-                {
-                    // return fuction to not trigger an async FlatMap
-                    return () => onGetResult(itemsMatched, items1Unmatched, items2Unmatched.Select(grp => grp.ToArray()).SelectMany().ToArray());
-                })();
         }
 
         //public static bool SequenceEqual<TItem>(this IEnumerable<TItem> items1, IEnumerable<TItem> items2)

@@ -1,7 +1,4 @@
-﻿using BlackBarLabs.Collections.Generic;
-using BlackBarLabs.Extensions;
-using BlackBarLabs.Linq;
-using EastFive.Extensions;
+﻿using EastFive.Extensions;
 using EastFive.Linq;
 using System;
 using System.Collections.Generic;

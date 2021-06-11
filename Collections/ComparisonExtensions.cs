@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BlackBarLabs.Collections.Generic
+namespace EastFive.Collections.Generic
 {
     public static class ComparisonExtensions
     {

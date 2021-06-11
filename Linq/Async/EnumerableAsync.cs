@@ -213,9 +213,9 @@ namespace EastFive.Linq.Async
         {
             // No arg exception here because some items want to read ahead 
             // using a dynamic value which could be 0 and ...
-            if (readAhead < 1)
+            if (readAhead <= 1)
+                return items.AsyncEnumerable();
                 // ... the readAhead >= 1 requirement is based off the implementation of this method.
-                readAhead = 1; 
 
             var enumerator = items.GetEnumerator();
             bool moreDataToRead = enumerator.MoveNext();
