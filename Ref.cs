@@ -115,7 +115,7 @@ namespace EastFive
         public override string ToString()
         {
             var typeName = typeof(TType).FullName;
-            return $"{this.id.Value}<{typeName}>";
+            return $"{this.id}<{typeName}>";
         }
     }
 
