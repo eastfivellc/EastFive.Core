@@ -1394,6 +1394,17 @@ namespace EastFive.Linq
             return items1Arr.All(item => items2Arr.Contains(item));
         }
 
+        public static bool SequenceEqual(this IEnumerable<string> items1, IEnumerable<string> items2, StringComparison stringComparison)
+        {
+            var items1Arr = items1.ToArray();
+            var items2Arr = items2.ToArray();
+            if (items1Arr.Length != items2Arr.Length)
+                return false;
+            return items1Arr
+                .CollateSimple(items2Arr)
+                .All(tpl => tpl.Item1.Equals(tpl.Item2, stringComparison));
+        }
+
         public static TResult Bucket<TItem1, TItem2, Selector1, Selector2, TResult>(this IEnumerable<TItem1> items1, IEnumerable<TItem2> items2,
             Func<TItem1, Selector1> selector1,
             Func<TItem2, Selector2> selector2,
