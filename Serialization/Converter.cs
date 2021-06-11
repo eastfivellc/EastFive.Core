@@ -247,6 +247,7 @@ namespace EastFive.Serialization.Json
             {
                 var id = (value as IReferenceable).id;
                 writer.WriteValue(id);
+                return;
             }
 
             if (value is IReferences)
@@ -261,11 +262,13 @@ namespace EastFive.Serialization.Json
                         })
                     .ToArray();
                 writer.WriteEndArray();
+                return;
             }
             if (value is IReferenceableOptional)
             {
                 var id = (value as IReferenceableOptional).id;
                 writer.WriteValue(id);
+                return;
             }
             if (value.GetType().IsSubClassOfGeneric(typeof(IDictionary<,>)))
             {
@@ -276,26 +279,36 @@ namespace EastFive.Serialization.Json
                     var propertyName = (keyValue is IReferenceable)?
                         (keyValue as IReferenceable).id.ToString("N")
                         :
-                        keyValue.ToString();
+                        (keyValue is IReferenceableOptional)?
+                            (keyValue as IReferenceableOptional).HasValue?
+                                (keyValue as IReferenceableOptional).id.Value.ToString("N")
+                                :
+                                "null"
+                            :
+                            keyValue.ToString();
                     writer.WritePropertyName(propertyName);
 
                     var valueValue = kvpObj.Value;
-                    writer.WriteValue(valueValue);
+                    WriteJson(writer, valueValue, serializer);
                 }
                 writer.WriteEndObject();
+                return;
             }
             if (value is Type)
             {
                 var typeValue = (value as Type);
                 var stringType = (value as Type).GetClrString();
                 writer.WriteValue(stringType);
+                return;
             }
             if (value is byte[])
             {
                 var typeValue = value as byte[];
                 var stringType = typeValue.ToBase64String();
                 writer.WriteValue(stringType);
+                return;
             }
+            serializer.Serialize(writer, value);
         }
     }
 
