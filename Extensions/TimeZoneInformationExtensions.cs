@@ -15,7 +15,7 @@ namespace EastFive.Extensions
             {
                 try
                 {
-                    return TimeZoneInfo.FindSystemTimeZoneById(serverTz);
+                    return TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
                 }
                 catch (TimeZoneNotFoundException)
                 {
