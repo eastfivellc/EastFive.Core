@@ -12,7 +12,16 @@ namespace EastFive.Extensions
         public static TimeZoneInfo FindSystemTimeZone(this string timeZoneId)
         {
             if (System.Environment.OSVersion.Platform == PlatformID.Win32NT)
-                return TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+            {
+                try
+                {
+                    return TimeZoneInfo.FindSystemTimeZoneById(serverTz);
+                }
+                catch (TimeZoneNotFoundException)
+                {
+                    return TimeZoneInfo.Local;
+                }
+            }
 
             return TimeZoneInfo.GetSystemTimeZones()
                 .Where(tz => tz.DisplayName.Equals(timeZoneId))
