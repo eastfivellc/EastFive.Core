@@ -392,6 +392,11 @@ namespace EastFive.Linq
             return items.NullToEmpty().Any();
         }
 
+        public static bool None<TItem>(this IEnumerable<TItem> items)
+        {
+            return !items.AnyNullSafe();
+        }
+
         public static bool ContainsNullSafe<TItem>(this IEnumerable<TItem> items, TItem item)
         {
             if (items == null)
