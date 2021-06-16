@@ -392,6 +392,11 @@ namespace EastFive.Linq
             return items.NullToEmpty().Any();
         }
 
+        public static bool None<TItem>(this IEnumerable<TItem> items)
+        {
+            return !items.AnyNullSafe();
+        }
+
         public static bool ContainsNullSafe<TItem>(this IEnumerable<TItem> items, TItem item)
         {
             if (items == null)
@@ -1460,6 +1465,17 @@ namespace EastFive.Linq
             if (items1Arr.Count() != items2Arr.Count())
                 return false;
             return items1Arr.All(item => items2Arr.Contains(item));
+        }
+
+        public static bool SequenceEqual(this IEnumerable<string> items1, IEnumerable<string> items2, StringComparison stringComparison)
+        {
+            var items1Arr = items1.ToArray();
+            var items2Arr = items2.ToArray();
+            if (items1Arr.Length != items2Arr.Length)
+                return false;
+            return items1Arr
+                .CollateSimple(items2Arr)
+                .All(tpl => tpl.Item1.Equals(tpl.Item2, stringComparison));
         }
 
         //public static bool SequenceEqual<TItem>(this IEnumerable<TItem> items1, IEnumerable<TItem> items2)
