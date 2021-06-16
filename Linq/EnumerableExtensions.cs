@@ -11,7 +11,7 @@ namespace EastFive.Linq
 {
     public static class EnumerableExtensions
     {
-#if !NETCOREAPP2_1_OR_GREATER
+#if !NETCORE
         public static IEnumerable<T> Append<T>(this IEnumerable<T> items, T addition)
         {
             foreach (var item in items.NullToEmpty())
@@ -610,7 +610,7 @@ namespace EastFive.Linq
         }
 
 
-#if NETCOREAPP2_1_OR_GREATER
+#if NET5_0
 
         public delegate bool TryPredicate<TItem, TOut>(TItem item, out TOut result);
         public static IEnumerable<(TItem item, TOut @out)> TryWhere<TItem, TOut>(this IEnumerable<TItem> items,
@@ -657,6 +657,23 @@ namespace EastFive.Linq
                     })
                 .Where(item => item.success)
                 .Select(item => (item.item, item.@out1, item.@out2, item.@out3));
+        }
+
+        public static IEnumerable<T3> SelectWhere<T1, T2, T3>(this IEnumerable<(T1, T2)> items,
+            Func<(T1, T2), (bool, T3)> isWhere)
+        {
+            foreach (var item in items)
+            {
+                var (isSelected, r) = isWhere(item);
+                if (isSelected)
+                    yield return r;
+            }
+        }
+
+        public static IEnumerable<T> SelectWhere<T>(this IEnumerable<(bool, T)> items)
+        {
+            return items.SelectWhere(
+                item => (item.Item1, item.Item2));
         }
 
 #endif
@@ -788,7 +805,7 @@ namespace EastFive.Linq
             yield return last(lastValue, current);
         }
 
-#if NETCOREAPP2_1_OR_GREATER
+#if NET5_0
 
         public static IEnumerable<T2> SelectWhere<T1, T2>(this IEnumerable<(T1, T2)> items,
             Func<(T1, T2), bool> isWhere)
@@ -1092,7 +1109,7 @@ namespace EastFive.Linq
             }
         }
 
-#if NETCOREAPP2_1_OR_GREATER
+#if NET5_0
 
         public static IEnumerable<TMatch> Match<T1, T2, TMatch, TKey>(this IEnumerable<T1> items1,
                 IEnumerable<T2> items2,
@@ -1257,7 +1274,7 @@ namespace EastFive.Linq
             return combinations;
         }
 
-#if NETCOREAPP2_1_OR_GREATER
+#if NET5_0
         public static IEnumerable<(T1, T2)[]> Combinations<T1, T2>(this IEnumerable<T1> items1, IEnumerable<T2> items2)
         {
             if (items1.IsDefaultNullOrEmpty())
