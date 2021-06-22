@@ -244,6 +244,30 @@ namespace EastFive.Linq.Async
                 .Select(valueMaybe => valueMaybe.Value);
         }
 
+        public static IEnumerableAsync<T> WhenAsyncUnique<T, TUnique>(this IEnumerableAsync<T> enumerable,
+            Func<T, Task> whenUnique,
+            Func<T,TUnique> uniqueKey)
+            where T : struct
+        {
+            var hashset = new HashSet<TUnique>();
+            var enumeratorAsync = enumerable.GetEnumerator();
+            return EnumerableAsync.Yield<T>(
+                async (moved, ended) =>
+                {
+                    if (!await enumeratorAsync.MoveNextAsync())
+                        return ended;
+                    var current = enumeratorAsync.Current;
+
+                    var key = uniqueKey(current);
+                    if (!hashset.Contains(key))
+                    {
+                        hashset.Add(key);
+                        await whenUnique(current);
+                    }
+                    
+                    return moved(current);
+                });
+        }
 
         public static async Task<long> CountAsync<T>(this IEnumerableAsync<T> enumerable)
         {
