@@ -158,7 +158,7 @@ namespace EastFive
             }
         }
 
-        public static (MemberInfo, T)[] GetPropertyAndFieldsWithAttributesInterface<T>(this Type type,
+        public static IEnumerable<(MemberInfo, T)> GetPropertyAndFieldsWithAttributesInterface<T>(this Type type,
             bool inherit = false)
         {
             if (!typeof(T).IsInterface)
@@ -166,21 +166,8 @@ namespace EastFive
 
             return type
                 .GetPropertyOrFieldMembers()
-                .TrySelect()
-            var attributes = member.GetCustomAttributes(inherit)
-                .Where(attr => typeof(T).IsAssignableFrom(attr.GetType()))
-                .Select(attr => (T)attr)
-                .ToArray();
-
-            var memberAttributes = GetMemberAttributes();
-            return attributes.Concat(memberAttributes).Distinct().ToArray();
-
-            IEnumerable<T> GetMemberAttributes()
-            {
-                foreach (var subMember in member.GetMemberType().GetMembers(BindingFlags.Public))
-                    foreach (var attr in subMember.GetAttributesInterface<T>(inherit))
-                        yield return attr;
-            }
+                .TryWhere(
+                    (MemberInfo member, out T attr) => member.TryGetAttributeInterface(out attr, inherit: inherit));
         }
 
         public static T[] GetAttributesInterface<T>(this System.Reflection.MethodInfo method, bool inherit = false)
