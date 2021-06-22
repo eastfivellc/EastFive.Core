@@ -4,6 +4,7 @@ using System.Linq;
 using EastFive;
 using EastFive.Linq;
 using EastFive.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace EastFive.Extensions
 {
@@ -11,7 +12,8 @@ namespace EastFive.Extensions
     {
         public static TimeZoneInfo FindSystemTimeZone(this string timeZoneId)
         {
-            if (System.Environment.OSVersion.Platform == PlatformID.Win32NT)
+            //if (System.Environment.OSVersion.Platform == PlatformID.Win32NT)
+            if(RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 try
                 {
