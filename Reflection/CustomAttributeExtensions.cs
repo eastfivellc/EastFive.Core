@@ -1,12 +1,15 @@
-﻿using EastFive.Extensions;
-using EastFive.Linq;
-using EastFive.Linq.Expressions;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+
+using EastFive;
+using EastFive.Extensions;
+using EastFive.Linq;
+using EastFive.Linq.Expressions;
+using EastFive.Reflection;
 
 namespace EastFive
 {
@@ -153,6 +156,18 @@ namespace EastFive
                     foreach (var attr in subMember.GetAttributesInterface<T>(inherit))
                         yield return attr;
             }
+        }
+
+        public static IEnumerable<(MemberInfo, T)> GetPropertyAndFieldsWithAttributesInterface<T>(this Type type,
+            bool inherit = false)
+        {
+            if (!typeof(T).IsInterface)
+                throw new ArgumentException($"{typeof(T).FullName} is not an interface.");
+
+            return type
+                .GetPropertyOrFieldMembers()
+                .TryWhere(
+                    (MemberInfo member, out T attr) => member.TryGetAttributeInterface(out attr, inherit: inherit));
         }
 
         public static T[] GetAttributesInterface<T>(this System.Reflection.MethodInfo method, bool inherit = false)
