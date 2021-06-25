@@ -601,6 +601,16 @@ namespace EastFive.Linq
             return false;
         }
 
+        public static bool Contains(this IEnumerable<string> items, string match, StringComparison stringComparison)
+        {
+            foreach (var item in items.NullToEmpty())
+            {
+                if (match.Equals(item, comparisonType: stringComparison))
+                    return true;
+            }
+            return false;
+        }
+
         public static IEnumerable<IEnumerable<T>> Split<T>(this IEnumerable<T> items, Func<int, int> batchSizeCallback)
         {
             var itemsCopy = items.NullToEmpty();
