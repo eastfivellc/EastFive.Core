@@ -358,7 +358,7 @@ namespace EastFive.Linq.Async
         {
             var segment = new List<Task<T>>();
             var moved = new AutoResetEvent(false);
-            var complete = new ManualResetEvent(false);
+            var complete = new AutoResetEvent(false);
             var segmentTask = Task.Run(
                 () =>
                 {
