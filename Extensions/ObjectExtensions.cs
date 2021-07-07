@@ -83,6 +83,11 @@ namespace EastFive.Extensions
             return new T[] { firstItem, secondItem, thirdItem };
         }
 
+        public static List<T> AsList<T>(this T onlyItem)
+        {
+            return new List<T> { onlyItem };
+        }
+
         #endregion
 
         public static IEnumerable<KeyValuePair<TKey, TValue>> PairWithValues<TKey, TValue>(this IEnumerable<TKey> keys, IEnumerable<TValue> values)
