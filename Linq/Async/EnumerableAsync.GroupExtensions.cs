@@ -73,7 +73,7 @@ namespace EastFive.Linq.Async
             
             var keyQueue = new Queue<TKey>();
 
-            var mutex = new ManualResetEvent(true);
+            var mutex = new AutoResetEvent(true);
             return Yield<IGroupingAsync<TKey, TSource>>(
                 async (yieldReturn, yieldBreak) =>
                 {

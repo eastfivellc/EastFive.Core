@@ -146,7 +146,7 @@ namespace EastFive.Linq.Async
         {
             var enumerator = enumerable.GetEnumerator();
             var selecteds = default(IEnumerableAsync<TSelect>);
-            var completedEvent = new System.Threading.ManualResetEvent(false);
+            // var completedEvent = new System.Threading.ManualResetEvent(false);
             selecteds = EnumerableAsync.Yield<TSelect>(
                 async (yieldReturn, yieldBreak) =>
                 {
@@ -210,7 +210,7 @@ namespace EastFive.Linq.Async
             var enumerator = enumerable.GetEnumerator();
             var selecteds = default(IEnumerableAsync<TSelect>);
             TResult aggregated = default(TResult);
-            var completedEvent = new System.Threading.ManualResetEvent(false);
+            var completedEvent = new System.Threading.AutoResetEvent(false);
             selecteds = EnumerableAsync.Yield<TSelect>(
                 async (yieldReturn, yieldBreak) =>
                 {

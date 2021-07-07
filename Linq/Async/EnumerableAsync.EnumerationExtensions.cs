@@ -343,7 +343,7 @@ namespace EastFive.Linq.Async
                     {
                         var s = new CompleteAllMutex<T>
                         {
-                            mutex = new ManualResetEvent(false),
+                            mutex = new AutoResetEvent(false),
                             values = default(T[]),
                         };
                         enumerableAsync.OnComplete(
