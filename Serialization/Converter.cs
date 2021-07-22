@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using EastFive.Extensions;
 using EastFive.Linq.Async;
 using EastFive.Reflection;
 using Newtonsoft.Json;
@@ -27,6 +28,8 @@ namespace EastFive.Serialization.Json
                 return true;
             if (objectType.IsSubClassOfGeneric(typeof(IRefs<>)))
                 return true;
+            if (objectType.IsEnum)
+                return true;
             //if (objectType == typeof(byte[]))
             //    return true;
             // THis doesn't work because it will serialize the whole object as a single GUID
@@ -37,41 +40,6 @@ namespace EastFive.Serialization.Json
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
-            Guid GetGuid()
-            {
-                if (reader.TokenType == JsonToken.String)
-                {
-                    var guidString = reader.Value as string;
-                    return Guid.Parse(guidString);
-                }
-                throw new Exception();
-            }
-
-            Guid? GetGuidMaybe()
-            {
-                if (reader.TokenType == JsonToken.Null)
-                    return default(Guid?);
-                return GetGuid();
-            }
-
-            Guid[] GetGuids()
-            {
-                if (reader.TokenType == JsonToken.Null)
-                    return new Guid[] { };
-
-                IEnumerable<Guid> Enumerate()
-                {
-                    while (reader.TokenType != JsonToken.EndArray)
-                    {
-                        if (!reader.Read())
-                            yield break;
-                        var guidStr = reader.ReadAsString();
-                        yield return Guid.Parse(guidStr);
-                    }
-                }
-                return Enumerate().ToArray();
-            }
-
             if (objectType.IsSubClassOfGeneric(typeof(IReferenceable)))
             {
                 if (objectType.IsSubClassOfGeneric(typeof(IRef<>)))
@@ -235,15 +203,68 @@ namespace EastFive.Serialization.Json
                 return default(Type);
             }
 
+            if (objectType.IsEnum)
+            {
+                if (reader.TokenType == JsonToken.String)
+                {
+                    var enumString = reader.Value as string;
+                    if (Enum.TryParse(objectType, enumString, out object enumValue))
+                        return enumValue;
+                }
+            }
+
             return existingValue;
+
+
+            Guid GetGuid()
+            {
+                if (reader.TokenType == JsonToken.String)
+                {
+                    var guidString = reader.Value as string;
+                    return Guid.Parse(guidString);
+                }
+                throw new Exception();
+            }
+
+            Guid? GetGuidMaybe()
+            {
+                if (reader.TokenType == JsonToken.Null)
+                    return default(Guid?);
+                return GetGuid();
+            }
+
+            Guid[] GetGuids()
+            {
+                if (reader.TokenType == JsonToken.Null)
+                    return new Guid[] { };
+
+                IEnumerable<Guid> Enumerate()
+                {
+                    while (reader.TokenType != JsonToken.EndArray)
+                    {
+                        if (!reader.Read())
+                            yield break;
+                        var guidStr = reader.ReadAsString();
+                        yield return Guid.Parse(guidStr);
+                    }
+                }
+                return Enumerate().ToArray();
+            }
+
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
+            if (!value.TryGetType(out Type valueType))
+            {
+                writer.WriteNull();
+                return;
+            }
+
             // IsSubClassOfGeneric(typeof(IReferenceable)) doesn't work because 
             // it will serialize the whole object as a single GUID 
             // (if value is IReferenceable)
-            if (value.GetType().IsSubClassOfGeneric(typeof(IRef<>)))
+            if (valueType.IsSubClassOfGeneric(typeof(IRef<>)))
             {
                 var id = (value as IReferenceable).id;
                 writer.WriteValue(id);
@@ -270,7 +291,7 @@ namespace EastFive.Serialization.Json
                 writer.WriteValue(id);
                 return;
             }
-            if (value.GetType().IsSubClassOfGeneric(typeof(IDictionary<,>)))
+            if (valueType.IsSubClassOfGeneric(typeof(IDictionary<,>)))
             {
                 writer.WriteStartObject();
                 foreach (var kvpObj in value.DictionaryKeyValuePairs())
@@ -306,6 +327,12 @@ namespace EastFive.Serialization.Json
                 var typeValue = value as byte[];
                 var stringType = typeValue.ToBase64String();
                 writer.WriteValue(stringType);
+                return;
+            }
+            if (valueType.IsEnum)
+            {
+                var stringValue = Enum.GetName(valueType, value);
+                writer.WriteValue(stringValue);
                 return;
             }
             serializer.Serialize(writer, value);

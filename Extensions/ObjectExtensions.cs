@@ -248,6 +248,17 @@ namespace EastFive.Extensions
             return value;
         }
 
+        public static bool TryGetType(this object value, out Type type)
+        {
+            if(value.IsNull())
+            {
+                type = default;
+                return false;
+            }
+            type = value.GetType();
+            return true;
+        }
+
         public static TResult TryAsDecimal<TResult>(this object value,
             Func<decimal, TResult> onCasted,
             Func<TResult> onCouldNotCast)
