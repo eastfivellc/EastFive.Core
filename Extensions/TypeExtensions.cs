@@ -163,5 +163,25 @@ namespace EastFive
             var arrayType = discardArray.GetType();
             return arrayType;
         }
+
+        public static string DisplayName(this Type type)
+        {
+            return type.Name;
+        }
+
+        public static string DisplayFullName(this Type type)
+        {
+            if(type.IsGenericType)
+            {
+                var genericNameWithTick = type.GetGenericTypeDefinition().FullName;
+                var genericName = genericNameWithTick
+                    .Substring(0, genericNameWithTick.IndexOf('`'));
+                var typeNames = type.GenericTypeArguments
+                    .Select(genType => genType.DisplayFullName())
+                    .Join(',');
+                return $"{genericName}<{typeNames}>";
+            }
+            return type.FullName;
+        }
     }
 }
