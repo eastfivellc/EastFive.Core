@@ -102,6 +102,36 @@ namespace EastFive.Linq
                 v => propertySelection(v).GetHashCode());
         }
 
+        public static IEnumerable<T> DistinctById<T>(this IEnumerable<T> items) 
+            where T : IReferenceable
+            => items.Distinct(item => item.id);
+
+        public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items,
+                bool includeNull, bool nullEqualsDefault = true)
+            where T : IReferenceableOptional
+        {
+            if (!includeNull)
+                return items
+                    .Where(item => item.HasValue)
+                    .Distinct(item => item.id.Value);
+
+            if(nullEqualsDefault)
+                return items
+                    .Distinct(
+                        item => item.id.HasValue?
+                            item.id.Value
+                            :
+                            Guid.Empty);
+
+            var nullPlaceHolder = Guid.NewGuid();
+            return items
+                    .Distinct(
+                        item => item.id.HasValue ?
+                            item.id.Value
+                            :
+                            nullPlaceHolder);
+        }
+
         public static IEnumerable<KeyValuePair<string, T>> Distinct<T>(this IEnumerable<KeyValuePair<string, T>> items)
         {
             return items.Distinct(item => item.Key);
