@@ -190,6 +190,24 @@ namespace EastFive
             return attributes.ToArray();
         }
 
+        public static bool TryGetAttributeInterface<T>(this System.Reflection.ParameterInfo type,
+            out T attributeInterface,
+            bool inherit = false)
+        {
+            if (!typeof(T).IsInterface)
+                throw new ArgumentException($"{typeof(T).FullName} is not an interface.");
+            var attributes = type.GetAttributesInterface<T>(inherit)
+                .Select(attr => (T)attr)
+                .ToArray();
+            if (attributes.Any())
+            {
+                attributeInterface = attributes.First();
+                return true;
+            }
+            attributeInterface = default;
+            return false;
+        }
+
         public static T GetAttributeInterface<T>(this System.Reflection.ParameterInfo type, bool inherit = false)
         {
             if (!typeof(T).IsInterface)
