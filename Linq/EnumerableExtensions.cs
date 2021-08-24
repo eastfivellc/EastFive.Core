@@ -332,6 +332,38 @@ namespace EastFive.Linq
                 v => propertySelection(v).GetHashCode());
         }
 
+        public static (T[], T[], T[]) Intersect<T>(this IEnumerable<T> items1, IEnumerable<T> items2,
+            Func<T, int> hash)
+        {
+            var items1Dictionary = items1
+                .Select(item => hash(item).PairWithValue(item))
+                .ToDictionary();
+
+            var items2Dictionary = items2
+                .Select(item => hash(item).PairWithValue(item))
+                .ToDictionary();
+
+            var intersectingKeys = items1Dictionary.Keys
+                .Intersect(items2Dictionary.Keys)
+                .ToArray();
+
+            var intersectingValues = intersectingKeys
+                .Select(key => items1Dictionary[key])
+                .ToArray();
+
+            var item1Values = items1Dictionary.Keys
+                .Except(intersectingKeys)
+                .Select(key => items1Dictionary[key])
+                .ToArray();
+
+            var item2Values = items2Dictionary.Keys
+                .Except(intersectingKeys)
+                .Select(key => items2Dictionary[key])
+                .ToArray();
+
+            return (intersectingValues, item1Values, item2Values);
+        }
+
         public static IDictionary<T0, KeyValuePair<T1, T2>> Merge<T0, T1, T2>(this IEnumerable<T1> items1,
                 IEnumerable<T2> items2,
                 Func<T1, T0> propertySelection1,
@@ -343,6 +375,53 @@ namespace EastFive.Linq
                 propertySelection1, propertySelection2,
                 (dictionaryKvp, item1UnmatchedDiscard, items2UnmatchedDiscard) => dictionaryKvp,
                 predicateComparer, hash);
+        }
+
+        public interface IMergeResult<TMerge>
+        {
+            bool IsEmpty { get; }
+            TMerge Value { get; }
+        }
+
+        public static IEnumerable<TMerge> Merge<T1, T2, TMerge>(this IEnumerable<T1> items1,
+                IEnumerable<T2> items2,
+                Func<IEnumerator<T1>, IEnumerator<T2>, 
+                    Func<TMerge, IMergeResult<TMerge>>, Func<IMergeResult<TMerge>>,
+                    IMergeResult<TMerge>> merger)
+        {
+            var enumerator1 = items1.GetEnumerator();
+            var enumerator2 = items2.GetEnumerator();
+
+            while(true)
+            {
+                var result = merger(enumerator1, enumerator2,
+                    (value) => new MergeResult<TMerge>(value),
+                    () => new EmptyMergeResult<TMerge>());
+                if (result.IsEmpty)
+                    yield break;
+                yield return result.Value;
+            }
+        }
+
+        private class MergeResult<TMerge> : IMergeResult<TMerge>
+        {
+            private TMerge value;
+
+            public MergeResult(TMerge value)
+            {
+                this.value = value;
+            }
+
+            public bool IsEmpty => false;
+
+            public TMerge Value => value;
+        }
+
+        private class EmptyMergeResult<TMerge> : IMergeResult<TMerge>
+        {
+            public bool IsEmpty => true;
+
+            public TMerge Value => throw new NotImplementedException();
         }
 
         public static TResult Merge<T0, T1, T2, TResult>(this IEnumerable<T1> items1,
