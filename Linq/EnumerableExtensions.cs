@@ -1460,9 +1460,17 @@ namespace EastFive.Linq
             }
         }
 
-        public static IEnumerable<(T, T)> Pairs<T>(this IEnumerable<T> items)
+        public static IEnumerable<(T, T)> Pairs<T>(this IEnumerable<T> items, bool sameItemPairs = false)
         {
             var itemsArray = items.ToArray();
+
+            if(sameItemPairs)
+            {
+                foreach (var i1 in Enumerable.Range(0, itemsArray.Length))
+                    foreach (var i2 in Enumerable.Range(0, itemsArray.Length))
+                        yield return (itemsArray[i1], itemsArray[i2]);
+                yield break;
+            }
 
             if (itemsArray.Length < 2)
                 yield break;
