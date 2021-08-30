@@ -140,6 +140,17 @@ namespace EastFive
             return new DateTime(date.Ticks, DateTimeKind.Unspecified);
         }
 
+        public static DateTime GetDayOfWeek(this DateTime date, DayOfWeek day)
+        {
+            // Sunday = 0
+            var sunday = date.Date.AddDays(-(int)date.DayOfWeek);
+            return sunday.AddDays((int)day);
+        }
+
+        public static DateTime GetFirstOfMonth(this DateTime date)
+        {
+            return new DateTime(date.Year, date.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        }
 
         // Taken from  https://www.codeproject.com/Tips/1168428/US-Federal-Holidays-Csharp
         public static bool IsFederalHoliday(this DateTime date)
