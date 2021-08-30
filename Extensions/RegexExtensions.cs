@@ -431,6 +431,19 @@ namespace EastFive
                 out result);
         }
 
+        public static bool TryMatchRegex<T>(this string input, string regularExpression,
+            Expression<Func<string, string, string, string, T>> expression,
+            out T result)
+        {
+            var exec = expression.Compile();
+            return input.TryParseRegexDynamic(regularExpression,
+                expression.Parameters.ToArray(),
+                invokeArgs => (T)exec.Invoke(
+                    invokeArgs[0], invokeArgs[1], invokeArgs[2],
+                    invokeArgs[3]),
+                out result);
+        }
+
         /// <summary>
         /// Invokes expression if there is a match for <paramref name="regularExpression"/> in <paramref name="input"/>.
         /// </summary>
