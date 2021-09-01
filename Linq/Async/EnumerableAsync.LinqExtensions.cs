@@ -353,6 +353,14 @@ namespace EastFive.Linq.Async
             return sum;
         }
 
+        public static async Task<T> FirstAsync<T>(this IEnumerableAsync<T> enumerable)
+        {
+            var enumerator = enumerable.GetEnumerator();
+            if (await enumerator.MoveNextAsync())
+                return enumerator.Current;
+            throw new ArgumentException("FirstAsync: enumerable is empty.");
+        }
+
         public static async Task<TResult> FirstAsync<T, TResult>(this IEnumerableAsync<T> enumerable,
             Func<T, TResult> onOne,
             Func<TResult> onNone)
