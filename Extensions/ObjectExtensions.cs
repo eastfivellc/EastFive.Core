@@ -290,5 +290,30 @@ namespace EastFive.Extensions
             }
             return onCouldNotCast();
         }
+
+        /// <summary>
+        /// Clones a object via shallow copy
+        /// </summary>
+        /// <typeparam name="T">Object Type to Clone</typeparam>
+        /// <param name="obj">Object to Clone</param>
+        /// <returns>New Object reference</returns>
+        public static T CloneObject<T>(this T obj) where T : class
+        {
+            if (obj == null)
+                return null;
+
+            if (typeof(ICloneable).IsAssignableFrom(typeof(T)))
+            {
+                var cloneable = (ICloneable)obj;
+                return (T)cloneable.Clone();
+            }
+
+            var memberwiseCloneMethod = obj.GetType().GetMethod("MemberwiseClone",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            if (memberwiseCloneMethod != null)
+                return (T)memberwiseCloneMethod.Invoke(obj, null);
+            
+            return null;
+        }
     }
 }
