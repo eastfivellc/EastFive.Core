@@ -201,28 +201,29 @@ namespace EastFive
             this.ids = ids;
         }
 
-        public Guid[] ids { get; set; }
+        public Guid[] ids { get; set; } 
 
         public IRef<TType>[] refs
         {
             get
             {
-                if (!ids.Any())
-                    return new IRef<TType>[] { };
-                return ids.Select(id => id.AsRef<TType>()).ToArray();
+                var safeIds = ids ?? new Guid[] { };
+                return safeIds.Select(id => id.AsRef<TType>()).ToArray();
             }
         }
 
         IEnumerator<IRef<TType>> IEnumerable<IRef<TType>>.GetEnumerator()
         {
-            return this.ids
+            var safeIds = ids ?? new Guid[] { };
+            return safeIds
                 .Select(id => (IRef<TType>)new Ref<TType>(id))
                 .GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return this.ids
+            var safeIds = ids ?? new Guid[] { };
+            return safeIds
                 .Select(id => (IRef<TType>)new Ref<TType>(id))
                 .GetEnumerator();
         }
