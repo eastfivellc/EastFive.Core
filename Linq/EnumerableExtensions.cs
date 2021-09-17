@@ -619,7 +619,7 @@ namespace EastFive.Linq
             Func<TResult> emptyItems)
             where TCriteria : IComparable
         {
-            var enumerator = items.GetEnumerator();
+            var enumerator = items.NullToEmpty().GetEnumerator();
             if (!enumerator.MoveNext())
                 return emptyItems();
 
