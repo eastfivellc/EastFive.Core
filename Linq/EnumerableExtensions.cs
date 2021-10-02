@@ -649,6 +649,32 @@ namespace EastFive.Linq
                 success, emptyItems);
         }
 
+        public static TResult MaxOrEmpty<TItem, TCriteria, TResult>(this IEnumerable<TItem> items,
+            Func<TItem, TCriteria> sortCriteria,
+            Func<TItem, TCriteria, TResult> success,
+            Func<TResult> emptyItems)
+            where TCriteria : IComparable
+        {
+            var enumerator = items.NullToEmpty().GetEnumerator();
+            if (!enumerator.MoveNext())
+                return emptyItems();
+
+            var best = enumerator.Current;
+            var bestCriteria = sortCriteria(best);
+
+            while (enumerator.MoveNext())
+            {
+                var challenger = enumerator.Current;
+                var challengerCriteria = sortCriteria(challenger);
+                if (challengerCriteria.CompareTo(bestCriteria) > 0)
+                {
+                    best = challenger;
+                    bestCriteria = challengerCriteria;
+                }
+            }
+            return success(best, bestCriteria);
+        }
+
         public static TResult IndexOf<TItem, TResult>(this IEnumerable<TItem> items,
             TItem item,
             Func<TItem, TItem, bool> areEqual,
