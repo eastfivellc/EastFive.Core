@@ -94,6 +94,9 @@ namespace EastFive
             return refValue1.id == refValue2.id;
         }
 
+        public static bool EqualsRef<T>(this IRefOptional<T> refOptional, IRef<T> refValue)
+            where T : IReferenceable => refValue.EqualsRef(refOptional);
+
         public static bool EqualsRef<T>(this IRef<T> refValue,  IRefOptional<T> refOptional)
             where T : IReferenceable
         {
