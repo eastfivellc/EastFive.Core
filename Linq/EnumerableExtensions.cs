@@ -1611,6 +1611,14 @@ namespace EastFive.Linq
                 yield return items.Current;
         }
 
+        public static T[] AsCopy<T>(this IEnumerable<T> items)
+        {
+            var itemsArray = items.ToArray();
+            var copy = new T[itemsArray.Length];
+            Array.Copy(itemsArray, copy, itemsArray.Length);
+            return copy;
+        }
+
         public static bool ContainsEqual<TItem>(this IEnumerable<TItem> items1, IEnumerable<TItem> items2)
         {
             var items1Arr = items1.ToArray();
