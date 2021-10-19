@@ -510,6 +510,7 @@ namespace EastFive.Linq.Async
                     if (!enumerator.MoveNext())
                         return yieldBreak;
                     var (next, newCarry) = await callback(carry, enumerator.Current);
+                    carry = newCarry;
                     return yieldReturn(next);
                 });
         }
