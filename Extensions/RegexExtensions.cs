@@ -356,6 +356,36 @@ namespace EastFive
         }
 
 
+        public static bool TryMatchRegex(this string input, string regularExpression,
+            out (string, string)[] matches)
+        {
+            if (input.IsNullOrWhiteSpace())
+            {
+                matches = default;
+                return false;
+            }
+            if (regularExpression.IsNullOrWhiteSpace())
+            {
+                matches = default;
+                return false;
+            }
+            try
+            {
+                var regex = new Regex(regularExpression);
+                matches = regex
+                    .Matches(input)
+                    .AsMatches()
+                    .Where(match => match.Success)
+                    .Select(match => (match.Name, match.Value))
+                    .ToArray();
+                return matches.Any();
+            } catch (RegexParseException ex)
+            {
+                matches = default;
+                return false;
+            }
+        }
+
         /// <summary>
         /// Invokes expression if there is a match for <paramref name="regularExpression"/> in <paramref name="input"/>.
         /// </summary>
