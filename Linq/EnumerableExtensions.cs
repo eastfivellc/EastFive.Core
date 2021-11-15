@@ -270,6 +270,21 @@ namespace EastFive.Linq
             }
         }
 
+        public static IEnumerable<T1> Excludes<T1, T2>(this IEnumerable<T1> items1,
+                IEnumerable<T2> items2,
+                Func<T1, T2, bool> predicateComparer)
+        {
+            var items2Lookups = items2.ToArray();
+            return items1
+                .Where(
+                    item1 => items2Lookups
+                        .All(
+                            (item2) =>
+                            {
+                                return !predicateComparer(item1, item2);
+                            }));
+        }
+
         public static IEnumerable<T> Except<T>(this IEnumerable<T> items, IEnumerable<T> itemsToExclude,
             Func<T, T, int> comparer,
             Func<T, int> hash = default(Func<T, int>))
@@ -462,6 +477,20 @@ namespace EastFive.Linq
             return onResult(itemsIntesection, items1Unmatched, items2Unmatched);
         }
 
+        public static IEnumerable<T1> Wheres<T1, T2>(this IEnumerable<T1> items1,
+                IEnumerable<T2> items2,
+                Func<T1, T2, bool> predicateComparer)
+        {
+            var items2Lookups = items2.ToArray();
+            return items1
+                .Where(
+                    item1 => items2Lookups
+                        .Any(
+                            (item2) =>
+                            {
+                                return predicateComparer(item1, item2);
+                            }));
+        }
 
         public static IDictionary<TKey, TValue> Merge<TKey, TValue>(this IDictionary<TKey, TValue> items1,
             IEnumerable<KeyValuePair<TKey, TValue>> items2,
