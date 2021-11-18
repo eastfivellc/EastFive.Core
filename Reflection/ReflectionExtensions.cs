@@ -51,6 +51,24 @@ namespace EastFive.Reflection
                 $"Cannot determine type of {memberInfo.GetType().FullName} since it could not be casted to {typeof(PropertyInfo).Name} or {typeof(FieldInfo).Name}.");
         }
 
+        public static object SetPropertyOrFieldValue(this MemberInfo memberInfo, object objectToUpdate, object propertyOrFieldValue)
+        {
+            if (memberInfo is PropertyInfo)
+            {
+                (memberInfo as PropertyInfo).SetValue(objectToUpdate, propertyOrFieldValue);
+                return objectToUpdate;
+            }
+
+            if (memberInfo is FieldInfo)
+            {
+                (memberInfo as FieldInfo).SetValue(objectToUpdate, propertyOrFieldValue);
+                return objectToUpdate;
+            }
+
+            throw new ArgumentException("memberType",
+                $"Cannot determine type of {memberInfo.GetType().FullName} since it could not be casted to {typeof(PropertyInfo).Name} or {typeof(FieldInfo).Name}.");
+        }
+
         public static object GetPropertyOrField(this object obj, string propertyOrFieldName)
         {
             return obj

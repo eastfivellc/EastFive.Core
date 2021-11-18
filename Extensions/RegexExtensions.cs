@@ -1,16 +1,17 @@
-﻿using BlackBarLabs.Extensions;
-using EastFive.Collections.Generic;
-using EastFive.Linq.Expressions;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+
+using EastFive;
+using EastFive.Extensions;
+using EastFive.Collections.Generic;
+using EastFive.Reflection;
 using EastFive.Linq.Async;
 using EastFive.Linq;
-using EastFive.Extensions;
 
 namespace EastFive
 {
