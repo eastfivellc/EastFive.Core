@@ -214,6 +214,23 @@ namespace EastFive
             return uriBuilder.Uri;
         }
 
+        public static string[] ParsePath(this Uri uri)
+        {
+            var uriBuilder = new UriBuilder(uri);
+            var pathComponents = uriBuilder.Path
+                    .Split('/'.AsArray())
+                    .ToArray();
+            return pathComponents;
+        }
+
+        public static Uri BaseUri(this Uri uri)
+        {
+            var uriBuilder = new UriBuilder(uri);
+            uriBuilder.Path = String.Empty;
+            uriBuilder.Query = String.Empty;
+            return uriBuilder.Uri;
+        }
+
         public static string GetFile(this Uri uri)
         {
             return uri.Segments.LastOrDefault();
