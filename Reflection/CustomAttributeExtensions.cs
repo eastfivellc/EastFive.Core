@@ -170,6 +170,19 @@ namespace EastFive
                     (MemberInfo member, out T attr) => member.TryGetAttributeInterface(out attr, inherit: inherit));
         }
 
+        public static IEnumerable<(ParameterInfo, T)> GetParametersAndAttributesInterface<T>(this System.Reflection.MethodInfo method,
+            bool inherit = false)
+        {
+            if (!typeof(T).IsInterface)
+                throw new ArgumentException($"{typeof(T).FullName} is not an interface.");
+            return method.GetParameters()
+                .SelectMany(
+                    parameter => parameter
+                        .GetAttributesInterface<T>(inherit)
+                        .Select(attr => (parameter, attr)))
+                .ToArray();
+        }
+
         public static T[] GetAttributesInterface<T>(this System.Reflection.MethodInfo method, bool inherit = false)
         {
             if (!typeof(T).IsInterface)
