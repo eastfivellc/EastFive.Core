@@ -146,8 +146,8 @@ namespace EastFive.Net
             }
         }
 
-        public static async Task<TResult> HttpClientPutResourceAsync<TResource, TResult>(this Uri location, TResource resource,
-            Func<TResource, TResult> onSuccess,
+        public static async Task<TResult> HttpClientPutResourceAsync<TResource, TResponseResource, TResult>(this Uri location, TResource resource,
+            Func<TResponseResource, TResult> onSuccess,
             Func<string, TResult> onFailure = default,
             Func<HttpStatusCode, string, TResult> onFailureWithBody = default,
             Func<HttpStatusCode, Func<Task<string>>, TResult> onResponseFailure = default,
@@ -156,51 +156,68 @@ namespace EastFive.Net
         {
             using (var httpClient = new HttpClient())
             {
-                var request = new HttpRequestMessage(HttpMethod.Put, location);
-                if (mutateRequest.IsNotDefaultOrNull())
-                    request = mutateRequest(request);
-                try
+                using (var request = new HttpRequestMessage(HttpMethod.Put, location))
                 {
-                    return await await httpClient
-                        .SendAsync(request)
-                        .IsSuccessStatusCodeAsync(
-                            responseSuccess => ParseResourceResponse(responseSuccess,
-                                onSuccess: onSuccess,
-                                onFailure: onFailure,
-                                onFailureWithBody: onFailureWithBody,
-                                onResponseFailure: onResponseFailure,
-                                onFailureToParse: onFailureToParse),
-                            async responseFailure =>
-                            {
-                                if (onFailureWithBody.IsNotDefaultOrNull())
-                                {
-                                    var content = await responseFailure.Content.ReadAsStringAsync();
-                                    return onFailureWithBody(responseFailure.StatusCode, content);
-                                }
+                    var json = JsonConvert.SerializeObject(resource,
+                        Formatting.Indented,
+                        new JsonSerializerSettings
+                        {
+                            MissingMemberHandling = MissingMemberHandling.Ignore,
+                            DefaultValueHandling = DefaultValueHandling.Ignore,
+                            NullValueHandling = NullValueHandling.Ignore,
+                        });
+                    using (var content = new StringContent(json,
+                        encoding: System.Text.Encoding.UTF8, "application/json"))
+                    {
+                        var requestToSend = request;
+                        requestToSend.Content = content;
 
-                                if (onResponseFailure.IsNotDefaultOrNull())
-                                    return onResponseFailure(responseFailure.StatusCode,
-                                        () => responseFailure.Content.ReadAsStringAsync());
+                        if (mutateRequest.IsNotDefaultOrNull())
+                            requestToSend = mutateRequest(requestToSend);
+                        try
+                        {
+                            return await await httpClient
+                                .SendAsync(request)
+                                .IsSuccessStatusCodeAsync(
+                                    responseSuccess => ParseResourceResponse(responseSuccess,
+                                        onSuccess: onSuccess,
+                                        onFailure: onFailure,
+                                        onFailureWithBody: onFailureWithBody,
+                                        onResponseFailure: onResponseFailure,
+                                        onFailureToParse: onFailureToParse),
+                                    async responseFailure =>
+                                    {
+                                        if (onFailureWithBody.IsNotDefaultOrNull())
+                                        {
+                                            var content = await responseFailure.Content.ReadAsStringAsync();
+                                            return onFailureWithBody(responseFailure.StatusCode, content);
+                                        }
 
-                                if (onFailure.IsNotDefaultOrNull())
-                                    return onFailure($"Server returned arror code:{responseFailure.StatusCode}");
+                                        if (onResponseFailure.IsNotDefaultOrNull())
+                                            return onResponseFailure(responseFailure.StatusCode,
+                                                () => responseFailure.Content.ReadAsStringAsync());
 
-                                throw new ArgumentException($"Server returned arror code:{responseFailure.StatusCode}");
-                            });
-                }
-                catch (System.Net.Http.HttpRequestException ex)
-                {
-                    if (onFailure.IsNotDefaultOrNull())
-                        return onFailure($"Connection Failure: {ex.GetType().FullName}:{ex.Message}");
+                                        if (onFailure.IsNotDefaultOrNull())
+                                            return onFailure($"Server returned arror code:{responseFailure.StatusCode}");
 
-                    throw;
-                }
-                catch (Exception exGeneral)
-                {
-                    if (onFailure.IsNotDefaultOrNull())
-                        return onFailure(exGeneral.Message);
+                                        throw new ArgumentException($"Server returned arror code:{responseFailure.StatusCode}");
+                                    });
+                        }
+                        catch (System.Net.Http.HttpRequestException ex)
+                        {
+                            if (onFailure.IsNotDefaultOrNull())
+                                return onFailure($"Connection Failure: {ex.GetType().FullName}:{ex.Message}");
 
-                    throw;
+                            throw;
+                        }
+                        catch (Exception exGeneral)
+                        {
+                            if (onFailure.IsNotDefaultOrNull())
+                                return onFailure(exGeneral.Message);
+
+                            throw;
+                        }
+                    }
                 }
             }
         }
