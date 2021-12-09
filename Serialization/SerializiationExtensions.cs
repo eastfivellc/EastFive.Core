@@ -300,6 +300,8 @@ namespace EastFive.Serialization
 
         public static byte[] GetBytes(this string text, Encoding encoding = default(Encoding))
         {
+            if (text.IsDefaultOrNull())
+                return new byte[] { };
             if (encoding.IsDefaultOrNull())
                 encoding = Encoding.UTF8;
             return encoding.GetBytes(text);
