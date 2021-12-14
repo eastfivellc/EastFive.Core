@@ -535,6 +535,15 @@ namespace EastFive.Linq
             return !items.AnyNullSafe();
         }
 
+        public static bool TryGetValueNullSafe<TKey, TValue>(this IDictionary<TKey, TValue> items, TKey key, out TValue value)
+        {
+            if (!items.IsDefaultOrNull())
+                return items.TryGetValue(key, out value);
+
+            value = default;
+            return false;
+        }
+
         public static bool ContainsNullSafe<TItem>(this IEnumerable<TItem> items, TItem item)
         {
             if (items == null)
