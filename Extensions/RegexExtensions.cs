@@ -373,9 +373,11 @@ namespace EastFive
             try
             {
                 var regex = new Regex(regularExpression);
-                matches = regex
+                var totalMatches = regex
                     .Matches(input)
                     .AsMatches()
+                    .ToArray();
+                matches = totalMatches
                     .Where(match => match.Success)
                     .Select(match => (match.Name, match.Value))
                     .ToArray();
