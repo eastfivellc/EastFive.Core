@@ -77,6 +77,8 @@ namespace EastFive
         public static IRef<TCast> CastRef<TCast>(this IReferenceable sourceRef)
             where TCast : IReferenceable
         {
+            if (sourceRef == null)
+                return null;
             return sourceRef.id.AsRef<TCast>();
         }
 
