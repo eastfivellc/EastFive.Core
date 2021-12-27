@@ -289,6 +289,8 @@ namespace EastFive
             ParameterExpression [] parameterSet,
             Func<string[], T> invoker)
         {
+            if (input.IsNullOrWhiteSpace())
+                return onMatched(new T[] { });
             var regex = new Regex(regularExpression);
             var matches = regex
                 .Matches(input)

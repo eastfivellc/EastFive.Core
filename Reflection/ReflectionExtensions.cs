@@ -41,6 +41,9 @@ namespace EastFive.Reflection
 
         public static object GetPropertyOrFieldValue(this MemberInfo memberInfo, object obj)
         {
+            if (obj.IsNull())
+                return memberInfo.GetPropertyOrFieldType().GetDefault();
+
             if (memberInfo is PropertyInfo)
                 return (memberInfo as PropertyInfo).GetValue(obj);
 

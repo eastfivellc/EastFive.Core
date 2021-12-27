@@ -251,15 +251,17 @@ namespace EastFive.Reflection
 
         public static object GetValue(this MemberInfo memberInfo, object obj)
         {
-            switch (memberInfo.MemberType)
-            {
-                case MemberTypes.Field:
-                    return ((FieldInfo)memberInfo).GetValue(obj);
-                case MemberTypes.Property:
-                    return ((PropertyInfo)memberInfo).GetValue(obj);
-                default:
-                    throw new ArgumentException($"memberInfo of type '{memberInfo.MemberType}' which is unsupported");
-            }
+            return memberInfo.GetPropertyOrFieldValue(obj);
+            
+            //switch (memberInfo.MemberType)
+            //{
+            //    case MemberTypes.Field:
+            //        return ((FieldInfo)memberInfo).GetValue(obj);
+            //    case MemberTypes.Property:
+            //        return ((PropertyInfo)memberInfo).GetValue(obj);
+            //    default:
+            //        throw new ArgumentException($"memberInfo of type '{memberInfo.MemberType}' which is unsupported");
+            //}
         }
 
         public static void SetValue<T>(this MemberInfo memberInfo, ref T obj, object value)
