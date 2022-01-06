@@ -2,7 +2,7 @@
 using System.ComponentModel;
 using System.Reflection;
 
-namespace BlackBarLabs.Core.Extensions
+namespace EastFive.Extensions
 {
     public static class EnumExtensions
     {
@@ -25,6 +25,18 @@ namespace BlackBarLabs.Core.Extensions
                 }
             }
             return name ?? string.Empty;
+        }
+
+        public static TResult AsEnum<T, TResult>(this int enumIntValue,
+            Func<T, TResult> onValidValue,
+            Func<TResult> onInvalidValue)
+            where T : Enum
+        {
+            if (!Enum.IsDefined(typeof(T), enumIntValue))
+                return onInvalidValue();
+
+            var enumValue = (T)Enum.ToObject(typeof(T), enumIntValue);
+            return onValidValue(enumValue);
         }
     }
 }

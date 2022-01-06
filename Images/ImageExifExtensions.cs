@@ -11,7 +11,7 @@ using EastFive.Linq;
 
 namespace EastFive.Images
 {
-    public static class ImageExifExtensions
+    public static partial class ImageExifExtensions
     {
         public static void FixOrientation(this Image image)
         {
@@ -242,7 +242,7 @@ namespace EastFive.Images
 
         #region Const classes
 
-        private enum Orientation
+        public enum Orientation : UInt16
         {
             rotated0 = 1, //  0 degrees: the correct orientation, no adjustment is required.
             rotated0Mirrored = 2, // 0 degrees, mirrored: image has been flipped back-to-front.

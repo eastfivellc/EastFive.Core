@@ -11,7 +11,7 @@ using EastFive.Linq;
 
 namespace EastFive.Images
 {
-    public static class ImageLoadingExtensions
+    public static partial class ImageLoadingExtensions
     {
         public static bool TryReadImage(this Stream mediaContents, out Image image)
         {
