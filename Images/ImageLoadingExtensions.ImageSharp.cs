@@ -16,13 +16,13 @@ namespace EastFive.Images
     public static partial class ImageLoadingExtensions
     {
         public static async Task<TResult> TryReadImageAsync<TResult>(this Stream mediaContents,
-            Func<Image, TResult> onRead,
+            Func<Image, IImageFormat , TResult> onRead,
             Func<TResult> onFailure)
         {
             try
             {
-                var image = await Image.LoadAsync(mediaContents);
-                return onRead(image);
+                var image = Image.Load(mediaContents, out IImageFormat format);
+                return onRead(image, format);
             } catch(ArgumentException)
             {
                 mediaContents.Position = 0;
@@ -30,9 +30,9 @@ namespace EastFive.Images
             }
         }
 
-        public static bool TryReadImage(this byte [] mediaContents, out Image image)
+        public static bool TryReadImage(this byte [] mediaContents, out Image image, out IImageFormat format)
         {
-            image = Image.Load(mediaContents);
+            image = Image.Load(mediaContents, out format);
             return true;
         }
 
