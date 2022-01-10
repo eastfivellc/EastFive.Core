@@ -131,6 +131,25 @@ namespace EastFive
             return years;
         }
 
+        public static string BirthDateUnder2Formatted(this DateTime dateOfBirth)
+        {
+            // under two:  1m23do  (1 month 23 days old)
+            var age = dateOfBirth.BirthDateToAge();
+            if (age >= 2)
+                return $"{age}yo";
+
+            var asOf = DateTime.Today;
+            var months = 0;
+            while (asOf >= dateOfBirth.AddMonths(months + 1))
+                months++;
+
+            var days = 0;
+            while (asOf >= dateOfBirth.AddMonths(months).AddDays(days + 1))
+                days++;
+
+            return $"{months}m{days}do";
+        }
+
         public static DateTime AsKindUnspecified(this DateTime date)
         {
             // Printing Kind=Unspecified for ISO formatting looks like this (without any Z or -0:00 formatting):
