@@ -10,6 +10,7 @@ using EastFive.Extensions;
 using EastFive.Linq;
 using SixLabors.ImageSharp.Formats;
 using EastFive.Text;
+using SixLabors.ImageSharp.Metadata;
 
 namespace EastFive.Images
 {
@@ -21,7 +22,7 @@ namespace EastFive.Images
         {
             try
             {
-                var image = Image.Load(mediaContents, out IImageFormat format);
+                var (image, format) = await Image.LoadWithFormatAsync(mediaContents);
                 return onRead(image, format);
             } catch(ArgumentException)
             {
@@ -34,6 +35,14 @@ namespace EastFive.Images
         {
             image = Image.Load(mediaContents, out format);
             return true;
+        }
+
+        public static async Task<IImageInfo> TryReadImageMetadata(this byte[] mediaContents)
+        {
+            using (var stream = new MemoryStream(mediaContents))
+            {
+                return await Image.IdentifyAsync(stream);
+            }
         }
 
         public static Task SaveWithQualityAsync(this Image image, Stream outputStream,
