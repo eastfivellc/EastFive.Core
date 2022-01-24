@@ -462,14 +462,16 @@ namespace EastFive.Linq.Async
             var enumerator = enumerable.GetEnumerator();
             var item = default(T);
             var value = default(TCompare);
+            var isStart = true;
             while (await enumerator.MoveNextAsync())
             {
                 var contestedValue = compare(enumerator.Current);
-                bool selectCurrent = value.IsDefault()
+                bool selectCurrent = isStart
                     ||
                     contestedValue.CompareTo(value) < 0;
                 if(selectCurrent)
                 {
+                    isStart = false;
                     value = contestedValue;
                     item = enumerator.Current;
                 }
