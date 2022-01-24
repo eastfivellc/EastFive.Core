@@ -25,8 +25,10 @@
 	<ItemGroup>
 	  <None Remove="Net\Client\" />
 	  <None Remove="SixLabors.ImageSharp" />
+	  <None Remove="Performance\" />
 	</ItemGroup>
 	<ItemGroup>
 	  <Folder Include="Net\Client\" />
+	  <Folder Include="Diagnostics\" />
 	</ItemGroup>
 </Project>
