@@ -31,6 +31,16 @@ namespace EastFive.Images
             }
         }
 
+        public static async Task<TResult> TryReadImageAsync<TResult>(this byte[] mediaContents,
+            Func<Image, IImageFormat, TResult> onRead,
+            Func<TResult> onFailure)
+        {
+            using(var ms = new MemoryStream(mediaContents))
+            {
+                return await ms.TryReadImageAsync(onRead, onFailure);
+            }
+        }
+
         public static bool TryReadImage(this byte [] mediaContents, out Image image, out IImageFormat format)
         {
             image = Image.Load(mediaContents, out format);
