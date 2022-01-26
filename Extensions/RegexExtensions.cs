@@ -360,7 +360,8 @@ namespace EastFive
 
 
         public static bool TryMatchRegex(this string input, string regularExpression,
-            out (string, string)[] matches)
+            out (string, string)[] matches,
+            RegexOptions? optionsMaybe = default(RegexOptions?))
         {
             if (input.IsNullOrWhiteSpace())
             {
@@ -374,7 +375,10 @@ namespace EastFive
             }
             try
             {
-                var regex = new Regex(regularExpression);
+                var regex = optionsMaybe.HasValue?
+                    new Regex(regularExpression, optionsMaybe.Value)
+                    :
+                    new Regex(regularExpression);
                 var totalMatches = regex
                     .Matches(input)
                     .AsMatches()
