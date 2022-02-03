@@ -29,11 +29,14 @@ namespace EastFive.Reflection
 
         public static Type GetPropertyOrFieldType(this MemberInfo memberType)
         {
-            if(memberType is PropertyInfo)
+            if (memberType is PropertyInfo)
                 return (memberType as PropertyInfo).PropertyType;
 
             if (memberType is FieldInfo)
                 return (memberType as FieldInfo).FieldType;
+
+            if (memberType is Type)
+                return (memberType as Type).UnderlyingSystemType;
 
             throw new ArgumentException("memberType",
                 $"Cannot determine type of {memberType.GetType().FullName} since it could not be casted to {typeof(PropertyInfo).Name} or {typeof(FieldInfo).Name}.");
