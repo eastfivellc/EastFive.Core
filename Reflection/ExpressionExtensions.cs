@@ -38,6 +38,12 @@ namespace EastFive.Reflection
                 return null;
             }
 
+            if (expression is ConstantExpression)
+            {
+                var constExpression = expression as ConstantExpression;
+                return constExpression.Value;
+            }
+
             try
             {
                 var value = Expression.Lambda(expression).Compile().DynamicInvoke();
