@@ -139,17 +139,21 @@ namespace EastFive.Images
         }
 
         public static bool TryParseImage(this string imageDataEncoding, out Image image)
+            => imageDataEncoding.TryParseImage(out image, out IImageFormat discard);
+
+        public static bool TryParseImage(this string imageDataEncoding, out Image image, out IImageFormat imageFormat)
         {
-            if(!imageDataEncoding.TryParseImage(
-                out byte [] data, out string contentType))
+            if (!imageDataEncoding.TryParseImage(
+                out byte[] data, out string contentType))
             {
                 image = default;
+                imageFormat = default;
                 return false;
             }
 
             using (var stream = new MemoryStream(data))
             {
-                image = Image.Load(data);
+                image = Image.Load(data, out imageFormat);
                 return true;
             }
         }
