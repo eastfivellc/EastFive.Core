@@ -1,8 +1,4 @@
-﻿using BlackBarLabs.Extensions;
-using EastFive.Extensions;
-using EastFive.Linq.Async;
-using EastFive.Security;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,6 +6,9 @@ using System.Net.Http;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+
+using EastFive.Extensions;
+using EastFive.Security;
 
 namespace EastFive
 {
