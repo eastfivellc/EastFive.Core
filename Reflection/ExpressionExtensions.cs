@@ -133,6 +133,17 @@ namespace EastFive.Reflection
                     onResolved,
                     onNotResolved);
             }
+            if(expression is ConstantExpression)
+            {
+                var constExpr = expression as ConstantExpression;
+                if(constExpr.Type == typeof(Boolean))
+                {
+                    if((bool)constExpr.Value)
+                    {
+                        return onResolved(null, ExpressionType.IsTrue, true);
+                    }
+                }
+            }
             return onNotResolved();
         }
 
