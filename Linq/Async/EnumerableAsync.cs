@@ -574,6 +574,13 @@ namespace EastFive.Linq.Async
                 .Select(tpl => (tpl.Item2, tpl.Item3, tpl.Item4));
         }
 
+        public static IEnumerableAsync<(T2, T3, T4, T5)> SelectWhere<T2, T3, T4, T5>(this IEnumerableAsync<(bool, T2, T3, T4, T5)> items)
+        {
+            return items
+                .Where(item => item.Item1)
+                .Select(tpl => (tpl.Item2, tpl.Item3, tpl.Item4, tpl.Item5));
+        }
+
         #endregion
 
         public interface ISelected<T>
