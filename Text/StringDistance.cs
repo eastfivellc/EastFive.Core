@@ -130,6 +130,24 @@ namespace EastFive.Text
 
         #region Smith Waterman
 
+        public static double SmithWatermanCaseInsensitive(this string str1, string str2)
+        {
+            if (string.IsNullOrWhiteSpace(str2))
+                return str1.SmithWaterman(str2);
+
+            return Math.Min(
+                // exact case
+                str1.SmithWaterman(str2),
+                Math.Min(
+                    // Pascal case 
+                    str1.SmithWaterman(Char.ToUpper(str2[0]) + str2.Substring(1).ToLower()),
+                    Math.Min(
+                        // all UPPERCASE
+                        str1.SmithWaterman(str2.ToUpper()),
+                        // all lowercase
+                        str1.SmithWaterman(str2.ToLower()))));
+        }
+
         public static double SmithWaterman(this string str1, string str2, 
             double matchValue = 5.0,
             double mismatchValue = -3.0,
