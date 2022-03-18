@@ -70,7 +70,6 @@ namespace EastFive.Linq
             }
         }
 
-
         public static IEnumerable<TSource> Less<TSource>(
             this IEnumerable<TSource> source, int less, out TSource[] lastItems)
         {
@@ -185,6 +184,18 @@ namespace EastFive.Linq
         public static bool All(this IEnumerable<bool> items)
         {
             return items.All(b => b);
+        }
+
+        public static TResult Contains<TItem, TResult>(this IEnumerable<TItem> items,
+                Func<TItem, bool> doesMatch,
+            Func<TItem, TResult> onDidContain,
+            Func<TResult> onDidNotContain)
+        {
+            return items
+                .Where(doesMatch)
+                .First(
+                    (item, next) => onDidContain(item),
+                    () => onDidNotContain());
         }
 
         //public static IEnumerable<T> Append<T>(this IEnumerable<T> items, T item)
@@ -796,7 +807,6 @@ namespace EastFive.Linq
                 index += batchsize;
             }
         }
-
 
 #if NET5_0
 

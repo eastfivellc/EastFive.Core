@@ -3,15 +3,16 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Globalization;
 
 using SixLabors.ImageSharp;
-
-using EastFive.Extensions;
-using EastFive.Linq;
-using System.Drawing;
-using Image = SixLabors.ImageSharp.Image;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Processing;
+
+using EastFive;
+using EastFive.Extensions;
+using EastFive.Linq;
+
 
 namespace EastFive.Images
 {
@@ -161,6 +162,131 @@ namespace EastFive.Images
             rotateMode = RotateMode.None;
             flipMode = FlipMode.None;
             return false;
+        }
+
+        public static DateTime? ExifTaken(this Image image)
+        {
+            return image.Metadata.ExifProfile.Values
+                .First(
+                    (item, next) =>
+                    {
+                        if (item.Tag == ExifTag.DateTime)
+                            return ParseDateTime();
+                        if (item.Tag == ExifTag.DateTimeDigitized)
+                            return ParseDateTime();
+                        if (item.Tag == ExifTag.DateTimeOriginal)
+                            return ParseDateTime();
+
+                        return next();
+
+                        DateTime? ParseDateTime()
+                        {
+                            if (item.DataType != ExifDataType.Ascii)
+                                return next();
+                            var value = (string)item.GetValue();
+
+                            if (DateTime.TryParseExact(value, "yyyy:MM:dd HH:mm:ss",
+                                    CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime dateTaken))
+                                return dateTaken;
+
+                            return next();
+                        }
+                    },
+                    () => default(DateTime?));
+        }
+
+        public static double? ExifLat(this Image image)
+        {
+            var exifData = image.Metadata.ExifProfile.Values;
+
+            return ExtractCoordinate(exifData,
+                    ExifTag.GPSLatitude, ExifTag.GPSLatitudeRef,
+                (location) => location,
+                () => ExtractCoordinate(exifData,
+                        ExifTag.GPSDestLatitude, ExifTag.GPSDestLatitudeRef,
+                    (location) => location,
+                    () => default(double?)));
+        }
+
+        public static double? ExifLon(this Image image)
+        {
+            var exifData = image.Metadata.ExifProfile.Values;
+
+            return ExtractCoordinate(exifData,
+                    ExifTag.GPSLongitude, ExifTag.GPSLongitudeRef,
+                (location) => location,
+                () => ExtractCoordinate(exifData,
+                        ExifTag.GPSDestLongitude, ExifTag.GPSDestLongitudeRef,
+                    (location) => location,
+                    () => default(double?)));
+        }
+
+        private static TResult ExtractCoordinate<TResult>(
+                IEnumerable<IExifValue> exifData,
+                ExifTag tagCoordinate, ExifTag tagRef,
+            Func<double, TResult> onParsed,
+            Func<TResult> onFailedToParse)
+        {
+            return exifData.Contains(
+                item => item.Tag == tagCoordinate,
+            (location) => exifData.Contains(
+                    item => item.Tag == tagRef,
+                reference =>
+                {
+                    return ParseCoordinate(location, reference,
+                        v => onParsed(v),
+                        () => onFailedToParse());
+                },
+                () => onFailedToParse()),
+            () => onFailedToParse());
+        }
+
+        private static TResult ParseCoordinate<TResult>(IExifValue location, IExifValue reference,
+            Func<double, TResult> onParsed,
+            Func<TResult> onFailedToParse)
+        {
+            if (location.DataType != ExifDataType.Rational)
+                return onFailedToParse();
+
+            var value = (SixLabors.ImageSharp.Rational[])location.GetValue();
+            if (!value.Any())
+                return onFailedToParse();
+
+            var deg = ToDouble(value[0]);
+            var min = ToDouble(value[1]) / ((double)60);
+            var sec = ToDouble(value[2]) / ((double)3600);
+
+            var locationNoRef = deg + min + sec;
+
+            if (reference.DataType != ExifDataType.Ascii)
+                return onFailedToParse();
+
+            var valueRef = (string)reference.GetValue();
+            var directionalMultiplier = IsWestOrSouth() ?
+                -1.0
+                :
+                1.0;
+
+            var locationWithRef = locationNoRef * directionalMultiplier;
+            return onParsed(locationWithRef);
+
+            double ToDouble(SixLabors.ImageSharp.Rational n)
+            {
+                var num = (double)n.Numerator;
+                var den = (double)n.Denominator;
+                return num / den;
+            }
+
+            bool IsWestOrSouth()
+            {
+                if (valueRef.Contains('w', StringComparison.OrdinalIgnoreCase))
+                    return true;
+                if (valueRef.Contains('s', StringComparison.OrdinalIgnoreCase))
+                    if (!valueRef.Contains('e', StringComparison.OrdinalIgnoreCase))
+                        return true;
+
+                return false;
+            }
         }
     }
 }
