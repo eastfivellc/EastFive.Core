@@ -39,7 +39,7 @@ namespace EastFive.Images
             var encoderParameters = new EncoderParameters(1);
             encoderParameters.Param[0] = new EncoderParameter(Encoder.Quality, encoderQuality);
 
-            image.Save(outputStream, imageCodec, encoderParameters);
+            image.Save(outputStream, imageCodec); // encoderParameters);
         }
 
         public static void Save(this Image image, Stream outputStream,
