@@ -43,8 +43,16 @@ namespace EastFive.Images
 
         public static bool TryReadImage(this byte [] mediaContents, out Image image, out IImageFormat format)
         {
-            image = Image.Load(mediaContents, out format);
-            return true;
+            try
+            {
+                image = Image.Load(mediaContents, out format);
+                return true;
+            }catch (UnknownImageFormatException)
+            {
+                image = default;
+                format = default;
+                return false;
+            }
         }
 
         public static async Task<IImageInfo> TryReadImageMetadata(this byte[] mediaContents)
