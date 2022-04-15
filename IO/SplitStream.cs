@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace EastFive.IO
 {
@@ -206,5 +208,128 @@ namespace EastFive.IO
                 }
             }
         }
+
+        //public static (Stream, Func<Task<byte[]>>) Cache(this Stream stream, int blockSize = 0x1000)
+        //{
+        //    var blocks = new List<CachedStream.Data>();
+        //    CachedStream.TryReadMoreDelegate tryReadMore = TryReadMoreLocked;
+
+        //    var stream1 = new SharedStream(stream, tryReadMore);
+        //    var stream2 = new SharedStream(stream, tryReadMore);
+        //    return (stream1, ReadBlocks);
+
+        //    bool TryReadMoreLocked(out CachedStream.Data nextBlock)
+        //    {
+        //        lock (lockObj)
+        //        {
+        //            nextBlock = new CachedStream.Data
+        //            {
+        //                bytes = new byte[blockSize],
+        //                index = 0,
+        //                position = stream.Position,
+        //            };
+        //            var read = stream.Read(nextBlock.bytes, 0, blockSize);
+        //            if (nextBlock.length == 0)
+        //                return false;
+
+        //            if (read < blockSize)
+        //                nextBlock.bytes = nextBlock.bytes.Take(read).ToArray();
+        //            last.next = nextBlock;
+        //            last = nextBlock;
+        //            return true;
+
+        //        }
+        //    }
+
+        //    Task<byte[]> ReadBlocks()
+        //    {
+                
+        //    }
+        //}
+
+        //private class CachedStream : Stream
+        //{
+
+        //    #region State
+
+        //    IDictionary<long, byte[]> blocks = new Dictionary<long, byte[]>();
+        //    private Stream subStream;
+
+        //    #endregion
+
+        //    public CachedStream(Stream subStream, TryReadMoreDelegate tryReadMore)
+        //    {
+        //        this.subStream = subStream;
+        //        this.currentIndex = 0;
+        //        this.position = 0;
+        //    }
+
+        //    #region Capabilities
+        //    public override bool CanRead => subStream.CanRead;
+
+        //    public override bool CanSeek => subStream.CanSeek;
+
+        //    public override bool CanWrite => subStream.CanWrite;
+        //    #endregion
+
+        //    #region Reading
+
+        //    public override long Length => subStream.Length;
+
+        //    public override long Position
+        //    {
+        //        get => subStream.Position;
+        //        set
+        //        {
+        //            subStream.Position = value;
+        //        }
+        //    }
+
+        //    public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        //    {
+        //        return base.ReadAsync(buffer, offset, count, cancellationToken);
+        //    }
+
+        //    public override int Read(byte[] buffer, int offset, int count)
+        //    {
+        //        var position = subStream.Position;
+        //        var read = subStream.Read(buffer, offset, count);
+        //        if (read == 0)
+        //            return 0;
+
+        //        var cacheBytes = new byte[read];
+        //        Array.Copy(buffer, cacheBytes, read);
+
+        //        blocks.TryAdd(position, cacheBytes);
+
+        //        return read;
+        //    }
+
+        //    public override long Seek(long offset, SeekOrigin origin)
+        //    {
+        //        return subStream.Seek(offset, origin);
+        //    }
+
+        //    #endregion
+
+        //    #region Writing
+
+        //    public override void SetLength(long value)
+        //    {
+        //        throw new NotImplementedException();
+        //    }
+
+        //    public override void Write(byte[] buffer, int offset, int count)
+        //    {
+        //        throw new NotImplementedException();
+        //    }
+
+        //    public override void Flush()
+        //    {
+        //        throw new NotImplementedException();
+        //    }
+
+        //    #endregion
+        //}
     }
 }

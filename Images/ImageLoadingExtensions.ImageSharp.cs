@@ -41,6 +41,21 @@ namespace EastFive.Images
             }
         }
 
+        public static bool TryReadImage(this Stream mediaContents, out Image image, out IImageFormat format)
+        {
+            try
+            {
+                image = Image.Load(mediaContents, out format);
+                return true;
+            }
+            catch (UnknownImageFormatException)
+            {
+                image = default;
+                format = default;
+                return false;
+            }
+        }
+
         public static bool TryReadImage(this byte [] mediaContents, out Image image, out IImageFormat format)
         {
             try
