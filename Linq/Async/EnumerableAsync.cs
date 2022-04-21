@@ -583,6 +583,256 @@ namespace EastFive.Linq.Async
 
         #endregion
 
+        public static IEnumerableAsync<(TItem, TWith)> SelectUsingCache<TItem, TWith, TDistinct>(this IEnumerableAsync<TItem> items,
+            Func<TItem, TDistinct> identify,
+            Func<TItem, Task<TWith>> loadAsync)
+        {
+            var lookups = new Dictionary<TDistinct, TWith>();
+            var lookupsLock = new object();
+
+            var enumerator = items.GetEnumerator();
+            return Yield<(TItem, TWith)>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    if (!await enumerator.MoveNextAsync())
+                        return yieldBreak;
+
+                    var current = enumerator.Current;
+                    var lookup = identify(current);
+                    lock(lookupsLock)
+                    {
+                        if (lookups.TryGetValue(lookup, out TWith value))
+                            return yieldReturn((current, value));
+                    }
+
+                    var newValue = await loadAsync(current);
+                    lock (lookupsLock)
+                    {
+                        lookups.Add(lookup, newValue);
+                    }
+                    return yieldReturn((current, newValue));
+                });
+        }
+
+        public static IEnumerableAsync<(TItem, TWith)> SelectMaybeUsingCache<TItem, TWith, TDistinct>(this IEnumerableAsync<TItem> items,
+            Func<TItem, TDistinct> identify,
+            Func<TItem, Task<(bool, TWith)>> loadAsync)
+        {
+            var lookups = new Dictionary<TDistinct, TWith>();
+            var skips = new HashSet<TDistinct>();
+            var lookupsLock = new object();
+
+            var enumerator = items.GetEnumerator();
+            return Yield<(TItem, TWith)>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    while (true)
+                    {
+                        if (!await enumerator.MoveNextAsync())
+                            return yieldBreak;
+
+                        var current = enumerator.Current;
+                        var lookup = identify(current);
+                        lock (lookupsLock)
+                        {
+                            if (lookups.TryGetValue(lookup, out TWith value))
+                                return yieldReturn((current, value));
+                            if (skips.Contains(lookup))
+                                continue;
+                        }
+
+                        var (loaded, newValue) = await loadAsync(current);
+                        if (!loaded)
+                        {
+                            lock(lookupsLock)
+                            {
+                                skips.Add(lookup);
+                            }
+                            continue;
+                        }
+
+                        lock (lookupsLock)
+                        {
+                            lookups.Add(lookup, newValue);
+                        }
+
+                        return yieldReturn((current, newValue));
+                    }
+                });
+        }
+
+        public static IEnumerableAsync<(TItem1, TItem2, TWith)> SelectMaybeUsingCache<TItem1, TItem2, TWith, TDistinct>(
+                this IEnumerableAsync<(TItem1, TItem2)> items,
+            Func<TItem1, TItem2, TDistinct> identify,
+            Func<TItem1, TItem2, Task<(bool, TWith)>> loadAsync)
+        {
+            return items
+                .SelectMaybeUsingCache(
+                    tpl => identify(tpl.Item1, tpl.Item2),
+                    tpl => loadAsync(tpl.Item1, tpl.Item2))
+                .Select(tpl => (tpl.Item1.Item1, tpl.Item1.Item2, tpl.Item2));
+        }
+
+        public static IEnumerableAsync<(TItem1, TItem2, TItem3, TWith)> SelectMaybeUsingCache<TItem1, TItem2, TItem3, TWith, TDistinct>(
+                this IEnumerableAsync<(TItem1, TItem2, TItem3)> items,
+            Func<TItem1, TItem2, TItem3, TDistinct> identify,
+            Func<TItem1, TItem2, TItem3, Task<(bool, TWith)>> loadAsync)
+        {
+            return items
+                .SelectMaybeUsingCache(
+                    tpl => identify(tpl.Item1, tpl.Item2, tpl.Item3),
+                    tpl => loadAsync(tpl.Item1, tpl.Item2, tpl.Item3))
+                .Select(tpl => (tpl.Item1.Item1, tpl.Item1.Item2, tpl.Item1.Item3, tpl.Item2));
+        }
+
+        public static IEnumerableAsync<(TItem1, TItem2, TItem3, TItem4, TWith)> SelectMaybeUsingCache<TItem1, TItem2, TItem3, TItem4, TWith, TDistinct>(
+                this IEnumerableAsync<(TItem1, TItem2, TItem3, TItem4)> items,
+            Func<TItem1, TItem2, TItem3, TItem4, TDistinct> identify,
+            Func<TItem1, TItem2, TItem3, TItem4, Task<(bool, TWith)>> loadAsync)
+        {
+            return items
+                .SelectMaybeUsingCache(
+                    tpl => identify(tpl.Item1, tpl.Item2, tpl.Item3, tpl.Item4),
+                    tpl => loadAsync(tpl.Item1, tpl.Item2, tpl.Item3, tpl.Item4))
+                .Select(tpl => (tpl.Item1.Item1, tpl.Item1.Item2, tpl.Item1.Item3, tpl.Item1.Item4, tpl.Item2));
+        }
+
+        public static IEnumerableAsync<(TItem, TWith)> SelectMaybeFlattenedUsingCache<TItem, TWith, TDistinct>(this IEnumerableAsync<TItem> items,
+            Func<TItem, IEnumerable<TDistinct>> identify,
+            Func<TItem, TDistinct, Task<(bool, TWith)>> loadAsync)
+        {
+            var lookups = new Dictionary<TDistinct, TWith>();
+            var skips = new HashSet<TDistinct>();
+            var lookupsLock = new object();
+
+            var enumerator = items.GetEnumerator();
+            var lookupEnumerator = default(IEnumerator<TDistinct>);
+            return Yield<(TItem, TWith)>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    while (true)
+                    {
+                        if (IsLookupFullyEnumerated())
+                        {
+                            if (!await enumerator.MoveNextAsync())
+                                return yieldBreak;
+                            var lookups = identify(enumerator.Current).ToArray();
+                            lookupEnumerator = ((IEnumerable<TDistinct>)lookups).GetEnumerator();
+                            continue;
+                        }
+
+                        var current = enumerator.Current;
+                        var lookup = lookupEnumerator.Current;
+                        lock (lookupsLock)
+                        {
+                            if (lookups.TryGetValue(lookup, out TWith value))
+                                return yieldReturn((current, value));
+                            if (skips.Contains(lookup))
+                                continue;
+                        }
+
+                        var (loaded, newValue) = await loadAsync(current, lookup);
+                        if (!loaded)
+                        {
+                            lock (lookupsLock)
+                            {
+                                skips.Add(lookup);
+                            }
+                            continue;
+                        }
+
+                        lock (lookupsLock)
+                        {
+                            lookups.Add(lookup, newValue);
+                        }
+
+                        return yieldReturn((current, newValue));
+
+                        bool IsLookupFullyEnumerated()
+                        {
+                            if (lookupEnumerator.IsDefaultOrNull())
+                                return true;
+
+                            return !lookupEnumerator.MoveNext();
+                        }
+                    }
+                });
+        }
+
+        public static IEnumerableAsync<(TItem1, TItem2, TItem3, TWith)> SelectMaybeFlattenedUsingCache<TItem1, TItem2, TItem3, TWith, TDistinct>(
+                this IEnumerableAsync<(TItem1, TItem2, TItem3)> items,
+            Func<TItem1, TItem2, TItem3, TDistinct[]> identify,
+            Func<TItem1, TItem2, TItem3, TDistinct, Task<(bool, TWith)>> loadAsync)
+        {
+            return items
+                .SelectMaybeFlattenedUsingCache(
+                    tpl => identify(tpl.Item1, tpl.Item2, tpl.Item3),
+                    (tpl, lookupKey) => loadAsync(tpl.Item1, tpl.Item2, tpl.Item3, lookupKey))
+                .Select(tpl => (tpl.Item1.Item1, tpl.Item1.Item2, tpl.Item1.Item3, tpl.Item2));
+        }
+
+        public static IEnumerableAsync<(TItem, TWith[])> SelectMaybeUsingCache<TItem, TWith, TDistinct>(this IEnumerableAsync<TItem> items,
+            Func<TItem, IEnumerable<TDistinct>> identify,
+            Func<TItem, TDistinct, Task<(bool, TWith)>> loadAsync)
+        {
+            var lookups = new Dictionary<TDistinct, TWith>();
+            var skips = new HashSet<TDistinct>();
+            var lookupsLock = new object();
+
+            var enumerator = items.GetEnumerator();
+            return Yield<(TItem, TWith[])>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    if (!await enumerator.MoveNextAsync())
+                        return yieldBreak;
+
+                    var current = enumerator.Current;
+                    var withs = await identify(current)
+                        .Select(
+                            async lookup =>
+                            {
+                                lock (lookupsLock)
+                                {
+                                    if (lookups.TryGetValue(lookup, out TWith value))
+                                        return (true, value);
+                                    if (skips.Contains(lookup))
+                                        return (false, default);
+                                }
+
+                                var (loaded, newValue) = await loadAsync(current, lookup);
+                                if (!loaded)
+                                {
+                                    lock (lookupsLock)
+                                    {
+                                        skips.Add(lookup);
+                                    }
+                                    return (false, default);
+                                }
+
+                                lock (lookupsLock)
+                                {
+                                    lookups.Add(lookup, newValue);
+                                }
+
+                                return (true, newValue);
+                            })
+                        .AsyncEnumerable()
+                        .SelectWhere()
+                        .ToArrayAsync();
+
+                    return yieldReturn((current, withs));
+                });
+        }
+
+        public static IEnumerableAsync<(TItem1, TItem2, TItem3, TWith[])> SelectMaybeUsingCache<TItem1, TItem2, TItem3, TWith, TDistinct>(
+                this IEnumerableAsync<(TItem1, TItem2, TItem3)> items,
+            Func<TItem1, TItem2, TItem3, IEnumerable<TDistinct>> identify,
+            Func<TItem1, TItem2, TItem3, TDistinct, Task<(bool, TWith)>> loadAsync)=>  items
+                .SelectMaybeUsingCache(
+                    tpl => identify(tpl.Item1, tpl.Item2, tpl.Item3),
+                    (tpl, lookupKey) => loadAsync(tpl.Item1, tpl.Item2, tpl.Item3, lookupKey))
+                .Select(tpl => (tpl.Item1.Item1, tpl.Item1.Item2, tpl.Item1.Item3, tpl.Item2));
+
         public interface ISelected<T>
         {
             bool HasValue { get; }
