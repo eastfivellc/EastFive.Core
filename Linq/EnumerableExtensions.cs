@@ -598,6 +598,27 @@ namespace EastFive.Linq
             return onSingle(item); // Is Single
         }
 
+        public static TResult Single<TItem, TResult>(this IEnumerable<TItem> items,
+            Func<TItem, TResult> onSingle,
+            Func<TResult> onNone,
+            Func<TResult> onMultiple)
+        {
+            if (items.IsDefaultOrNull())
+                return onNone(); // Is Null
+
+            var enumerator = items.GetEnumerator();
+
+            if (!enumerator.MoveNext())
+                return onNone(); // Is Empty
+
+            var item = enumerator.Current;
+
+            if (enumerator.MoveNext())
+                return onMultiple(); // Has two or more
+
+            return onSingle(item); // Is Single
+        }
+
         public static bool TrySingle<TItem>(this IEnumerable<TItem> items, out TItem item)
         {
             using (var enumerator = items.GetEnumerator())
