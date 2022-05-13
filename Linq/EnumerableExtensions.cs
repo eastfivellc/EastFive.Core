@@ -599,9 +599,9 @@ namespace EastFive.Linq
         }
 
         public static TResult Single<TItem, TResult>(this IEnumerable<TItem> items,
-            Func<TItem, TResult> onSingle,
             Func<TResult> onNone,
-            Func<TResult> onMultiple)
+            Func<TItem, TResult> onSingle,
+            Func<TItem[], TResult> onMultiple)
         {
             if (items.IsDefaultOrNull())
                 return onNone(); // Is Null
@@ -614,7 +614,19 @@ namespace EastFive.Linq
             var item = enumerator.Current;
 
             if (enumerator.MoveNext())
-                return onMultiple(); // Has two or more
+            {
+                var item2 = enumerator.Current;
+
+                var allItems = new[] { item, item2 }.Concat(Remainder()).ToArray();
+
+                return onMultiple(allItems); // Has two or more
+
+                IEnumerable<TItem> Remainder()
+                {
+                    while (enumerator.MoveNext())
+                        yield return enumerator.Current;
+                }
+            }
 
             return onSingle(item); // Is Single
         }
