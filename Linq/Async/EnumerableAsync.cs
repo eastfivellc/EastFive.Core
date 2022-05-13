@@ -515,6 +515,37 @@ namespace EastFive.Linq.Async
                 });
         }
 
+        public static IEnumerableAsync<(TItem, TWith)> SelectUsingCache<TItem, TWith, TDistinct>(this IEnumerable<TItem> items,
+            Func<TItem, TDistinct> identify,
+            Func<TItem, Task<TWith>> loadAsync)
+        {
+            var lookups = new Dictionary<TDistinct, TWith>();
+            var lookupsLock = new object();
+
+            var enumerator = items.GetEnumerator();
+            return Yield<(TItem, TWith)>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    if (!enumerator.MoveNext())
+                        return yieldBreak;
+
+                    var current = enumerator.Current;
+                    var lookup = identify(current);
+                    lock (lookupsLock)
+                    {
+                        if (lookups.TryGetValue(lookup, out TWith value))
+                            return yieldReturn((current, value));
+                    }
+
+                    var newValue = await loadAsync(current);
+                    lock (lookupsLock)
+                    {
+                        lookups.Add(lookup, newValue);
+                    }
+                    return yieldReturn((current, newValue));
+                });
+        }
+
         #region SelectWhere Tuples
 
         public static IEnumerableAsync<T3> SelectWhere<T1, T2, T3>(this IEnumerableAsync<(T1, T2)> items,
@@ -832,6 +863,22 @@ namespace EastFive.Linq.Async
                     tpl => identify(tpl.Item1, tpl.Item2, tpl.Item3),
                     (tpl, lookupKey) => loadAsync(tpl.Item1, tpl.Item2, tpl.Item3, lookupKey))
                 .Select(tpl => (tpl.Item1.Item1, tpl.Item1.Item2, tpl.Item1.Item3, tpl.Item2));
+
+        public static IEnumerableAsync<T2> SelectIfElse<T1, T2>(this IEnumerableAsync<T1> value,
+            Func<T1, bool> ifCondition,
+            Func<T1, T2> ifOperation,
+            Func<T1, T2> elseOperation)
+        {
+            return value
+                .Select(
+                    item =>
+                    {
+                        if (ifCondition(item))
+                            return ifOperation(item);
+
+                        return elseOperation(item);
+                    });
+        }
 
         public interface ISelected<T>
         {

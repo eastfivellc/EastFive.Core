@@ -1005,6 +1005,15 @@ namespace EastFive.Linq
 
 #if NET5_0
 
+        public static IEnumerable<(T1, T2)> SelectWhere<T1, T2>(this IEnumerable<(bool, T1, T2)> items)
+        {
+            foreach (var item in items)
+            {
+                if (item.Item1)
+                    yield return (item.Item2, item.Item3);
+            }
+        }
+
         public static IEnumerable<T2> SelectWhere<T1, T2>(this IEnumerable<(T1, T2)> items,
             Func<(T1, T2), bool> isWhere)
         {

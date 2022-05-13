@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -8,6 +9,24 @@ namespace EastFive.Reflection
 {
     public static class FuncExtensions
     {
+        public static object ExecuteFunction(this object funcObj, out Type funcType)
+        {
+            funcType = funcObj.GetType();
+            if (!funcType.IsSubClassOfGeneric(typeof(Func<>)))
+                throw new ArgumentException($"{funcType.FullName} is not of type Func<>");
+            var resultType = funcType.GenericTypeArguments.First();
+            var castFuncMethodGeneric = typeof(FuncExtensions)
+                .GetMethod(nameof(ExecuteFunctionInner), BindingFlags.Static | BindingFlags.Public);
+            var castFuncMethod = castFuncMethodGeneric.MakeGenericMethod(new Type[] { resultType });
+            var objCastFunc = castFuncMethod.Invoke(null, new object[] { funcObj });
+            return objCastFunc;
+        }
+
+        public static T ExecuteFunctionInner<T>(Func<T> func)
+        {
+            return func();
+        }
+
         public static object MakeDelegate<TResult>(this Func<TResult> func, Type delegateType)
         {
             var delegateGeneric = Delegate.CreateDelegate(delegateType,

@@ -117,13 +117,26 @@ namespace EastFive.Reflection
             if (expression is BinaryExpression)
             {
                 var binaryExpr = expression as BinaryExpression;
+                var relationship = binaryExpr.NodeType;
                 if (binaryExpr.Left is MemberExpression)
                 {
                     var left = binaryExpr.Left as MemberExpression;
-                    var memberInfo = left.Member;
-                    var relationship = binaryExpr.NodeType;
-                    var value = binaryExpr.Right.Resolve();
-                    return onResolved(memberInfo, relationship, value);
+                    if(left.Expression.NodeType == ExpressionType.Parameter)
+                    {
+                        var memberInfo = left.Member;
+                        var value = binaryExpr.Right.Resolve();
+                        return onResolved(memberInfo, relationship, value);
+                    }
+                }
+                if (binaryExpr.Right is MemberExpression)
+                {
+                    var right = binaryExpr.Right as MemberExpression;
+                    if (right.Expression.NodeType == ExpressionType.Parameter)
+                    {
+                        var memberInfo = right.Member;
+                        var value = binaryExpr.Left.Resolve();
+                        return onResolved(memberInfo, relationship, value);
+                    }
                 }
             }
             if(expression is LambdaExpression)

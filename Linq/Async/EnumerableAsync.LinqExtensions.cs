@@ -108,41 +108,6 @@ namespace EastFive.Linq.Async
                 });
         }
 
-        //public static IEnumerableAsync<TResult> Select<T, TResult>(this IEnumerableAsync<T> enumerable, Func<T, TResult> selection,
-        //    ILogger log = default(ILogger))
-        //{
-        //    var selectId = Guid.NewGuid();
-        //    var logSelect = log.CreateScope($"Select[{selectId}]");
-        //    var eventId = 1;
-        //    var selected = new DelegateEnumerableAsync<TResult, T>(enumerable,
-        //        async (enumeratorAsync, enumeratorDestination, moved, ended) =>
-        //        {
-        //            var logItem = logSelect.CreateScope($"Item[{eventId++}]");
-        //            logItem.Trace($"START BLOCK");
-        //            if (enumeratorAsync.IsDefaultOrNull())
-        //                return ended();
-
-        //            if(!logItem.IsDefaultOrNull())
-        //                logItem.Trace($"Calling MoveNextAsync.");
-        //            if (!await enumeratorAsync.MoveNextAsync())
-        //            {
-        //                logItem.Trace($"COMPLETE");
-        //                return ended();
-        //            }
-        //            var current = enumeratorAsync.Current;
-
-        //            logItem.Trace($"Begin transform");
-        //            var next = selection(current);
-        //            logItem.Trace($"Ended transform");
-
-        //            var result = moved(next);
-        //            logItem.Trace($"END BLOCK");
-        //            return result;
-        //        });
-
-        //    return selected;
-        //}
-
         public static IEnumerableAsync<TResult> SelectWithIndex<T, TResult>(this IEnumerableAsync<T> enumerable,
             Func<T, int, TResult> selection,
             ILogger log = default(ILogger))
@@ -189,13 +154,10 @@ namespace EastFive.Linq.Async
             TAggr aggr,
             Func<T, TAggr, (TResult, TAggr)> selection)
         {
-            var selectId = Guid.NewGuid();
-            var eventId = 0;
             var enumeratorAsync = enumerable.GetEnumerator();
             return EnumerableAsync.Yield<(TResult, TAggr)>(
                 async (moved, ended) =>
                 {
-                    var index = eventId;
                     if (enumeratorAsync.IsDefaultOrNull())
                         return ended;
 
@@ -215,13 +177,10 @@ namespace EastFive.Linq.Async
             TAggr aggr,
             Func<T, TAggr, Task<(TResult, TAggr)>> selection)
         {
-            var selectId = Guid.NewGuid();
-            var eventId = 0;
             var enumeratorAsync = enumerable.GetEnumerator();
             return EnumerableAsync.Yield<(TResult, TAggr)>(
                 async (moved, ended) =>
                 {
-                    var index = eventId;
                     if (enumeratorAsync.IsDefaultOrNull())
                         return ended;
 
@@ -351,6 +310,45 @@ namespace EastFive.Linq.Async
                 sum = sum + enumerator.Current;
             }
             return sum;
+        }
+
+        public static async Task<double> SumAsync(this IEnumerableAsync<double> enumerable)
+        {
+            var enumerator = enumerable.GetEnumerator();
+            var sum = 0.0d;
+            while (await enumerator.MoveNextAsync())
+            {
+                sum = sum + enumerator.Current;
+            }
+            return sum;
+        }
+
+        public static async Task<(double, double)> SumAsync(this IEnumerableAsync<(double, double)> enumerable)
+        {
+            var enumerator = enumerable.GetEnumerator();
+            double sum1 = 0;
+            double sum2 = 0;
+            while (await enumerator.MoveNextAsync())
+            {
+                sum1 = sum1 + enumerator.Current.Item1;
+                sum2 = sum2 + enumerator.Current.Item2;
+            }
+            return (sum1, sum2);
+        }
+
+        public static async Task<(double, double, int)> SumAsync(this IEnumerableAsync<(double, double, int)> enumerable)
+        {
+            var enumerator = enumerable.GetEnumerator();
+            double sum1 = 0;
+            double sum2 = 0;
+            int sum3 = 0;
+            while (await enumerator.MoveNextAsync())
+            {
+                sum1 = sum1 + enumerator.Current.Item1;
+                sum2 = sum2 + enumerator.Current.Item2;
+                sum3 = sum3 + enumerator.Current.Item3;
+            }
+            return (sum1, sum2, sum3);
         }
 
         public static async Task<T> FirstAsync<T>(this IEnumerableAsync<T> enumerable)
