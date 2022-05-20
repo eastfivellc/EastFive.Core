@@ -151,15 +151,25 @@ namespace EastFive
         }
 
         public static IEnumerable<(MemberInfo, T)> GetPropertyAndFieldsWithAttributesInterface<T>(this Type type,
-            bool inherit = false)
+            bool inherit = false, bool multiple = false)
         {
             if (!typeof(T).IsInterface)
                 throw new ArgumentException($"{typeof(T).FullName} is not an interface.");
 
+            if(!multiple)
+                return type
+                    .GetPropertyOrFieldMembers()
+                    .TryWhere(
+                        (MemberInfo member, out T attr) => member.TryGetAttributeInterface(out attr, inherit: inherit));
+
             return type
                 .GetPropertyOrFieldMembers()
-                .TryWhere(
-                    (MemberInfo member, out T attr) => member.TryGetAttributeInterface(out attr, inherit: inherit));
+                .SelectMany(
+                    (MemberInfo member) =>
+                    {
+                        return member.GetAttributesInterface<T>(inherit: inherit, multiple:true)
+                            .Select(attr => (member, attr));
+                    });
         }
 
         public static IEnumerable<(ParameterInfo, T)> GetParametersAndAttributesInterface<T>(this System.Reflection.MethodInfo method,
