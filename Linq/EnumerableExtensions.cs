@@ -1351,6 +1351,36 @@ namespace EastFive.Linq
 
 #if NET5_0
 
+        public static ((T1, T2)[], T1[], T2[]) Match<T1, T2>(this IEnumerable<T1> items1,
+                IEnumerable<T2> items2,
+            Func<T1, T2, bool> isMatch)
+        {
+            var items1Arr = items1.ToArray();
+            var items2Arr = items2.ToArray();
+            var matches = items1
+                .Select(
+                    (item1, index1) =>
+                    {
+                        return items2Arr
+                            .Select((item2, index2) => (isMatch(item1, item2), index2))
+                            .SelectWhere()
+                            .First(
+                                (index2, next) => (true, index1, index2),
+                                () => (false, 0, 0));
+                    })
+                .SelectWhere()
+                .ToArray();
+            var item1Lookups = matches.Select(x => x.Item1).ToHashSet();
+            var item2Lookups = matches.Select(x => x.Item2).ToHashSet();
+            var items1Unused = items1Arr.Where((discard, index) => item1Lookups.Contains(index)).ToArray();
+            var items2Unused = items2Arr.Where((discard, index) => item2Lookups.Contains(index)).ToArray();
+            var matched = matches
+                .Select(match => (items1Arr[match.Item1], items2Arr[match.Item2]))
+                .ToArray();
+
+            return (matched, items1Unused, items2Unused);
+        }
+
         public static IEnumerable<TMatch> Match<T1, T2, TMatch, TKey>(this IEnumerable<T1> items1,
                 IEnumerable<T2> items2,
             Func<T1, T2, TMatch> matcher,
