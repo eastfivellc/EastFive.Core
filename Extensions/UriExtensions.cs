@@ -185,6 +185,17 @@ namespace EastFive
             return uriBuilder.Uri;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="uri"></param>
+        /// <param name="fileOrDirectory"></param>
+        /// <param name="postPendFile">
+        ///     Add <paramref name="fileOrDirectory"/> before the filename. For example:
+        ///     if true, /foo/bar becomes /foo/<paramref name="fileOrDirectory"/>/bar
+        ///     if false /foo/bar/<paramref name="fileOrDirectory"/>
+        /// </param>
+        /// <returns></returns>
         public static Uri AppendToPath(this Uri uri, string fileOrDirectory,
             bool postPendFile = false)
         {

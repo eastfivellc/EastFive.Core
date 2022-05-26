@@ -29,6 +29,24 @@ namespace EastFive.Serialization.Json
                 throw new ArgumentException($"Failed to parse a `{typeof(TResource).FullName}` from the response.");
             }
         }
+
+        public static TResult JsonSerialize<TResource, TResult>(this TResource resource,
+            Func<string, TResult> onSuccess,
+            Func<string, TResult> onFailureToParse = default)
+        {
+            try
+            {
+                var jsonData = JsonConvert.SerializeObject(resource);
+                return onSuccess(jsonData);
+            }
+            catch (JsonWriterException jsonEx)
+            {
+                if (onFailureToParse.IsNotDefaultOrNull())
+                    return onFailureToParse(jsonEx.Message);
+
+                throw new ArgumentException($"Failed to parse a `{typeof(TResource).FullName}` from the response.");
+            }
+        }
     }
 }
 

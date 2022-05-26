@@ -67,6 +67,41 @@ namespace EastFive.Net
             }
         }
 
+        public static async Task<TResult> HttpClientGetResourceAsync<TResponse, TResult>(this Uri location,
+                string authToken, string tokenType,
+            Func<TResponse, TResult> onSuccess,
+            Func<string, TResult> onFailure = default,
+            Func<HttpStatusCode, string, TResult> onFailureWithBody = default,
+            Func<HttpStatusCode, Func<Task<string>>, TResult> onResponseFailure = default,
+            Func<string, string, TResult> onFailureToParse = default,
+                Func<HttpRequestMessage, HttpRequestMessage> mutateRequest = default,
+                Func<HttpStatusCode, string, Task<(bool, string)>> didTokenGetRefreshed = default)
+        {
+            return await await location.HttpClientGetResourceAsync(
+                onSuccess: onSuccess.AsAsyncFunc(),
+                onFailure: onFailure.AsAsyncFunc(),
+                onFailureWithBody: (statusCode, body) => TryRefreshAsync(statusCode, body,
+                    rerun: (newToken) => location.HttpClientGetResourceAsync(
+                                 newToken, tokenType,
+                                 didTokenGetRefreshed: (s, b) => (false, string.Empty).AsTask(),
+                             onSuccess: onSuccess,
+                             onFailure: onFailure,
+                             onFailureWithBody: onFailureWithBody,
+                             onResponseFailure: onResponseFailure,
+                             onFailureToParse: onFailureToParse,
+                             mutateRequest: mutateRequest),
+                    onFailureWithBody: onFailureWithBody,
+                    onFailure: onFailure,
+                    didTokenGetRefreshed: didTokenGetRefreshed),
+                onResponseFailure: onResponseFailure.AsAsyncFunc(),
+                onFailureToParse: onFailureToParse.AsAsyncFunc(),
+                    mutateRequest: (HttpRequestMessage request) =>
+                    {
+                        request.Headers.Add("Authorization", $"{tokenType} {authToken}");
+                        return request;
+                    });
+        }
+
         public static async Task<TResult> HttpClientPostResourceAsync<TResource, TResponse, TResult>(this Uri location,
                 TResource resource,
                 string authToken, string tokenType,
@@ -81,12 +116,49 @@ namespace EastFive.Net
             return await await location.HttpClientPostResourceAsync(resource,
                 onSuccess: onSuccess.AsAsyncFunc(),
                 onFailure: onFailure.AsAsyncFunc(),
-                onFailureWithBody: async (statusCode, body) =>
-                {
-                    var (didGetRefreshToken, newToken) = await didTokenGetRefreshed(statusCode, body);
-                    if (didGetRefreshToken)
+                onFailureWithBody: (statusCode, body) => TryRefreshAsync(statusCode, body,
+                    rerun: (newToken) => location.HttpClientPostResourceAsync(resource,
+                                 newToken, tokenType,
+                                 didTokenGetRefreshed: (s, b) => (false, string.Empty).AsTask(),
+                             onSuccess: onSuccess,
+                             onFailure: onFailure,
+                             onFailureWithBody: onFailureWithBody,
+                             onResponseFailure: onResponseFailure,
+                             onFailureToParse: onFailureToParse,
+                             mutateRequest: mutateRequest),
+                    onFailureWithBody: onFailureWithBody,
+                    onFailure: onFailure,
+                    didTokenGetRefreshed: didTokenGetRefreshed),
+                onResponseFailure: onResponseFailure.AsAsyncFunc(),
+                onFailureToParse: onFailureToParse.AsAsyncFunc(),
+                    mutateRequest:(HttpRequestMessage request) =>
                     {
-                        return await location.HttpClientPostResourceAsync(resource,
+                        request.Headers.Add("Authorization", $"{tokenType} {authToken}");
+                        return request;
+                    });
+        }
+
+        public static async Task<TResult> HttpClientPostDynamicRequestAsync<TResponse, TResult>(this Uri location,
+                Func<HttpRequestMessage, (HttpRequestMessage, Action)> populateRequest,
+                string authToken, string tokenType,
+            Func<TResponse, TResult> onSuccess,
+            Func<string, TResult> onFailure = default,
+            Func<HttpStatusCode, string, TResult> onFailureWithBody = default,
+            Func<HttpStatusCode, Func<Task<string>>, TResult> onResponseFailure = default,
+            Func<string, string, TResult> onFailureToParse = default,
+                Func<HttpRequestMessage, HttpRequestMessage> mutateRequest = default,
+                Func<HttpStatusCode, string, Task<(bool, string)>> didTokenGetRefreshed = default)
+        {
+            return await await location.HttpClientPostDynamicRequestAsync(
+                populateRequest:(request) =>
+                {
+                    request.Headers.Add("Authorization", $"{tokenType} {authToken}");
+                    return populateRequest(request);
+                },
+                onSuccess: onSuccess.AsAsyncFunc(),
+                onFailure: onFailure.AsAsyncFunc(),
+                onFailureWithBody: (statusCode, body) => TryRefreshAsync(statusCode, body,
+                    rerun:(newToken) => location.HttpClientPostResourceAsync(populateRequest,
                                 newToken, tokenType,
                                 didTokenGetRefreshed: (s, b) => (false, string.Empty).AsTask(),
                             onSuccess: onSuccess,
@@ -94,27 +166,35 @@ namespace EastFive.Net
                             onFailureWithBody: onFailureWithBody,
                             onResponseFailure: onResponseFailure,
                             onFailureToParse: onFailureToParse,
-                            mutateRequest: mutateRequest);
-                    }
-                    if (onFailureWithBody.IsNotDefaultOrNull())
-                        return onFailureWithBody(statusCode, body);
-                    var errorMsg = $"Server returned error code {statusCode}";
-                    if (onFailure.IsNotDefaultOrNull())
-                        return onFailure(errorMsg);
-
-                    throw new Exception(errorMsg);
-                },
+                            mutateRequest: mutateRequest),
+                    onFailureWithBody:onFailureWithBody,
+                    onFailure: onFailure,
+                    didTokenGetRefreshed: didTokenGetRefreshed),
                 onResponseFailure: onResponseFailure.AsAsyncFunc(),
-                onFailureToParse: onFailureToParse.AsAsyncFunc(),
-                    mutateRequest:
-                        (HttpRequestMessage request) =>
-                        {
-                            request.Headers.Add("Authorization", $"{tokenType} {authToken}");
-                            return request;
-                        });
+                onFailureToParse: onFailureToParse.AsAsyncFunc());
         }
 
-        public static async Task<TResult> HttpClientPostResourceAsync<TResource, TResponse, TResult>(this Uri location, TResource resource,
+        private static async Task<TResult> TryRefreshAsync<TResult>(HttpStatusCode statusCode, string body,
+            Func<string, Task<TResult>> rerun,
+            Func<HttpStatusCode, string, Task<(bool, string)>> didTokenGetRefreshed = default,
+            Func<HttpStatusCode, string, TResult> onFailureWithBody = default,
+            Func<string, TResult> onFailure = default)
+        {
+            var(didGetRefreshToken, newToken) = await didTokenGetRefreshed(statusCode, body);
+            if (didGetRefreshToken)
+                return await rerun(newToken);
+
+            if (onFailureWithBody.IsNotDefaultOrNull())
+                return onFailureWithBody(statusCode, body);
+
+            var errorMsg = $"Server returned error code {statusCode}";
+            if (onFailure.IsNotDefaultOrNull())
+                return onFailure(errorMsg);
+
+            throw new Exception(errorMsg);
+        }
+
+        public static Task<TResult> HttpClientPostResourceAsync<TResource, TResponse, TResult>(this Uri location, TResource resource,
             Func<TResponse, TResult> onSuccess,
             Func<string, TResult> onFailure = default,
             Func<HttpStatusCode, string, TResult> onFailureWithBody = default,
@@ -122,54 +202,80 @@ namespace EastFive.Net
             Func<string, string, TResult> onFailureToParse = default,
             Func<HttpRequestMessage, HttpRequestMessage> mutateRequest = default)
         {
+            return location.HttpClientPostDynamicRequestAsync(
+                populateRequest: httpRequest =>
+                {
+                     var json = JsonConvert.SerializeObject(resource,
+                         Formatting.Indented,
+                         new JsonSerializerSettings
+                         {
+                             MissingMemberHandling = MissingMemberHandling.Ignore,
+                             DefaultValueHandling = DefaultValueHandling.Ignore,
+                             NullValueHandling = NullValueHandling.Ignore,
+                         });
+                    var content = new StringContent(json,
+                        encoding: System.Text.Encoding.UTF8, "application/json");
+                    httpRequest.Content = content;
+                    if (mutateRequest.IsDefaultOrNull())
+                        return (httpRequest, Cleanup);
+
+                    var mutatedRequest = mutateRequest(httpRequest);
+                    return (mutatedRequest, Cleanup);
+
+                    void Cleanup() => content.Dispose();
+                },
+                onSuccess: onSuccess,
+                onFailure: onFailure,
+                onFailureWithBody: onFailureWithBody,
+                onResponseFailure: onResponseFailure,
+                onFailureToParse: onFailureToParse);
+        }
+
+        public static async Task<TResult> HttpClientPostDynamicRequestAsync<TResponse, TResult>(this Uri location,
+                Func<HttpRequestMessage, (HttpRequestMessage, Action)> populateRequest,
+            Func<TResponse, TResult> onSuccess,
+            Func<string, TResult> onFailure = default,
+            Func<HttpStatusCode, string, TResult> onFailureWithBody = default,
+            Func<HttpStatusCode, Func<Task<string>>, TResult> onResponseFailure = default,
+            Func<string, string, TResult> onFailureToParse = default)
+        {
             using (var httpClient = new HttpClient())
             {
                 using (var request = new HttpRequestMessage(HttpMethod.Post, location))
                 {
-                    var json = JsonConvert.SerializeObject(resource,
-                        Formatting.Indented,
-                        new JsonSerializerSettings
-                        {
-                            MissingMemberHandling = MissingMemberHandling.Ignore,
-                            DefaultValueHandling = DefaultValueHandling.Ignore,
-                            NullValueHandling = NullValueHandling.Ignore,
-                        });
-                    using (var content = new StringContent(json,
-                        encoding: System.Text.Encoding.UTF8, "application/json"))
+                    var (requestToSend, cleanup) = populateRequest(request);
+                    try
                     {
-                        var requestToSend = request;
-                        requestToSend.Content = content;
-                        if (mutateRequest.IsNotDefaultOrNull())
-                            requestToSend = mutateRequest(requestToSend);
-                        try
-                        {
-                            return await await httpClient
-                                .SendAsync(requestToSend)
-                                .IsSuccessStatusCodeAsync(
-                                    responseSuccess => ParseResourceResponse<TResponse, TResult>(responseSuccess,
-                                        onSuccess: onSuccess,
-                                        onFailure: onFailure,
-                                        onFailureWithBody: onFailureWithBody,
-                                        onResponseFailure: onResponseFailure,
-                                        onFailureToParse: onFailureToParse),
-                                    onFailureWithBody: onFailureWithBody.AsAsyncFunc(),
-                                    onResponseFailure: onResponseFailure.AsAsyncFunc(),
-                                    onFailure:onFailure.AsAsyncFunc());
-                        }
-                        catch (System.Net.Http.HttpRequestException ex)
-                        {
-                            if (onFailure.IsNotDefaultOrNull())
-                                return onFailure($"Connection Failure: {ex.GetType().FullName}:{ex.Message}");
+                        return await await httpClient
+                            .SendAsync(requestToSend)
+                            .IsSuccessStatusCodeAsync(
+                                responseSuccess => ParseResourceResponse<TResponse, TResult>(responseSuccess,
+                                    onSuccess: onSuccess,
+                                    onFailure: onFailure,
+                                    onFailureWithBody: onFailureWithBody,
+                                    onResponseFailure: onResponseFailure,
+                                    onFailureToParse: onFailureToParse),
+                                onFailureWithBody: onFailureWithBody.AsAsyncFunc(),
+                                onResponseFailure: onResponseFailure.AsAsyncFunc(),
+                                onFailure: onFailure.AsAsyncFunc());
+                    }
+                    catch (System.Net.Http.HttpRequestException ex)
+                    {
+                        if (onFailure.IsNotDefaultOrNull())
+                            return onFailure($"Connection Failure: {ex.GetType().FullName}:{ex.Message}");
 
-                            throw;
-                        }
-                        catch (Exception exGeneral)
-                        {
-                            if (onFailure.IsNotDefaultOrNull())
-                                return onFailure(exGeneral.Message);
+                        throw;
+                    }
+                    catch (Exception exGeneral)
+                    {
+                        if (onFailure.IsNotDefaultOrNull())
+                            return onFailure(exGeneral.Message);
 
-                            throw;
-                        }
+                        throw;
+                    }
+                    finally
+                    {
+                        cleanup();
                     }
                 }
             }
@@ -394,6 +500,14 @@ namespace EastFive.Net
                 onFailureCode:
                     async (HttpResponseMessage responseFailure) =>
                     {
+                        if(responseFailure.IsDefaultOrNull())
+                        {
+                            if(onFailure.IsNotDefaultOrNull())
+                                return onFailure($"Server request timed out");
+
+                            throw new Exception("Server request timed out");
+                        }
+
                         if (onFailureWithBody.IsNotDefaultOrNull())
                         {
                             var content = await responseFailure.Content.ReadAsStringAsync();
@@ -408,9 +522,9 @@ namespace EastFive.Net
                             return onFailureRequestMessage(responseFailure);
 
                         if (onFailure.IsNotDefaultOrNull())
-                            return onFailure($"Server returned arror code:{responseFailure.StatusCode}");
+                            return onFailure($"Server returned error code:{responseFailure.StatusCode}");
 
-                        throw new ArgumentException($"Server returned arror code:{responseFailure.StatusCode}");
+                        throw new ArgumentException($"Server returned error code:{responseFailure.StatusCode}");
                     });
         }
 
@@ -418,10 +532,19 @@ namespace EastFive.Net
             Func<HttpResponseMessage, TResult> onSuccessCode,
             Func<HttpResponseMessage, TResult> onFailureCode)
         {
-            var response = await responseFetching;
-            return response.IsSuccessStatusCode(
-                onSuccessCode: (status) => onSuccessCode(response),
-                onFailureCode: (status) => onFailureCode(response));
+            try
+            {
+                var response = await responseFetching;
+                return response.IsSuccessStatusCode(
+                    onSuccessCode: (status) => onSuccessCode(response),
+                    onFailureCode: (status) => onFailureCode(response));
+            } catch(System.Threading.Tasks.TaskCanceledException ex)
+            {
+                if(ex.InnerException.GetType().IsAssignableTo(typeof(System.TimeoutException)))
+                    return onFailureCode(default);
+
+                return onFailureCode(default);
+            }
         }
 
         public static TResult IsSuccessStatusCode<TResult>(this HttpResponseMessage response,

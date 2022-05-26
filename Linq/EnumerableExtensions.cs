@@ -598,6 +598,39 @@ namespace EastFive.Linq
             return onSingle(item); // Is Single
         }
 
+        public static TResult Single<TItem, TResult>(this IEnumerable<TItem> items,
+            Func<TResult> onNone,
+            Func<TItem, TResult> onSingle,
+            Func<TItem[], TResult> onMultiple)
+        {
+            if (items.IsDefaultOrNull())
+                return onNone(); // Is Null
+
+            var enumerator = items.GetEnumerator();
+
+            if (!enumerator.MoveNext())
+                return onNone(); // Is Empty
+
+            var item = enumerator.Current;
+
+            if (enumerator.MoveNext())
+            {
+                var item2 = enumerator.Current;
+
+                var allItems = new[] { item, item2 }.Concat(Remainder()).ToArray();
+
+                return onMultiple(allItems); // Has two or more
+
+                IEnumerable<TItem> Remainder()
+                {
+                    while (enumerator.MoveNext())
+                        yield return enumerator.Current;
+                }
+            }
+
+            return onSingle(item); // Is Single
+        }
+
         public static bool TrySingle<TItem>(this IEnumerable<TItem> items, out TItem item)
         {
             using (var enumerator = items.GetEnumerator())
@@ -1005,6 +1038,15 @@ namespace EastFive.Linq
 
 #if NET5_0
 
+        public static IEnumerable<(T1, T2)> SelectWhere<T1, T2>(this IEnumerable<(bool, T1, T2)> items)
+        {
+            foreach (var item in items)
+            {
+                if (item.Item1)
+                    yield return (item.Item2, item.Item3);
+            }
+        }
+
         public static IEnumerable<T2> SelectWhere<T1, T2>(this IEnumerable<(T1, T2)> items,
             Func<(T1, T2), bool> isWhere)
         {
@@ -1308,6 +1350,36 @@ namespace EastFive.Linq
         }
 
 #if NET5_0
+
+        public static ((T1, T2)[], T1[], T2[]) Match<T1, T2>(this IEnumerable<T1> items1,
+                IEnumerable<T2> items2,
+            Func<T1, T2, bool> isMatch)
+        {
+            var items1Arr = items1.ToArray();
+            var items2Arr = items2.ToArray();
+            var matches = items1
+                .Select(
+                    (item1, index1) =>
+                    {
+                        return items2Arr
+                            .Select((item2, index2) => (isMatch(item1, item2), index2))
+                            .SelectWhere()
+                            .First(
+                                (index2, next) => (true, index1, index2),
+                                () => (false, 0, 0));
+                    })
+                .SelectWhere()
+                .ToArray();
+            var item1Lookups = matches.Select(x => x.Item1).ToHashSet();
+            var item2Lookups = matches.Select(x => x.Item2).ToHashSet();
+            var items1Unused = items1Arr.Where((discard, index) => item1Lookups.Contains(index)).ToArray();
+            var items2Unused = items2Arr.Where((discard, index) => item2Lookups.Contains(index)).ToArray();
+            var matched = matches
+                .Select(match => (items1Arr[match.Item1], items2Arr[match.Item2]))
+                .ToArray();
+
+            return (matched, items1Unused, items2Unused);
+        }
 
         public static IEnumerable<TMatch> Match<T1, T2, TMatch, TKey>(this IEnumerable<T1> items1,
                 IEnumerable<T2> items2,
