@@ -33,6 +33,11 @@ namespace EastFive
             }
         }
 
+        /// <summary>
+        /// This method is ideally used to create a unique string.  WARNING: Using this method to protect sensitive information would be a security vulnerability due to it using a weak hashing function.
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <returns></returns>
         public static string Md5Checksum(this Stream stream)
         {
             using (var algorithm = new MD5CryptoServiceProvider())
@@ -45,6 +50,12 @@ namespace EastFive
             }
         }
 
+
+        /// <summary>
+        /// This method is ideally used to create a unique string.  WARNING: Using this method to protect sensitive information would be a security vulnerability due to it using a weak hashing function.
+        /// </summary>
+        /// <param name="bytes"></param>
+        /// <returns></returns>
         public static string Md5Checksum(this byte[] bytes)
         {
             using (var algorithm = new MD5CryptoServiceProvider())
