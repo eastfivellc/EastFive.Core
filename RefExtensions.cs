@@ -90,6 +90,14 @@ namespace EastFive
             return refOptional.HasValue && !refOptional.Ref.id.IsDefault();
         }
 
+        public static Guid? GetIdMaybeNullSafe<T>(this IRefOptional<T> refOptional)
+            where T : IReferenceable
+        {
+            if (refOptional.IsDefaultOrNull())
+                return default;
+            return refOptional.id;
+        }
+
         public static bool EqualsRef<T>(this IRef<T> refValue1, IRef<T> refValue2)
             where T : IReferenceable
         {

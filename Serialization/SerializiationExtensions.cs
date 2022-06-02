@@ -650,6 +650,7 @@ namespace EastFive.Serialization
 
         public static Guid MD5HashGuid(this byte[] bytes, MD5 md5 = default(MD5))
         {
+            #pragma warning disable SCS0006 // Weak hashing function
             Guid getHashGuid(MD5 algorithm) => new Guid(algorithm.ComputeHash(bytes));
 
             if (default(MD5) != md5)
@@ -657,6 +658,7 @@ namespace EastFive.Serialization
 
             using (var algorithm = MD5.Create())
                 return getHashGuid(algorithm);
+            #pragma warning restore SCS0006 // Weak hashing function
         }
 
         public static Guid MD5HashGuid(this string concatination, MD5 md5 = default(MD5))
@@ -671,6 +673,7 @@ namespace EastFive.Serialization
 
         public static Guid MD5HashGuid(this Stream stream, MD5 md5 = default(MD5))
         {
+            #pragma warning disable SCS0006 // Weak hashing function
             Guid getHashGuid(MD5 algorithm) => new Guid(algorithm.ComputeHash(stream));
 
             if (default(MD5) != md5)
@@ -678,8 +681,15 @@ namespace EastFive.Serialization
 
             using (var algorithm = MD5.Create())
                 return getHashGuid(algorithm);
+            #pragma warning restore SCS0006 // Weak hashing function
         }
 
+        /// <summary>
+        /// This method is ideally used to create a unique string.  WARNING: Using this method to protect sensitive information would be a security vulnerability due to it using a weak hashing function.
+        /// </summary>
+        /// <param name="concatination"></param>
+        /// <param name="md5"></param>
+        /// <returns></returns>
         public static string MD5HashString(this string concatination, MD5 md5 = default(MD5))
         {
             string getHashString(MD5 algorithm) => Convert.ToBase64String(
@@ -693,6 +703,12 @@ namespace EastFive.Serialization
                 return getHashString(algorithm);
         }
 
+        /// <summary>
+        /// This method is ideally used to create a unique string.  WARNING: Using this method to protect sensitive information would be a security vulnerability due to it using a weak hashing function.
+        /// </summary>
+        /// <param name="concatination"></param>
+        /// <param name="md5"></param>
+        /// <returns></returns>
         public static string MD5HashHex(this string concatination, MD5 md5 = default(MD5))
         {
             string getHashHex(MD5 algorithm) => algorithm

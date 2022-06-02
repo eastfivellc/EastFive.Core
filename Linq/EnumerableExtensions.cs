@@ -908,9 +908,9 @@ namespace EastFive.Linq
         }
 
 #endif
-
         public static T Random<T>(this IEnumerable<T> items, int total, Random rand = null)
         {
+            #pragma warning disable SCS0005 // Weak random number generator
             if (rand == null)
             {
                 rand = new Random();
@@ -934,6 +934,7 @@ namespace EastFive.Linq
             }
             var selectedIndex = (int)(arrayItemsIndex * rand.NextDouble());
             return arrayItems[selectedIndex];
+            #pragma warning restore SCS0005 // Weak random number generator
         }
 
         public static T Random<T>(this IEnumerable<T> items, Random rand = null)
@@ -1282,6 +1283,7 @@ namespace EastFive.Linq
 
         public static IEnumerable<T> SelectRandom<T>(this IEnumerable<T> items, int total, Random rand = null)
         {
+            #pragma warning disable SCS0005 // Weak random number generator
             if (rand == null)
                 rand = new Random();
 
@@ -1295,6 +1297,7 @@ namespace EastFive.Linq
                 }
                 totalD -= 1.0;
             }
+            #pragma warning restore SCS0005 // Weak random number generator
         }
 
         public static IEnumerable<T> SelectWhereHasValue<T>(this IEnumerable<Nullable<T>> items)
