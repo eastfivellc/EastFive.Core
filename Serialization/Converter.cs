@@ -39,12 +39,17 @@ namespace EastFive.Serialization.Json
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+            => ReadJsonStatic(reader, objectType, existingValue, serializer);
+
+        public static object ReadJsonStatic(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
             if (objectType.IsSubClassOfGeneric(typeof(IReferenceable)))
             {
                 if (objectType.IsSubClassOfGeneric(typeof(IRef<>)))
                 {
                     var id = GetGuid();
+                    if (id.IsDefault())
+                        return existingValue;
                     var refType = typeof(Ref<>).MakeGenericType(objectType.GenericTypeArguments);
                     return Activator.CreateInstance(refType, id);
                 }
@@ -222,6 +227,10 @@ namespace EastFive.Serialization.Json
                 {
                     var guidString = reader.Value as string;
                     return Guid.Parse(guidString);
+                }
+                if(reader.TokenType==JsonToken.None)
+                {
+                    return default(Guid);
                 }
                 throw new Exception();
             }

@@ -61,7 +61,8 @@ namespace EastFive.Reflection
         {
             if (memberInfo is PropertyInfo)
             {
-                (memberInfo as PropertyInfo).SetValue(objectToUpdate, propertyOrFieldValue);
+                var propertyInfo = memberInfo as PropertyInfo;
+                propertyInfo.SetValue(objectToUpdate, propertyOrFieldValue);
                 return objectToUpdate;
             }
 
@@ -69,6 +70,28 @@ namespace EastFive.Reflection
             {
                 (memberInfo as FieldInfo).SetValue(objectToUpdate, propertyOrFieldValue);
                 return objectToUpdate;
+            }
+
+            throw new ArgumentException("memberType",
+                $"Cannot determine type of {memberInfo.GetType().FullName} since it could not be casted to {typeof(PropertyInfo).Name} or {typeof(FieldInfo).Name}.");
+        }
+
+        public static bool TrySetPropertyOrFieldValue(this MemberInfo memberInfo, object objectToUpdate, object propertyOrFieldValue)
+        {
+            if (memberInfo is PropertyInfo)
+            {
+                var propertyInfo = memberInfo as PropertyInfo;
+                if (propertyInfo.SetMethod.IsDefaultOrNull())
+                    return false;
+
+                propertyInfo.SetValue(objectToUpdate, propertyOrFieldValue);
+                return true;
+            }
+
+            if (memberInfo is FieldInfo)
+            {
+                (memberInfo as FieldInfo).SetValue(objectToUpdate, propertyOrFieldValue);
+                return true;
             }
 
             throw new ArgumentException("memberType",
