@@ -43,6 +43,19 @@ namespace EastFive.Serialization.Json
 
         public static object ReadJsonStatic(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
+            if (objectType == typeof(string))
+            {
+                if (reader.TokenType == JsonToken.String)
+                {
+                    var stringValue = reader.Value as string;
+                    return stringValue;
+                }
+                if (reader.TokenType == JsonToken.Null)
+                {
+                    return null;
+                }
+            }
+
             if (objectType.IsSubClassOfGeneric(typeof(IReferenceable)))
             {
                 if (objectType.IsSubClassOfGeneric(typeof(IRef<>)))
@@ -228,7 +241,7 @@ namespace EastFive.Serialization.Json
                     var guidString = reader.Value as string;
                     return Guid.Parse(guidString);
                 }
-                if(reader.TokenType==JsonToken.None)
+                if(reader.TokenType==JsonToken.Null)
                 {
                     return default(Guid);
                 }
