@@ -1375,8 +1375,8 @@ namespace EastFive.Linq
                 .ToArray();
             var item1Lookups = matches.Select(x => x.Item1).ToHashSet();
             var item2Lookups = matches.Select(x => x.Item2).ToHashSet();
-            var items1Unused = items1Arr.Where((discard, index) => item1Lookups.Contains(index)).ToArray();
-            var items2Unused = items2Arr.Where((discard, index) => item2Lookups.Contains(index)).ToArray();
+            var items1Unused = items1Arr.Where((discard, index) => !item1Lookups.Contains(index)).ToArray();
+            var items2Unused = items2Arr.Where((discard, index) => !item2Lookups.Contains(index)).ToArray();
             var matched = matches
                 .Select(match => (items1Arr[match.Item1], items2Arr[match.Item2]))
                 .ToArray();
