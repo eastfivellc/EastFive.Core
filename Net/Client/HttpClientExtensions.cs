@@ -14,7 +14,7 @@ namespace EastFive.Net
 {
     public static class HttpClientExtensions
     {
-        public static async Task<TResult> HttpClientGetAsync<TResult>(this Uri location,
+        public static async Task<TResult> HttpClientGetResponseAsync<TResult>(this Uri location,
             Func<HttpResponseMessage, TResult> onSuccess,
             Func<string, TResult> onFailure = default,
             Func<HttpStatusCode, string, TResult> onFailureWithBody = default,
@@ -72,7 +72,7 @@ namespace EastFive.Net
             Func<string, string, TResult> onFailureToParse = default,
             Func<HttpRequestMessage, HttpRequestMessage> mutateRequest = default)
         {
-            return await await location.HttpClientGetAsync(
+            return await await location.HttpClientGetResponseAsync(
                 responseSuccess => ParseResourceResponse(responseSuccess,
                     onSuccess: onSuccess,
                     onFailure: onFailure,
@@ -85,7 +85,7 @@ namespace EastFive.Net
                     mutateRequest:mutateRequest);
         }
 
-        public static async Task<TResult> HttpClientGetResourceAsync<TResponse, TResult>(this Uri location,
+        public static async Task<TResult> HttpClientGetResourceAuthenticatedAsync<TResponse, TResult>(this Uri location,
                 string authToken, string tokenType,
             Func<TResponse, TResult> onSuccess,
             Func<string, TResult> onFailure = default,
@@ -103,7 +103,7 @@ namespace EastFive.Net
                     return TryRefreshAsync(statusCode, body,
                         rerun: (newToken) =>
                         {
-                            return location.HttpClientGetResourceAsync(
+                            return location.HttpClientGetResourceAuthenticatedAsync(
                                      newToken, tokenType,
                                      didTokenGetRefreshed: (s, b) => (false, string.Empty).AsTask(),
                                  onSuccess: onSuccess,
@@ -126,7 +126,7 @@ namespace EastFive.Net
                     });
         }
 
-        public static async Task<TResult> HttpClientGetAuthenticatedAsync<TResult>(this Uri location,
+        public static async Task<TResult> HttpClientGetResponseAuthenticatedAsync<TResult>(this Uri location,
                 string authToken, string tokenType,
             Func<HttpResponseMessage, TResult> onSuccess,
             Func<string, TResult> onFailure = default,
@@ -136,22 +136,25 @@ namespace EastFive.Net
                 Func<HttpRequestMessage, HttpRequestMessage> mutateRequest = default,
                 Func<HttpStatusCode, string, Task<(bool, string)>> didTokenGetRefreshed = default)
         {
-            return await await location.HttpClientGetAsync(
+            return await await location.HttpClientGetResponseAsync(
                 onSuccess: onSuccess.AsAsyncFunc(),
                 onFailure: onFailure.AsAsyncFunc(),
-                onFailureWithBody: (statusCode, body) => TryRefreshAsync(statusCode, body,
-                    rerun: (newToken) => location.HttpClientGetResourceAsync(
-                                 newToken, tokenType,
-                                 didTokenGetRefreshed: (s, b) => (false, string.Empty).AsTask(),
-                             onSuccess: onSuccess,
-                             onFailure: onFailure,
-                             onFailureWithBody: onFailureWithBody,
-                             onResponseFailure: onResponseFailure,
-                             onFailureToParse: onFailureToParse,
-                             mutateRequest: mutateRequest),
-                    onFailureWithBody: onFailureWithBody,
-                    onFailure: onFailure,
-                    didTokenGetRefreshed: didTokenGetRefreshed),
+                onFailureWithBody: (statusCode, body) =>
+                {
+                    return TryRefreshAsync(statusCode, body,
+                        rerun: (newToken) => location.HttpClientGetResponseAuthenticatedAsync(
+                                     newToken, tokenType,
+                                     didTokenGetRefreshed: (s, b) => (false, string.Empty).AsTask(),
+                                 onSuccess: onSuccess,
+                                 onFailure: onFailure,
+                                 onFailureWithBody: onFailureWithBody,
+                                 onResponseFailure: onResponseFailure,
+                                 onFailureToParse: onFailureToParse,
+                                 mutateRequest: mutateRequest),
+                        onFailureWithBody: onFailureWithBody,
+                        onFailure: onFailure,
+                        didTokenGetRefreshed: didTokenGetRefreshed);
+                },
                 onResponseFailure: onResponseFailure.AsAsyncFunc(),
                     mutateRequest: (HttpRequestMessage request) =>
                     {
@@ -449,6 +452,8 @@ namespace EastFive.Net
 
         #endregion
 
+        #region Patch/Put
+
         public static async Task<TResult> HttpClientPatchDynamicAsync<TResponse, TResult>(this Uri location,
                 Func<HttpRequestMessage, (HttpRequestMessage, Action)> populateRequest,
             Func<TResponse, TResult> onSuccess,
@@ -617,6 +622,8 @@ namespace EastFive.Net
             }
         }
 
+        #endregion
+
         private static async Task<TResult> TryRefreshAsync<TResult>(HttpStatusCode statusCode, string body,
             Func<string, Task<TResult>> rerun,
             Func<HttpStatusCode, string, Task<(bool, string)>> didTokenGetRefreshed = default,
@@ -630,7 +637,7 @@ namespace EastFive.Net
             if (onFailureWithBody.IsNotDefaultOrNull())
                 return onFailureWithBody(statusCode, body);
 
-            var errorMsg = $"Server returned error code {statusCode}";
+            var errorMsg = $"Server returned error [{statusCode}]:{body}";
             if (onFailure.IsNotDefaultOrNull())
                 return onFailure(errorMsg);
 
