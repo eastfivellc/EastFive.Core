@@ -841,7 +841,7 @@ namespace EastFive.Linq
             }
         }
 
-#if NET5_0
+#if NET5_0_OR_GREATER
 
         public delegate bool TryPredicate<TItem, TOut>(TItem item, out TOut result);
         public static IEnumerable<(TItem item, TOut @out)> TryWhere<TItem, TOut>(this IEnumerable<TItem> items,
@@ -1037,7 +1037,7 @@ namespace EastFive.Linq
             yield return last(lastValue, current);
         }
 
-#if NET5_0
+#if NET5_0_OR_GREATER
 
         public static IEnumerable<(T1, T2)> SelectWhere<T1, T2>(this IEnumerable<(bool, T1, T2)> items)
         {
@@ -1352,7 +1352,7 @@ namespace EastFive.Linq
             }
         }
 
-#if NET5_0
+#if NET5_0_OR_GREATER
 
         public static ((T1, T2)[], T1[], T2[]) Match<T1, T2>(this IEnumerable<T1> items1,
                 IEnumerable<T2> items2,
@@ -1547,7 +1547,7 @@ namespace EastFive.Linq
             return combinations;
         }
 
-#if NET5_0
+#if NET5_0_OR_GREATER
         public static IEnumerable<(T1, T2)[]> Combinations<T1, T2>(this IEnumerable<T1> items1, IEnumerable<T2> items2)
         {
             if (items1.IsDefaultNullOrEmpty())
