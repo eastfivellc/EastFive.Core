@@ -246,6 +246,20 @@ namespace EastFive
             return time2;
         }
 
+        public static bool IsInWindow(this DateTime when, DateTime start, DateTime end)
+        {
+            if (start > end)
+                throw new ArgumentException($"Start time is greater than end time. {start} > {end}");
+
+            if (when < start)
+                return false;
+
+            if (when > end)
+                return false;
+
+            return true;
+        }
+
         #endregion
     }
 }
