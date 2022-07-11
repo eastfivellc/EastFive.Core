@@ -1242,38 +1242,18 @@ namespace EastFive.Linq.Async
                         return onSome();
                     return Empty<TItem>();
                 });
-            //bool hasExecuted = false;
-            //var iterator = default(IEnumeratorAsync<TItem>);
-            //var enumerator1 = enumerable1.GetEnumerator();
-            //bool enumerator1Terminated = false;
-            //bool wasAny = false;
-            //return EnumerableAsync.Yield<TItem>(
-            //    async (yieldContinue, yieldBreak) =>
-            //    {
-            //        if (!enumerator1Terminated)
-            //        {
-            //            var next = await enumerator1.MoveNextAsync();
-            //            if (next)
-            //            {
-            //                wasAny = true;
-            //                return yieldContinue(enumerator1.Current);
-            //            }
-            //            enumerator1Terminated = true;
-            //        }
+        }
 
-            //        if (!wasAny)
-            //            return yieldBreak;
-
-            //        if (!hasExecuted)
-            //        {
-            //            var some = onSome();
-            //            iterator = some.GetEnumerator();
-            //            hasExecuted = true;
-            //        }
-            //        if (await iterator.MoveNextAsync())
-            //            return yieldContinue(iterator.Current);
-            //        return yieldBreak;
-            //    });
+        public static IEnumerableAsync<TItem> ConcatIfNone<TItem>(this IEnumerableAsync<TItem> enumerable1,
+            Func<IEnumerableAsync<TItem>> onSome)
+        {
+            return enumerable1.ConcatWithTotal(
+                total =>
+                {
+                    if (total == 0)
+                        return onSome();
+                    return Empty<TItem>();
+                });
         }
 
         public static IEnumerableAsync<TItem> ConcatWithTotal<TItem>(this IEnumerableAsync<TItem> enumerable1,

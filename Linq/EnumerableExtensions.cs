@@ -95,10 +95,19 @@ namespace EastFive.Linq
         public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items,
             Func<T, Guid> propertySelection)
         {
-            Func<T, T, bool> comparer = (v1, v2) =>
-                propertySelection(v1) == propertySelection(v2);
-            return EnumerableExtensions.Distinct(items, comparer,
-                v => propertySelection(v).GetHashCode());
+            var hashSet = new HashSet<Guid>();
+            foreach(var item in items)
+            {
+                var guid = propertySelection(item);
+                if (hashSet.Contains(guid))
+                    continue;
+                hashSet.Add(guid);
+                yield return item;
+            }
+            //Func<T, T, bool> comparer = (v1, v2) =>
+            //    propertySelection(v1) == propertySelection(v2);
+            //return EnumerableExtensions.Distinct(items, comparer,
+            //    v => propertySelection(v).GetHashCode());
         }
 
         public static IEnumerable<T> DistinctById<T>(this IEnumerable<T> items) 
