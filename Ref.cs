@@ -211,6 +211,11 @@ namespace EastFive
             }
         }
 
+        public static IRefs<TType> Empty()
+        {
+            return new Refs<TType>(new Guid[] { });
+        }
+
         IEnumerator<IRef<TType>> IEnumerable<IRef<TType>>.GetEnumerator()
         {
             var safeIds = ids ?? new Guid[] { };
