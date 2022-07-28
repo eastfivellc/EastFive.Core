@@ -10,6 +10,8 @@ namespace EastFive.Analytics
         void LogTrace(string message);
 
         void LogWarning(string message);
+
+        void LogCritical(string message);
     }
 
     public delegate void OnMessageHandler(string message);
@@ -39,6 +41,11 @@ namespace EastFive.Analytics
         {
             Debug.WriteLine(message);
         }
+
+        public void LogCritical(string message)
+        {
+            Debug.WriteLine(message);
+        }
     }
 
     public class ConsoleLogger : ILogger
@@ -57,6 +64,11 @@ namespace EastFive.Analytics
         {
             Console.WriteLine(message);
         }
+
+        public void LogCritical(string message)
+        {
+            Console.WriteLine(message);
+        }
     }
 
     public class EventLogger : ILoggerWithEvents
@@ -71,6 +83,7 @@ namespace EastFive.Analytics
         public event OnMessageHandler OnInformation;
         public event OnMessageHandler OnTrace;
         public event OnMessageHandler OnWarning;
+        public event OnMessageHandler OnCritical;
 
         public void LogInformation(string message)
         {
@@ -88,6 +101,12 @@ namespace EastFive.Analytics
         {
             OnWarning(message);
             logger.Warning(message);
+        }
+
+        public void LogCritical(string message)
+        {
+            OnCritical(message);
+            logger.LogCritical(message);
         }
     }
 }

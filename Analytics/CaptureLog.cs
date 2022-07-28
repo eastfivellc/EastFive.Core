@@ -46,6 +46,12 @@ namespace EastFive.Analytics
             passthrough.Warning(message);
         }
 
+        public void LogCritical(string message)
+        {
+            this.logMessages.Enqueue($"WARNING:{message}");
+            passthrough.LogCritical(message);
+        }
+
         public string[] Dump()
         {
             return this.logMessages.ToArray();

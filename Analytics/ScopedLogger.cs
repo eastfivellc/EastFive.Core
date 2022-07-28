@@ -31,5 +31,10 @@ namespace EastFive.Analytics
         {
             logger.LogWarning($"{state}:{message}");
         }
+
+        public void LogCritical(string message)
+        {
+            logger.LogCritical($"{state}:{message}");
+        }
     }
 }
