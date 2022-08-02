@@ -15,6 +15,9 @@ namespace EastFive.Images
     {
         public static bool TryReadImage(this Stream mediaContents, out Image image)
         {
+            if (!OperatingSystem.IsWindows())
+                throw new NotSupportedException("OS not supported");
+
             try
             {
                 image = Bitmap.FromStream(mediaContents);
@@ -36,6 +39,9 @@ namespace EastFive.Images
         public static void Save(this Image image, Stream outputStream,
             ImageCodecInfo imageCodec, long encoderQuality = 80L)
         {
+            if (!OperatingSystem.IsWindows())
+                throw new NotSupportedException("OS not supported");
+
             var encoderParameters = new EncoderParameters(1);
             encoderParameters.Param[0] = new EncoderParameter(Encoder.Quality, encoderQuality);
 
@@ -65,6 +71,10 @@ namespace EastFive.Images
 
         public static ImageCodecInfo ParseImageCodecInfo(this string mimeType)
         {
+            if (!OperatingSystem.IsWindows())
+                throw new NotSupportedException("OS not supported");
+
+            #pragma warning disable CA1416
             return ImageCodecInfo
                 .GetImageEncoders()
                 .First(
@@ -75,11 +85,16 @@ namespace EastFive.Images
                         return next();
                     },
                     () => ImageCodecInfo.GetImageEncoders().First());
+            #pragma warning restore CA1416
+
         }
 
         public static bool TryParseImage(this string imageDataEncoding, out Image image)
         {
-            if(!imageDataEncoding.TryParseImage(
+            if (!OperatingSystem.IsWindows())
+                throw new NotSupportedException("OS not supported");
+
+            if (!imageDataEncoding.TryParseImage(
                 out byte [] data, out string contentType))
             {
                 image = default;
@@ -128,6 +143,9 @@ namespace EastFive.Images
         public static string Base64Encode(this Image image,
             string encodingMimeType = "image/jpeg", long encoderQuality = 80L)
         {
+            if (!OperatingSystem.IsWindows())
+                return default;
+
             var mediaContents = image.Save(out ImageCodecInfo imageCodecInfo,
                 encodingMimeType:encodingMimeType, encoderQuality:encoderQuality);
             var contentType = imageCodecInfo.MimeType;
@@ -136,13 +154,21 @@ namespace EastFive.Images
 
         public static string GetMimeType(this Image image)
         {
+            if (!OperatingSystem.IsWindows())
+                throw new NotSupportedException("OS not supported");
+
             return image.RawFormat.GetMimeType();
         }
 
         public static string GetMimeType(this ImageFormat imageFormat)
         {
+            if (!OperatingSystem.IsWindows())
+                throw new NotSupportedException("OS not supported");
+
+            #pragma warning disable CA1416
             ImageCodecInfo[] codecs = ImageCodecInfo.GetImageEncoders();
             return codecs.First(codec => codec.FormatID == imageFormat.Guid).MimeType;
+            #pragma warning restore CA1416
         }
     }
 }

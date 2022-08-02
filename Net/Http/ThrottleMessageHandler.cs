@@ -70,7 +70,7 @@ namespace EastFive.Net.Http
                         {
                             if (response != default(HttpResponseMessage))
                                 response.Dispose();
-                            throw ex;
+                            throw;
                         }
 
                         // This is normally just a timeout
@@ -83,7 +83,7 @@ namespace EastFive.Net.Http
                         {
                             if (response != default(HttpResponseMessage))
                                 response.Dispose();
-                            throw ex;
+                            throw;
                         }
 
                         var webEx = ex.InnerException as System.Net.WebException;
@@ -104,15 +104,16 @@ namespace EastFive.Net.Http
                         {
                             if (response != default(HttpResponseMessage))
                                 response.Dispose();
-                            throw ex;
+                            throw;
                         }
                     }
                     #endregion
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         if (response != default(HttpResponseMessage))
                             response.Dispose();
-                        throw ex;
+
+                        throw;
                     }
                     finally
                     {

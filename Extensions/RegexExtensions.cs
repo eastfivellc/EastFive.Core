@@ -388,7 +388,7 @@ namespace EastFive
                     .Select(match => (match.Name, match.Value))
                     .ToArray();
                 return matches.Any();
-            } catch (RegexParseException ex)
+            } catch (RegexParseException)
             {
                 matches = default;
                 return false;
