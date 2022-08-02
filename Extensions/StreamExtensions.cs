@@ -40,7 +40,7 @@ namespace EastFive
         /// <returns></returns>
         public static string Md5Checksum(this Stream stream)
         {
-            using (var algorithm = new MD5CryptoServiceProvider())
+            using (var algorithm = MD5.Create())
             {
                 var hash = algorithm.ComputeHash(stream);
                 var result = hash.Select(hex => hex.ToString("X2"))
@@ -58,7 +58,7 @@ namespace EastFive
         /// <returns></returns>
         public static string Md5Checksum(this byte[] bytes)
         {
-            using (var algorithm = new MD5CryptoServiceProvider())
+            using (var algorithm = MD5.Create())
             {
                 var hash = algorithm.ComputeHash(bytes);
                 var result = hash.Select(hex => hex.ToString("X2"))

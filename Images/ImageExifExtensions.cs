@@ -15,6 +15,9 @@ namespace EastFive.Images
     {
         public static void FixOrientation(this Image image)
         {
+            if (!OperatingSystem.IsWindows())
+                throw new NotSupportedException("OS not supported");
+
             var orientation = image
                 .ExifGetRotateFlip()
                 .Invert();
@@ -27,6 +30,9 @@ namespace EastFive.Images
 
         public static RotateFlipType Invert(this RotateFlipType xform)
         {
+            if (!OperatingSystem.IsWindows())
+                throw new NotSupportedException("OS not supported");
+
             // 0
             if (xform == RotateFlipType.RotateNoneFlipNone)
                 return RotateFlipType.RotateNoneFlipNone;
@@ -57,13 +63,18 @@ namespace EastFive.Images
 
         public static RotateFlipType ExifGetRotateFlip(this Image image)
         {
+            if (!OperatingSystem.IsWindows())
+                throw new NotSupportedException("OS not supported");
+
             if (!image.PropertyIdList.Contains(PropertyIdTags.PropertyTagOrientation))
                 return RotateFlipType.RotateNoneFlipNone;
 
+            #pragma warning disable CA1416
             var orientation = (Orientation)image.PropertyItems
                 .Where(item => item.Id == PropertyIdTags.PropertyTagOrientation)
                 .First()
                 .GetIntValue();
+            #pragma warning restore CA1416
 
             switch (orientation)
             {
@@ -89,6 +100,10 @@ namespace EastFive.Images
 
         public static bool ExifSetRotateFlip(this Image image, RotateFlipType rotateFlip)
         {
+            if (!OperatingSystem.IsWindows())
+                throw new NotSupportedException("OS not supported");
+
+            #pragma warning disable CA1416
             var orientation = GetExifOrientation(rotateFlip);
             return image.PropertyItems
                    .Where(item => item.Id == PropertyIdTags.PropertyTagOrientation)
@@ -102,6 +117,7 @@ namespace EastFive.Images
                         {
                             return false;
                         });
+            #pragma warning restore CA1416
 
             Orientation GetExifOrientation(RotateFlipType orientation)
             {
@@ -132,6 +148,9 @@ namespace EastFive.Images
 
         public static void SetValue(this PropertyItem propertyItem, int value)
         {
+            if (!OperatingSystem.IsWindows())
+                throw new NotSupportedException("OS not supported");
+
             if (propertyItem.Type == PropertyTypes.PropertyTagTypeShort)
             {
                 propertyItem.Value = BitConverter.GetBytes((ushort)value);
@@ -169,6 +188,9 @@ namespace EastFive.Images
 
         public static bool TryGetValue(this PropertyItem propertyItem, out int value)
         {
+            if (!OperatingSystem.IsWindows())
+                throw new NotSupportedException("OS not supported");
+
             if (propertyItem.Type == PropertyTypes.PropertyTagTypeShort)
             {
                 value = BitConverter.ToUInt16(propertyItem.Value, 0);
@@ -195,6 +217,9 @@ namespace EastFive.Images
 
         public static bool TryGetValue(this PropertyItem propertyItem, out long value)
         {
+            if (!OperatingSystem.IsWindows())
+                throw new NotSupportedException("OS not supported");
+
             if (propertyItem.Type == PropertyTypes.PropertyTagTypeSLONG)
             {
                 value = BitConverter.ToInt64(propertyItem.Value, 0);
@@ -219,6 +244,9 @@ namespace EastFive.Images
 
         public static bool TryGetValue(this PropertyItem propertyItem, out ulong value)
         {
+            if (!OperatingSystem.IsWindows())
+                throw new NotSupportedException("OS not supported");
+
             if (propertyItem.Type == PropertyTypes.PropertyTagTypeLong)
             {
                 value = BitConverter.ToUInt64(propertyItem.Value, 0);

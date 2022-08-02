@@ -17,6 +17,9 @@ namespace EastFive.Images
             int? width = default(int?), int? height = default(int?), bool? fill = default(bool?),
             Brush background = default)
         {
+            if (!OperatingSystem.IsWindows())
+                throw new NotSupportedException("OS not supported");
+
             if (!width.HasValue)
                 if (!height.HasValue)
                     if (!fill.HasValue)
@@ -66,6 +69,9 @@ namespace EastFive.Images
         public static Image SetBackground(this Image image,
             Brush background)
         {
+            if (!OperatingSystem.IsWindows())
+                throw new NotSupportedException("OS not supported");
+
             var newImage = new Bitmap(image.Width, image.Height, PixelFormat.Format24bppRgb);
 
             //set the new resolution
@@ -91,6 +97,9 @@ namespace EastFive.Images
 
         public static Image Crop(this Image image, int x, int y, int w, int h)
         {
+            if (!OperatingSystem.IsWindows())
+                throw new NotSupportedException("OS not supported");
+
             var newImage = new Bitmap(w, h, PixelFormat.Format32bppArgb);
 
             //set the new resolution
@@ -119,6 +128,9 @@ namespace EastFive.Images
 
         public static Image Crop(this Image image, double x, double y, double w, double h)
         {
+            if (!OperatingSystem.IsWindows())
+                throw new NotSupportedException("OS not supported");
+
             return image.Crop(
                 (int)(x * image.Width),
                 (int)(y * image.Height),
@@ -129,6 +141,9 @@ namespace EastFive.Images
         public static Image Scale(this Image image,
             int? width = default(int?), int? height = default(int?), bool? fill = default(bool?))
         {
+            if (!OperatingSystem.IsWindows())
+                throw new NotSupportedException("OS not supported");
+
             bool KeepOriginal()
             {
                 if (width.HasValue || height.HasValue || fill.HasValue)
@@ -190,6 +205,9 @@ namespace EastFive.Images
         public static bool ComputeMaxAspect(this Image image, double viewportAspect,
             out int xOffset, out int yOffset, out int width, out int height)
         {
+            if (!OperatingSystem.IsWindows())
+                throw new NotSupportedException("OS not supported");
+
             var imageWidth = image.Width;
             var imageHeight = image.Height;
             return ComputeMaxAspect(viewportAspect, imageWidth, imageHeight,
@@ -235,6 +253,9 @@ namespace EastFive.Images
 
         public static Image MinAspect(this Image image, double viewportAspect)
         {
+            if (!OperatingSystem.IsWindows())
+                throw new NotSupportedException("OS not supported");
+
             var imageAspect = image.AspectRatio();
             if (imageAspect > viewportAspect)
             {
@@ -255,6 +276,9 @@ namespace EastFive.Images
 
         public static Image ScaleAspect(this Image image, double viewportAspect)
         {
+            if (!OperatingSystem.IsWindows())
+                throw new NotSupportedException("OS not supported");
+
             var imageAspect = image.AspectRatio();
             if (imageAspect > viewportAspect)
             {
@@ -271,6 +295,9 @@ namespace EastFive.Images
 
         public static double AspectRatio(this Image image)
         {
+            if (!OperatingSystem.IsWindows())
+                throw new NotSupportedException("OS not supported");
+
             var width = (double)image.Width;
             var height = (double)image.Height;
             return width / height;

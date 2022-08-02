@@ -21,6 +21,10 @@ namespace EastFive.Images
 
         public double Compare(ComparisonSignature comparisonSignature)
         {
+            if (!OperatingSystem.IsWindows())
+                throw new NotSupportedException("OS not supported");
+
+            #pragma warning disable CA1416
             var totalDelta = Enumerable.Range(0, 9)
                 .SelectMany(
                     x =>
@@ -40,6 +44,7 @@ namespace EastFive.Images
                     })
                 .Sum();
             return totalDelta / 9.0;
+            #pragma warning restore CA1416
         }
     }
 
