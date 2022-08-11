@@ -531,14 +531,14 @@ namespace EastFive.Net
                 onFailure: onFailure.AsAsyncFunc(),
                 onFailureWithBody: (statusCode, body) => TryRefreshAsync(statusCode, body,
                     rerun: (newToken) => location.HttpClientPostResourceAsync(populateRequest,
-                                 newToken, tokenType,
-                                 didTokenGetRefreshed: (s, b) => (false, string.Empty).AsTask(),
-                             onSuccess: onSuccess,
-                             onFailure: onFailure,
-                             onFailureWithBody: onFailureWithBody,
-                             onResponseFailure: onResponseFailure,
-                             onFailureToParse: onFailureToParse,
-                             mutateRequest: mutateRequest),
+                            newToken, tokenType,
+                            didTokenGetRefreshed: (s, b) => (false, string.Empty).AsTask(),
+                        onSuccess: onSuccess,
+                        onFailure: onFailure,
+                        onFailureWithBody: onFailureWithBody,
+                        onResponseFailure: onResponseFailure,
+                        onFailureToParse: onFailureToParse,
+                        mutateRequest: mutateRequest),
                     onFailureWithBody: onFailureWithBody,
                     onFailure: onFailure,
                     didTokenGetRefreshed: didTokenGetRefreshed),
@@ -630,9 +630,12 @@ namespace EastFive.Net
             Func<HttpStatusCode, string, TResult> onFailureWithBody = default,
             Func<string, TResult> onFailure = default)
         {
-            var (didGetRefreshToken, newToken) = await didTokenGetRefreshed(statusCode, body);
-            if (didGetRefreshToken)
-                return await rerun(newToken);
+            if(didTokenGetRefreshed.IsNotDefaultOrNull())
+            {
+                var (didGetRefreshToken, newToken) = await didTokenGetRefreshed(statusCode, body);
+                if (didGetRefreshToken)
+                    return await rerun(newToken);
+            }
 
             if (onFailureWithBody.IsNotDefaultOrNull())
                 return onFailureWithBody(statusCode, body);
