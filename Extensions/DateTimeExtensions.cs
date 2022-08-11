@@ -121,7 +121,10 @@ namespace EastFive
 
         #endregion
 
+        #endregion
+
         #region Misc
+
         public static int BirthDateToAge(this DateTime dateOfBirth, DateTime? asOfMaybe = default)
         {
             var asOf = asOfMaybe.HasValue ? asOfMaybe.Value : DateTime.Now;
@@ -169,6 +172,11 @@ namespace EastFive
         public static DateTime GetFirstOfMonth(this DateTime date)
         {
             return new DateTime(date.Year, date.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        }
+
+        public static DateTime GetLastOfMonth(this DateTime date)
+        {
+            return date.AddMonths(1).GetFirstOfMonth().AddDays(-1);
         }
 
         // Taken from  https://www.codeproject.com/Tips/1168428/US-Federal-Holidays-Csharp
@@ -227,6 +235,11 @@ namespace EastFive
         }
 
         #endregion Misc
+
+        #region Hash
+
+        public static int HashToDay(this DateTime date)
+            => (date.Year * 1000) + date.DayOfYear;
 
         #endregion
 
