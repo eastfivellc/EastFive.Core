@@ -110,6 +110,20 @@ namespace EastFive.Linq
             //    v => propertySelection(v).GetHashCode());
         }
 
+        public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items,
+            Func<T, int> propertySelection)
+        {
+            var hashSet = new HashSet<int>();
+            foreach (var item in items)
+            {
+                var hashValue = propertySelection(item);
+                if (hashSet.Contains(hashValue))
+                    continue;
+                hashSet.Add(hashValue);
+                yield return item;
+            }
+        }
+
         public static IEnumerable<T> DistinctById<T>(this IEnumerable<T> items) 
             where T : IReferenceable
             => items.Distinct(item => item.id);
