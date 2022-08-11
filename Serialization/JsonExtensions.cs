@@ -11,7 +11,8 @@ namespace EastFive.Serialization.Json
 	{
         public static TResult JsonParse<TResource, TResult>(this string jsonData,
             Func<TResource, TResult> onSuccess,
-            Func<string, TResult> onFailureToParse = default)
+            Func<string, TResult> onFailureToParse = default,
+            Func<Exception, TResult> onException = default)
         {
             try
             {
@@ -26,7 +27,17 @@ namespace EastFive.Serialization.Json
                 if (onFailureToParse.IsNotDefaultOrNull())
                     return onFailureToParse(jsonEx.Message);
 
-                throw new ArgumentException($"Failed to parse a `{typeof(TResource).FullName}` from the response.");
+                throw;
+            }
+            catch(Exception ex)
+            {
+                if (onException.IsNotDefaultOrNull())
+                    return onException(ex);
+                
+                if (onFailureToParse.IsNotDefaultOrNull())
+                    return onFailureToParse(ex.Message);
+
+                throw;
             }
         }
 
