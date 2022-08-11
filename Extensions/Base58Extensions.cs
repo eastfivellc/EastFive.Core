@@ -169,7 +169,7 @@ namespace EastFive
 
 		private static byte[] GetCheckSum(byte[] data)
 		{
-			using (var algorithm = new SHA256Managed())
+			using (var algorithm = SHA256.Create())
 			{
 				byte[] hash1 = algorithm.ComputeHash(data);
 				byte[] hash2 = algorithm.ComputeHash(hash1);
@@ -185,8 +185,12 @@ namespace EastFive
 			public static T[] ConcatArrays<T>(T[] arr1, T[] arr2)
 			{
 				var result = new T[arr1.Length + arr2.Length];
+
+				#pragma warning disable CA2018
 				Buffer.BlockCopy(arr1, 0, result, 0, arr1.Length);
 				Buffer.BlockCopy(arr2, 0, result, arr1.Length, arr2.Length);
+				#pragma warning restore CA2018
+
 				return result;
 			}
 
