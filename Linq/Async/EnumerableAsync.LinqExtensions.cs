@@ -254,6 +254,26 @@ namespace EastFive.Linq.Async
                 .Select(valueMaybe => valueMaybe.Value);
         }
 
+        public static IEnumerableAsync<TCast> CastAs<T, TCast>(this IEnumerableAsync<T> enumerable)
+            where T : class
+            where TCast : class
+        {
+            return enumerable
+                .Select(valueMaybe => valueMaybe as TCast);
+        }
+
+        public static IEnumerableAsync<TCast> CastDynamicAs<TCast>(this IEnumerableAsync<dynamic> enumerable)
+        {
+            return enumerable
+                .Select(valueMaybe => (TCast)valueMaybe);
+        }
+
+        public static IEnumerableAsync<TCast> CastObjsAs<TCast>(this IEnumerableAsync<object> enumerable)
+        {
+            return enumerable
+                .Select(valueMaybe => (TCast)valueMaybe);
+        }
+
         public static IEnumerableAsync<T> WhenAsyncUnique<T, TUnique>(this IEnumerableAsync<T> enumerable,
             Func<T, Task> whenUnique,
             Func<T,TUnique> uniqueKey)

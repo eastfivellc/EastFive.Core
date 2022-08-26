@@ -930,6 +930,23 @@ namespace EastFive.Linq
                 item => (item.Item1, item.Item2));
         }
 
+
+        public delegate bool TrySelectDelegate<TItem, TOut>(TItem item, out TOut @out);
+        public static IEnumerable<TOut> TrySelect<TItem, TOut>(this IEnumerable<TItem> items,
+            TrySelectDelegate<TItem, TOut> trySelect)
+        {
+            return items
+                .NullToEmpty()
+                .Select(
+                    item =>
+                    {
+                        TOut @out;
+                        var keep = trySelect(item, out @out);
+                        return (keep, @out);
+                    })
+                .SelectWhere();
+        }
+
 #endif
         public static T Random<T>(this IEnumerable<T> items, int total, Random rand = null)
         {
