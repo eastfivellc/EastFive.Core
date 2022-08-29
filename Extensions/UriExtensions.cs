@@ -185,6 +185,15 @@ namespace EastFive
             return uriBuilder.Uri;
         }
 
+        public static Uri CopyPathAndQuery(this Uri uri, Uri uriToCopyFrom)
+        {
+            var uriBuilderTo = new UriBuilder(uri);
+            var uriBuilderFrom = new UriBuilder(uriToCopyFrom);
+            uriBuilderTo.Path = uriBuilderFrom.Path;
+            uriBuilderTo.Query = uriBuilderFrom.Query;
+            return uriBuilderTo.Uri;
+        }
+
         /// <summary>
         /// 
         /// </summary>
