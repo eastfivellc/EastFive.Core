@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 using EastFive.Collections.Generic;
@@ -110,10 +111,43 @@ namespace EastFive.Linq
             //    v => propertySelection(v).GetHashCode());
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="items"></param>
+        /// <param name="propertySelection"></param>
+        /// <param name="preferFirstItems">If two items are the same, select the one that appears first in the collection.</param>
+        /// <param name="preferLastItems">If two items are the same, select the one that appears last in the collection.</param>
+        /// <returns></returns>
+        /// <remarks>
+        /// If <paramref name="preferFirstItems"/> and <paramref name="preferLastItems"/> are both false,
+        /// item selection may not be consistent.
+        /// </remarks>
         public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items,
-            Func<T, int> propertySelection)
+            Func<T, int> propertySelection,
+            bool preferFirstItems = false,
+            bool preferLastItems = false)
         {
+            if (preferFirstItems && preferLastItems)
+                throw new ArgumentException("Cannot prefer both first and last items");
+
+
             var hashSet = new HashSet<int>();
+
+            if (preferLastItems)
+            {
+                foreach (var item in items.Reverse())
+                {
+                    var hashValue = propertySelection(item);
+                    if (hashSet.Contains(hashValue))
+                        continue;
+                    hashSet.Add(hashValue);
+                    yield return item;
+                }
+                yield break;
+            }
+
             foreach (var item in items)
             {
                 var hashValue = propertySelection(item);
@@ -413,6 +447,43 @@ namespace EastFive.Linq
             return (intersectingValues, item1Values, item2Values);
         }
 
+        public static IEnumerable<TITem> Merge<TITem>(this IEnumerable<TITem> items1, IEnumerable<TITem> items2,
+            Func<TITem, TITem, bool> isMatch,
+            Func<TITem, TITem, TITem> merger,
+            bool intersect = true)
+        {
+            var matched = new HashSet<TITem>();
+            foreach(var item1 in items1)
+            {
+                var didMerge = intersect;
+                foreach(var item2 in items2)
+                {
+                    if (matched.Contains(item2))
+                        continue;
+                    var isMatched = isMatch(item1, item2);
+                    if (!isMatched)
+                        continue;
+
+                    var merged = merger(item1, item2);
+                    yield return merged;
+                    matched.Add(item2);
+                    didMerge = true;
+                    break;
+                }
+                if (!didMerge)
+                    yield return item1;
+            }
+            if (intersect)
+                yield break;
+
+            foreach(var item2 in items2)
+            {
+                if (matched.Contains(item2))
+                    continue;
+                yield return item2;
+            }
+        }
+
         public static IDictionary<T0, KeyValuePair<T1, T2>> Merge<T0, T1, T2>(this IEnumerable<T1> items1,
                 IEnumerable<T2> items2,
                 Func<T1, T0> propertySelection1,
@@ -559,9 +630,32 @@ namespace EastFive.Linq
             return items.Concat(appendItems);
         }
 
+        public static TResult Any<TItem, TResult>(this IEnumerable<TItem> items,
+                Func<TItem, bool> predicate,
+            Func<TItem, TResult> onFound,
+            Func<TResult> onNone)
+        {
+            foreach (var item in items.NullToEmpty())
+                if (predicate(item))
+                    return onFound(item);
+            return onNone();
+        }
+
         public static bool AnyNullSafe<TItem>(this IEnumerable<TItem> items)
         {
             return items.NullToEmpty().Any();
+        }
+
+        public static bool TryGetAny<TItem>(this IEnumerable<TItem> items, out TItem item)
+        {
+            if(!items.Any())
+            {
+                item = default;
+                return false;
+            }
+
+            item = items.First();
+            return true;
         }
 
         public static bool None<TItem>(this IEnumerable<TItem> items)
@@ -668,6 +762,68 @@ namespace EastFive.Linq
                     return false;
                 return true;
             }
+        }
+
+        public static TResult FirstOneOf<TItem, TResult>(this IEnumerable<TItem> items,
+            Func<TItem, bool> isOne1,
+            Func<TItem, TResult> tryOne1,
+            Func<TItem, bool> isOne2 = default,
+            Func<TItem, TResult> tryOne2 = default,
+            Func<TItem, bool> isOne3 = default,
+            Func<TItem, TResult> tryOne3 = default,
+            Func<TItem, bool> isOne4 = default,
+            Func<TItem, TResult> tryOne4 = default,
+            Func<TItem, bool> isOne5 = default,
+            Func<TItem, TResult> tryOne5 = default,
+            Func<TItem, bool> isOne6 = default,
+            Func<TItem, TResult> tryOne6 = default,
+            Func<TItem, bool> isOne7 = default,
+            Func<TItem, TResult> tryOne7 = default,
+            Func<TItem, bool> isOne8 = default,
+            Func<TItem, TResult> tryOne8 = default,
+            Func<TItem, bool> isOne9 = default,
+            Func<TItem, TResult> tryOne9 = default,
+            Func<TResult> onNone = default)
+        {
+            foreach (var item in items.NullToEmpty())
+            {
+                var @out = default(TResult);
+
+                if (RunOne(isOne1, tryOne1, out @out))
+                    return @out;
+                if (RunOne(isOne2, tryOne2, out @out))
+                    return @out;
+                if (RunOne(isOne3, tryOne3, out @out))
+                    return @out;
+                if (RunOne(isOne4, tryOne4, out @out))
+                    return @out;
+                if (RunOne(isOne5, tryOne5, out @out))
+                    return @out;
+                if (RunOne(isOne6, tryOne6, out @out))
+                    return @out;
+                if (RunOne(isOne7, tryOne7, out @out))
+                    return @out;
+                if (RunOne(isOne8, tryOne8, out @out))
+                    return @out;
+                if (RunOne(isOne9, tryOne9, out @out))
+                    return @out;
+
+                bool RunOne(Func<TItem, bool> isOne, Func<TItem, TResult> tryOne, out TResult result)
+                {
+                    result = @out;
+
+                    if (isOne.IsDefaultOrNull())
+                        return false;
+
+                    if (!isOne(item))
+                        return false;
+
+                    result = tryOne(item);
+                    return true;
+                }
+
+            }
+            return onNone();
         }
 
         public static IEnumerable<TAs> IsAs<TItem, TAs>(this IEnumerable<TItem> items)

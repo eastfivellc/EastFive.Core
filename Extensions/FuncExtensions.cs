@@ -76,5 +76,15 @@ namespace EastFive
                 return null;
             return (v1, v2) => value(v1, v2).AsTask();
         }
+
+        [DebuggerStepThrough]
+        [DebuggerNonUserCode]
+        [DebuggerStepperBoundary]
+        public static Func<T1, T2, T3, Task<T>> AsAsyncFunc<T, T1, T2, T3>(this Func<T1, T2, T3, T> value)
+        {
+            if (value.IsDefaultOrNull())
+                return null;
+            return (v1, v2, v3) => value(v1, v2, v3).AsTask();
+        }
     }
 }

@@ -121,6 +121,38 @@ namespace EastFive
 
         #endregion
 
+        #region EqualToDay
+
+        public static bool EqualToMonth(this DateTime time1, DateTime time2)
+        {
+            return
+                time1.Year == time2.Year &&
+                time1.Month == time2.Month;
+        }
+
+        public static bool EqualToMonth(this DateTime? time1, DateTime? time2)
+        {
+            if (time1.HasValue != time2.HasValue)
+                return false;
+            if (!time1.HasValue)
+                return false;
+            return time1.Value.EqualToMonth(time2);
+        }
+
+        public static bool EqualToMonth(this DateTime time1, DateTime? time2)
+        {
+            if (!time2.HasValue)
+                return false;
+            return time1.EqualToMonth(time2.Value);
+        }
+
+        public static bool EqualToMonth(this DateTime? time1, DateTime time2)
+        {
+            return time2.EqualToMonth(time1);
+        }
+
+        #endregion
+
         #endregion
 
         #region Misc

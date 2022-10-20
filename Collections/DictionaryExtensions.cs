@@ -26,6 +26,34 @@ namespace EastFive.Collections.Generic
             return dictionary;
         }
 
+        public static IDictionary<TKey, TValue> AddOrReplace<TKey, TValue>(this IDictionary<TKey, TValue> dictionary,
+            TKey key, TValue value,
+            out bool replaced, out TValue oldValue)
+        {
+            if (dictionary.IsDefaultOrNull())
+            {
+                replaced = false;
+                oldValue = default(TValue);
+                return new Dictionary<TKey, TValue>()
+                {
+                    { key, value }
+                };
+            }
+
+            if (dictionary.ContainsKey(key))
+            {
+                replaced = true;
+                oldValue = dictionary[key];
+                dictionary[key] = value;
+                return dictionary;
+            }
+
+            dictionary.Add(key, value);
+            replaced = false;
+            oldValue = default(TValue);
+            return dictionary;
+        }
+
         public static IDictionary<TValue, TKey> SwapKeyValue<TKey, TValue>(this IDictionary<TKey, TValue> dictionary)
         {
             return dictionary.Select(kvp => kvp.Value.PairWithValue(kvp.Key)).ToDictionary();
@@ -120,7 +148,7 @@ namespace EastFive.Collections.Generic
 
         public static IEnumerable<TValue> SelectValues<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> dictionary)
         {
-            return dictionary.Select(kvp => kvp.Value);
+            return dictionary.NullToEmpty().Select(kvp => kvp.Value);
         }
 
         public static IEnumerable<TResult> SelectValues<TKey, TValue, TResult>(this IEnumerable<KeyValuePair<TKey, TValue>> dictionary,
