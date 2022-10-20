@@ -82,12 +82,33 @@ namespace EastFive.Net
                 onFailureWithBody: onFailureWithBody.AsAsyncFunc(),
                 onResponseFailure: onResponseFailure.AsAsyncFunc(),
                 onFailure: onFailure.AsAsyncFunc(),
+                    mutateRequest: mutateRequest);
+        }
+
+        public static async Task<TResult> HttpClientGetResourceAsync<TResource, TResult>(this Uri location,
+            Func<TResource, HttpResponseMessage, TResult> onSuccess,
+            Func<string, TResult> onFailure = default,
+            Func<HttpStatusCode, string, TResult> onFailureWithBody = default,
+            Func<HttpStatusCode, Func<Task<string>>, TResult> onResponseFailure = default,
+            Func<string, string, TResult> onFailureToParse = default,
+            Func<HttpRequestMessage, HttpRequestMessage> mutateRequest = default)
+        {
+            return await await location.HttpClientGetResponseAsync(
+                responseSuccess => ParseResourceResponse(responseSuccess,
+                    onSuccess:(TResource resource) => onSuccess(resource, responseSuccess),
+                    onFailure: onFailure,
+                    onFailureWithBody: onFailureWithBody,
+                    onResponseFailure: onResponseFailure,
+                    onFailureToParse: onFailureToParse),
+                onFailureWithBody: onFailureWithBody.AsAsyncFunc(),
+                onResponseFailure: onResponseFailure.AsAsyncFunc(),
+                onFailure: onFailure.AsAsyncFunc(),
                     mutateRequest:mutateRequest);
         }
 
         public static async Task<TResult> HttpClientGetResourceAuthenticatedAsync<TResponse, TResult>(this Uri location,
                 string authToken, string tokenType,
-            Func<TResponse, TResult> onSuccess,
+            Func<TResponse, HttpResponseMessage, TResult> onSuccess,
             Func<string, TResult> onFailure = default,
             Func<HttpStatusCode, string, TResult> onFailureWithBody = default,
             Func<HttpStatusCode, Func<Task<string>>, TResult> onResponseFailure = default,
@@ -168,7 +189,7 @@ namespace EastFive.Net
         public static async Task<TResult> HttpClientPostResourceAsync<TResource, TResponse, TResult>(this Uri location,
                 TResource resource,
                 string authToken, string tokenType,
-            Func<TResponse, TResult> onSuccess,
+            Func<TResponse, HttpResponseMessage, TResult> onSuccess,
             Func<string, TResult> onFailure = default,
             Func<HttpStatusCode, string, TResult> onFailureWithBody = default,
             Func<HttpStatusCode, Func<Task<string>>, TResult> onResponseFailure = default,
@@ -204,7 +225,7 @@ namespace EastFive.Net
         public static async Task<TResult> HttpClientPostDynamicRequestAsync<TResponse, TResult>(this Uri location,
                 Func<HttpRequestMessage, (HttpRequestMessage, Action)> populateRequest,
                 string authToken, string tokenType,
-            Func<TResponse, TResult> onSuccess,
+            Func<TResponse, HttpResponseMessage, TResult> onSuccess,
             Func<string, TResult> onFailure = default,
             Func<HttpStatusCode, string, TResult> onFailureWithBody = default,
             Func<HttpStatusCode, Func<Task<string>>, TResult> onResponseFailure = default,
@@ -238,7 +259,7 @@ namespace EastFive.Net
         }
 
         public static Task<TResult> HttpClientPostResourceAsync<TResource, TResponse, TResult>(this Uri location, TResource resource,
-            Func<TResponse, TResult> onSuccess,
+            Func<TResponse, HttpResponseMessage, TResult> onSuccess,
             Func<string, TResult> onFailure = default,
             Func<HttpStatusCode, string, TResult> onFailureWithBody = default,
             Func<HttpStatusCode, Func<Task<string>>, TResult> onResponseFailure = default,
@@ -276,7 +297,7 @@ namespace EastFive.Net
 
         public static async Task<TResult> HttpClientPostDynamicRequestAsync<TResponse, TResult>(this Uri location,
                 Func<HttpRequestMessage, (HttpRequestMessage, Action)> populateRequest,
-            Func<TResponse, TResult> onSuccess,
+            Func<TResponse, HttpResponseMessage, TResult> onSuccess,
             Func<string, TResult> onFailure = default,
             Func<HttpStatusCode, string, TResult> onFailureWithBody = default,
             Func<HttpStatusCode, Func<Task<string>>, TResult> onResponseFailure = default,
@@ -293,7 +314,7 @@ namespace EastFive.Net
                             .SendAsync(requestToSend)
                             .IsSuccessStatusCodeAsync(
                                 responseSuccess => ParseResourceResponse<TResponse, TResult>(responseSuccess,
-                                    onSuccess: onSuccess,
+                                    onSuccess:(resource) => onSuccess(resource, responseSuccess),
                                     onFailure: onFailure,
                                     onFailureWithBody: onFailureWithBody,
                                     onResponseFailure: onResponseFailure,
@@ -456,7 +477,7 @@ namespace EastFive.Net
 
         public static async Task<TResult> HttpClientPatchDynamicAsync<TResponse, TResult>(this Uri location,
                 Func<HttpRequestMessage, (HttpRequestMessage, Action)> populateRequest,
-            Func<TResponse, TResult> onSuccess,
+            Func<TResponse, HttpResponseMessage, TResult> onSuccess,
             Func<string, TResult> onFailure = default,
             Func<HttpStatusCode, string, TResult> onFailureWithBody = default,
             Func<HttpStatusCode, Func<Task<string>>, TResult> onResponseFailure = default,
@@ -473,7 +494,7 @@ namespace EastFive.Net
                             .SendAsync(requestToSend)
                             .IsSuccessStatusCodeAsync(
                                 responseSuccess => ParseResourceResponse<TResponse, TResult>(responseSuccess,
-                                    onSuccess: onSuccess,
+                                    onSuccess:(resource) => onSuccess(resource, responseSuccess),
                                     onFailure: onFailure,
                                     onFailureWithBody: onFailureWithBody,
                                     onResponseFailure: onResponseFailure,
@@ -513,7 +534,7 @@ namespace EastFive.Net
         public static async Task<TResult> HttpClientPatchDynamicAuthenticatedAsync<TResponse, TResult>(this Uri location,
                 Func<HttpRequestMessage, (HttpRequestMessage, Action)> populateRequest,
                 string authToken, string tokenType,
-            Func<TResponse, TResult> onSuccess,
+            Func<TResponse, HttpResponseMessage, TResult> onSuccess,
             Func<string, TResult> onFailure = default,
             Func<HttpStatusCode, string, TResult> onFailureWithBody = default,
             Func<HttpStatusCode, Func<Task<string>>, TResult> onResponseFailure = default,
@@ -723,9 +744,9 @@ namespace EastFive.Net
             try
             {
                 var response = await responseFetching;
-                return response.IsSuccessStatusCode(
-                    onSuccessCode: (status) => onSuccessCode(response),
-                    onFailureCode: (status) => onFailureCode(response));
+                return IsSuccessStatusResponse(response,
+                    onSuccessCode:onSuccessCode,
+                    onFailureCode:onFailureCode);
             } catch(System.Threading.Tasks.TaskCanceledException ex)
             {
                 if(ex.InnerException.GetType().IsAssignableTo(typeof(System.TimeoutException)))
@@ -733,6 +754,15 @@ namespace EastFive.Net
 
                 return onFailureCode(default);
             }
+        }
+
+        public static TResult IsSuccessStatusResponse<TResult>(this HttpResponseMessage response,
+            Func<HttpResponseMessage, TResult> onSuccessCode,
+            Func<HttpResponseMessage, TResult> onFailureCode)
+        {
+            return response.IsSuccessStatusCode(
+                    onSuccessCode: (status) => onSuccessCode(response),
+                    onFailureCode: (status) => onFailureCode(response));
         }
 
         public static TResult IsSuccessStatusCode<TResult>(this HttpResponseMessage response,
