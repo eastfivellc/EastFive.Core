@@ -14,13 +14,13 @@ namespace EastFive.Serialization.Json
             Func<string, TResult> onFailureToParse = default,
             Func<Exception, TResult> onException = default)
         {
+            TResource resource = default;
             try
             {
                 if (typeof(TResource) == typeof(string))
                     return onSuccess((TResource)(object)jsonData);
 
-                var resource = JsonConvert.DeserializeObject<TResource>(jsonData);
-                return onSuccess(resource);
+                resource = JsonConvert.DeserializeObject<TResource>(jsonData);
             }
             catch (JsonReaderException jsonEx)
             {
@@ -39,6 +39,7 @@ namespace EastFive.Serialization.Json
 
                 throw;
             }
+            return onSuccess(resource);
         }
 
         public static TResult JsonSerialize<TResource, TResult>(this TResource resource,
