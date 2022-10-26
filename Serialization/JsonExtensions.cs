@@ -12,7 +12,8 @@ namespace EastFive.Serialization.Json
         public static TResult JsonParse<TResource, TResult>(this string jsonData,
             Func<TResource, TResult> onSuccess,
             Func<string, TResult> onFailureToParse = default,
-            Func<Exception, TResult> onException = default)
+            Func<Exception, TResult> onException = default,
+                JsonConverter[] converters = default)
         {
             TResource resource = default;
             try
@@ -20,7 +21,7 @@ namespace EastFive.Serialization.Json
                 if (typeof(TResource) == typeof(string))
                     return onSuccess((TResource)(object)jsonData);
 
-                resource = JsonConvert.DeserializeObject<TResource>(jsonData);
+                resource = JsonConvert.DeserializeObject<TResource>(jsonData, converters: converters);
             }
             catch (JsonReaderException jsonEx)
             {
@@ -44,11 +45,12 @@ namespace EastFive.Serialization.Json
 
         public static TResult JsonSerialize<TResource, TResult>(this TResource resource,
             Func<string, TResult> onSuccess,
-            Func<string, TResult> onFailureToParse = default)
+            Func<string, TResult> onFailureToParse = default,
+                JsonConverter[] converters = default)
         {
             try
             {
-                var jsonData = JsonConvert.SerializeObject(resource);
+                var jsonData = JsonConvert.SerializeObject(resource, converters);
                 return onSuccess(jsonData);
             }
             catch (JsonWriterException jsonEx)
