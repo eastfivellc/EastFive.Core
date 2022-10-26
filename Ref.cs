@@ -116,6 +116,7 @@ namespace EastFive
             var typeName = typeof(TType).FullName;
             return $"{this.id}<{typeName}>";
         }
+
     }
 
     public static class RefOptionalHelper
@@ -127,6 +128,32 @@ namespace EastFive
                 .GetMethod("Empty", BindingFlags.Static | BindingFlags.Public)
                 .Invoke(null, new object[] { });
             return emptyValue;
+        }
+
+        public static object BindToRef(this Guid guidValue, Type typeReferenced)
+        {
+            var refType = typeof(EastFive.Ref<>).MakeGenericType(typeReferenced);
+            var instance = Activator.CreateInstance(refType, new object[] { guidValue });
+            return instance;
+        }
+
+        public static object BindToRefType(this Guid guidValue, Type refType)
+        {
+            var typeReferenced = refType.GenericTypeArguments.First();
+            return guidValue.BindToRef(typeReferenced);
+        }
+
+        public static object BindToRefOptional(this Guid? guidValue, Type typeReferenced)
+        {
+            var refType = typeof(EastFive.RefOptional<>).MakeGenericType(typeReferenced);
+            var instance = Activator.CreateInstance(refType, new object[] { guidValue });
+            return instance;
+        }
+
+        public static object BindToRefOptionalType(this Guid? guidValue, Type refType)
+        {
+            var typeReferenced = refType.GenericTypeArguments.First();
+            return guidValue.BindToRefOptional(typeReferenced);
         }
     }
 
@@ -149,6 +176,18 @@ namespace EastFive
         {
             this.HasValue = true;
             this.baseRef = new Ref<TType>(baseId);
+        }
+
+        public RefOptional(Guid? baseId)
+        {
+            if (baseId.HasValue)
+            {
+                this.HasValue = true;
+                this.baseRef = new Ref<TType>(baseId.Value);
+                return;
+            }
+            this.HasValue = false;
+            this.baseRef = default(IRef<TType>);
         }
 
         public RefOptional(IRef<TType> baseRef)
@@ -180,6 +219,17 @@ namespace EastFive
                     throw new InvalidOperationException("Attempt to de-option empty value");
                 return baseRef;
             }
+        }
+
+        public static bool TryParse(string input, out IRefOptional<TType> result)
+        {
+            if (Guid.TryParse(input, out Guid guidResult))
+            {
+                result = guidResult.AsRefOptional<TType>();
+                return true;
+            }
+            result = default;
+            return false;
         }
 
         public override string ToString()
