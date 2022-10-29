@@ -119,9 +119,22 @@ namespace EastFive
             return time2.EqualToDay(time1);
         }
 
+        /// <summary>
+        /// Check if <paramref name="time1"/> is the day proir to <paramref name="time2"/> or earlier
+        /// </summary>
+        /// <param name="time1"></param>
+        /// <param name="time2"></param>
+        /// <returns></returns>
+        public static bool IsProirToDay(this DateTime time1, DateTime time2)
+        {
+            if (time1.EqualToDay(time2))
+                return false;
+            return time1 < time2;
+        }
+
         #endregion
 
-        #region EqualToDay
+        #region EqualToMonth
 
         public static bool EqualToMonth(this DateTime time1, DateTime time2)
         {
@@ -291,10 +304,30 @@ namespace EastFive
             return time2;
         }
 
-        public static bool IsInWindow(this DateTime when, DateTime start, DateTime end)
+        public static bool IsInWindow(this DateTime when, DateTime start, DateTime end,
+            TimeSpanUnits units = TimeSpanUnits.continuous)
         {
-            if (start > end)
-                throw new ArgumentException($"Start time is greater than end time. {start} > {end}");
+            if (units == TimeSpanUnits.days)
+            {
+                if (when.EqualToDay(start))
+                    return true;
+                if (when.EqualToDay(end))
+                    return true;
+            }
+            else if (units == TimeSpanUnits.months)
+            {
+                if (when.EqualToMonth(start))
+                    return true;
+                if (when.EqualToMonth(end))
+                    return true;
+            }
+            else
+            {
+                if(units != TimeSpanUnits.continuous)
+                    throw new ArgumentException($"IsInWindow does not support {nameof(TimeSpanUnits)} {nameof(units)} = `{units}`");
+                if (start > end)
+                    throw new ArgumentException($"Start time is greater than end time. {start} > {end}");
+            }
 
             if (when < start)
                 return false;
