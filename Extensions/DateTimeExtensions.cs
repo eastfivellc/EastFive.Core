@@ -132,6 +132,13 @@ namespace EastFive
             return time1 < time2;
         }
 
+        public static bool IsLaterDay(this DateTime time1, DateTime time2)
+        {
+            if (time1.EqualToDay(time2))
+                return false;
+            return time1 > time2;
+        }
+
         #endregion
 
         #region EqualToMonth
