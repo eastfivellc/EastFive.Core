@@ -1,5 +1,4 @@
-﻿using BlackBarLabs.Extensions;
-using EastFive.Extensions;
+﻿using EastFive.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -52,7 +51,7 @@ namespace EastFive.Linq
                     item,
                     (k, p) => next(k.PairWithValue(p)),
                     skip),
-                (kvps) => reduce(kvps).ToTask());
+                (kvps) => reduce(kvps).AsTask());
         }
         
     }

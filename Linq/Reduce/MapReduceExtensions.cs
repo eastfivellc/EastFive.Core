@@ -1,5 +1,4 @@
-﻿using BlackBarLabs.Extensions;
-using EastFive.Extensions;
+﻿using EastFive.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -147,7 +146,7 @@ namespace EastFive.Linq
             var globalSelection = new TSelect[] { };
 
             return items.Aggregate(
-                (new ManualResetEvent(true)).PairWithValue(default(object).ToTask()).ToTask(),
+                (new ManualResetEvent(true)).PairWithValue(default(object).AsTask()).AsTask(),
                 async (blockAndTaskAsync, item) =>
                 {
                     var blockAndTask = await blockAndTaskAsync;
@@ -368,7 +367,7 @@ namespace EastFive.Linq
                     return complete(selections, itemHistory[0]);
                 });
 
-            var blankSpace = default(TResult).ToTask();
+            var blankSpace = default(TResult).AsTask();
             return await await items
                 .Aggregate(
                     blankSpace,

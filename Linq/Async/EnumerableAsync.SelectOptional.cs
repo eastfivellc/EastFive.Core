@@ -1,5 +1,4 @@
-﻿using BlackBarLabs.Extensions;
-using EastFive.Analytics;
+﻿using EastFive.Analytics;
 using EastFive.Extensions;
 using System;
 using System.Collections;

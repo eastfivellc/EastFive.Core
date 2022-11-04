@@ -1,12 +1,12 @@
-﻿using BlackBarLabs.Extensions;
-using EastFive.Analytics;
-using EastFive.Extensions;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+
+using EastFive.Analytics;
+using EastFive.Extensions;
 
 namespace EastFive.Linq.Async
 {
@@ -88,7 +88,7 @@ namespace EastFive.Linq.Async
                         Func<Exception, bool> onException,
                         Func<bool> onEnd)
                     {
-                        return onEnd().ToTask();
+                        return onEnd().AsTask();
                     }
                 }
 

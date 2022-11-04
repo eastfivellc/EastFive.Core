@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
-using BlackBarLabs.Linq;
 using System.Threading.Tasks;
-using BlackBarLabs.Extensions;
+
+using EastFive.Extensions;
 using EastFive.Linq;
 
 namespace EastFive
@@ -25,7 +25,7 @@ namespace EastFive
                     {
                         queue = new List<Task<T>>(parallelLimit),
                         results = new List<T>(),
-                    }).ToTask(),
+                    }).AsTask(),
                 async (aggrTask, current, next) =>
                 {
                     var aggr = await aggrTask;
@@ -36,7 +36,7 @@ namespace EastFive
                         aggr.queue.Remove(completedTask);
                         aggr.results.Add(await completedTask);
                     }
-                    return await next(aggr.ToTask());
+                    return await next(aggr.AsTask());
                 },
                 async (aggrTask) =>
                 {

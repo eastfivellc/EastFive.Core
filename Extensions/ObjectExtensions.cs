@@ -6,22 +6,6 @@ using System.Text;
 using System.Threading.Tasks;
 using EastFive.Linq;
 
-namespace BlackBarLabs.Extensions // Make user force extensions because this affects _every_ object
-{
-    public static class ObjectExtensions
-    {
-        public static IEnumerable<T> AsEnumerable<T>(this T onlyItem)
-        {
-            yield return onlyItem;
-        }
-
-        public static Task<T> ToTask<T>(this T value)
-        {
-            return Task.FromResult(value);
-        }
-    }
-}
-
 namespace EastFive.Extensions
 {
     public static class ObjectExtensions

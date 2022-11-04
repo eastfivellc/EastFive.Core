@@ -1,5 +1,4 @@
-﻿using BlackBarLabs.Extensions;
-using EastFive.Extensions;
+﻿using EastFive.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,7 +33,7 @@ namespace EastFive.Net.Http
                     response.Dispose();
                     return SendAsync(request, cancellationToken);
                 },
-                (why) => response.ToTask());
+                (why) => response.AsTask());
         }
 
         protected virtual HttpRequestMessage ApplyToken(HttpRequestMessage request, string accessToken)
