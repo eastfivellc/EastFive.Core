@@ -51,7 +51,7 @@ namespace EastFive
         public static async Task<T[]> WhenAllAsync<T>(this Task<IEnumerable<Task<T>>> tasksTask, int parallelLimit = 0)
         {
             var tasks = await tasksTask;
-            return await BlackBarLabs.TaskExtensions.WhenAllAsync(tasks, parallelLimit);
+            return await TaskExtensions.WhenAllAsync(tasks, parallelLimit);
         }
 
         public static async Task RunAllAsync(this IEnumerable<Task> tasks, int parallelLimit = 0)
@@ -75,16 +75,9 @@ namespace EastFive
             await Task.WhenAll(queue);
         }
 
-    }
-}
-
-namespace BlackBarLabs
-{
-    public static class TaskExtensions
-    {
         public static async Task<T[]> WhenAllAsync<T>(this IEnumerable<Task<T>> tasks, int parallelLimit = 0)
         {
-            if(parallelLimit <= 0)
+            if (parallelLimit <= 0)
                 return await Task.WhenAll(tasks);
 
             var results = new List<T>();
@@ -102,7 +95,6 @@ namespace BlackBarLabs
             results.AddRange(await Task.WhenAll(queue));
             return results.ToArray();
         }
-        
-        
+
     }
 }

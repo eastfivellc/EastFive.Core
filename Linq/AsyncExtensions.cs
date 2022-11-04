@@ -14,7 +14,7 @@ namespace EastFive.Linq.Async
     {
         public static async Task<IEnumerable<T>> WhereAsync<T>(this IEnumerable<T> items, Func<T, Task<bool>> predicate)
         {
-            return await BlackBarLabs.TaskExtensions.WhenAllAsync(items
+            return await TaskExtensions.WhenAllAsync(items
                 .Select(async item => (await predicate(item)) ?
                     item.PairWithValue(true)
                     :
@@ -74,7 +74,7 @@ namespace EastFive.Linq.Async
         public static async Task<IEnumerable<T>> SelectManyAsync<T>(this Task<Task<T[]>[]> itemsTasksTask)
         {
             var itemsTasks = await itemsTasksTask;
-            var items = await BlackBarLabs.TaskExtensions.WhenAllAsync(itemsTasks);
+            var items = await TaskExtensions.WhenAllAsync(itemsTasks);
             return items.SelectMany();
         }
 
