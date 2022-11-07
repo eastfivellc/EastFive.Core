@@ -43,8 +43,10 @@ namespace EastFive.Net.Http
 
         protected bool IsNoCache(HttpRequestMessage message)
         {
-            return message.Properties.ContainsKey(PropertyNoCache) &&
-                ((string)message.Properties[PropertyNoCache]) == PropertyValueNoCache;
+            var key = new HttpRequestOptionsKey<string>(PropertyNoCache);
+            if (!message.Options.TryGetValue(key, out string noCacheValue))
+                return false;
+            return PropertyValueNoCache.Equals(noCacheValue, StringComparison.OrdinalIgnoreCase);
         }
     }
     
@@ -52,7 +54,7 @@ namespace EastFive.Net.Http
     {
         public static void SetNoCaching(this HttpRequestMessage message)
         {
-            message.Properties.Add(MessageHandlerCache.PropertyNoCache, MessageHandlerCache.PropertyValueNoCache);
+            message.Options.TryAdd(MessageHandlerCache.PropertyNoCache, MessageHandlerCache.PropertyValueNoCache);
         }
     }
 }
