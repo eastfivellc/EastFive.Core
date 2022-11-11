@@ -1,8 +1,11 @@
 ﻿using EastFive.Extensions;
+using EastFive.Linq;
 using EastFive.Linq.Async;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -80,6 +83,95 @@ namespace EastFive
             if (sourceRef == null)
                 return null;
             return sourceRef.id.AsRef<TCast>();
+        }
+
+        public static bool TryParseRef(this string refString, Type type, out object parsedRefObj)
+        {
+            if (type.IsSubClassOfGeneric(typeof(IReferenceable)))
+            {
+                if (type.IsSubClassOfGeneric(typeof(IRef<>)))
+                {
+                    var refType = typeof(Ref<>).MakeGenericType(type.GenericTypeArguments);
+                    if (Guid.TryParse(refString, out Guid id))
+                    {
+                        parsedRefObj = Activator.CreateInstance(refType, id);
+                        return true;
+                    }
+                    parsedRefObj = refType.GetDefault();
+                    return false;
+                }
+            }
+
+            if (type.IsSubClassOfGeneric(typeof(IReferenceableOptional)))
+            {
+                if (type.IsSubClassOfGeneric(typeof(IRefOptional<>)))
+                {
+                    var refType = typeof(RefOptional<>).MakeGenericType(type.GenericTypeArguments);
+                    if (Guid.TryParse(refString, out Guid id))
+                    {
+                        parsedRefObj = Activator.CreateInstance(refType, id);
+                        return true;
+                    }
+                    parsedRefObj = RefOptionalHelper.CreateEmpty(type.GenericTypeArguments.First());
+                    return true;
+                }
+            }
+
+            if (type.IsSubClassOfGeneric(typeof(IReferences)))
+            {
+                if (type.IsSubClassOfGeneric(typeof(IRefs<>)))
+                {
+                    var ids = GetGuids();
+                    var refType = typeof(Refs<>).MakeGenericType(type.GenericTypeArguments);
+                    parsedRefObj = Activator.CreateInstance(refType, ids);
+                    return true;
+                }
+            }
+
+            parsedRefObj = type.GetDefault();
+            return false;
+
+            Guid[] GetGuids()
+            {
+                if (refString.IsNullOrWhiteSpace())
+                    return new Guid[] { };
+
+                return refString
+                    .Split(',')
+                    .TrySelect(
+                        (string guidStr, out Guid guid) =>
+                        {
+                            return Guid.TryParse(guidStr, out guid);
+                        })
+                    .ToArray();
+            }
+        }
+
+        public static bool TryCastRef(this Guid refGuid, Type type, out object parsedRefObj)
+        {
+            if (type.IsSubClassOfGeneric(typeof(IReferenceable)))
+            {
+                if (type.IsSubClassOfGeneric(typeof(IRef<>)))
+                {
+                    var refType = typeof(Ref<>).MakeGenericType(type.GenericTypeArguments);
+                    parsedRefObj = Activator.CreateInstance(refType, refGuid);
+                    return true;
+                }
+            }
+
+            if (type.IsSubClassOfGeneric(typeof(IReferenceableOptional)))
+            {
+                if (type.IsSubClassOfGeneric(typeof(IRefOptional<>)))
+                {
+                    var refType = typeof(RefOptional<>).MakeGenericType(type.GenericTypeArguments);
+                    parsedRefObj = Activator.CreateInstance(refType, refGuid);
+                    return true;
+                }
+            }
+
+            parsedRefObj = type.GetDefault();
+            return false;
+
         }
 
         public static bool HasValueNotNull<T>(this IRefOptional<T> refOptional) 
