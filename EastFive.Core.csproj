@@ -26,9 +26,11 @@
 	  <None Remove="Net\Client\" />
 	  <None Remove="SixLabors.ImageSharp" />
 	  <None Remove="Performance\" />
+	  <None Remove="Serialization\Text\" />
 	</ItemGroup>
 	<ItemGroup>
 	  <Folder Include="Net\Client\" />
 	  <Folder Include="Diagnostics\" />
+	  <Folder Include="Serialization\Text\" />
 	</ItemGroup>
 </Project>
