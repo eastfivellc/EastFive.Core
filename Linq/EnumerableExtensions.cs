@@ -1278,6 +1278,19 @@ namespace EastFive.Linq
             }
         }
 
+        public static TResult[] SelectWith<TWith, TItem, TResult>(this IEnumerable<TItem> items,
+            TWith seed, SelectWithDelegate<TWith, TItem, TResult> callback, out TWith result)
+        {
+            result = seed;
+            var cache = new List<TResult>();
+            foreach (var item in items)
+            {
+                var newValue = callback(result, item, out result);
+                cache.Add(newValue);
+            }
+            return cache.ToArray();
+        }
+
         public static IEnumerable<TResult> SelectWithPeek<TItem, TResult, TInnerResult>(this IEnumerable<TItem> items,
             Func<
                 TItem,
