@@ -50,7 +50,7 @@ namespace EastFive.Serialization.Text
                     .ReadLine()
                     .Split(',');
 
-                return Parse().Take(1000).ToArray();
+                return Parse().ToArray();
 
                 IEnumerable<TResource> Parse()
                 {

@@ -92,7 +92,6 @@ namespace EastFive.Serialization.Text
                         {
                             return ParseResource(membersAndMappers, rowValues);
                         })
-                    .Take(100)
                     .ToArray();
 
                 TResource ParseResource(
@@ -121,7 +120,6 @@ namespace EastFive.Serialization.Text
                         .Split(',');
 
                     return IndexLines(parser, headers)
-                        //.Take(1000)
                         .ToDictionary();
                 }
             }
