@@ -44,12 +44,23 @@ namespace EastFive
 
         #endregion
 
-        #region GreaterThanEqualToSecond
+        #region IsEqualToOrPriorToSecond
 
-        public static bool GreaterThanEqualToSecond(this DateTime time1, DateTime time2)
+        public static bool IsEqualToOrPriorToSecond(this DateTime time1, DateTime time2)
         {
-            var delta = time1 - time2;
-            return (delta.TotalSeconds > -1.0);
+            if (time1.EqualToSecond(time2))
+                return true;
+            return time1.IsPriorToSecond(time2);
+        }
+
+        #endregion
+
+        #region IsPriorToSecond
+
+        public static bool IsPriorToSecond(this DateTime time1, DateTime time2)
+        {
+            var delta = time2 - time1;
+            return (delta.TotalSeconds >= 1.0);
         }
 
         #endregion
