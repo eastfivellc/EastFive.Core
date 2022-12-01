@@ -30,6 +30,13 @@ namespace EastFive.Serialization.Json
 
                 throw;
             }
+            catch (JsonSerializationException jsonEx)
+            {
+                if (onFailureToParse.IsNotDefaultOrNull())
+                    return onFailureToParse(jsonEx.Message);
+
+                throw;
+            }
             catch(Exception ex)
             {
                 if (onException.IsNotDefaultOrNull())
