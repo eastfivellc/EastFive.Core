@@ -78,7 +78,6 @@ namespace EastFive.Collections.Generic
             Func<Dictionary<TKeyDictionary, TValueDictionary>, KeyValuePair<TKey, TValue>[], TResult> dictionaryAndDuplicates)
         {
             var hashSet = new HashSet<TKey>();
-            var kvpItemsArray = kvpItems.ToArray();
             var duplicates = new KeyValuePair<TKey, TValue>[] { };
             var dictionary = kvpItems
                 .Select(
