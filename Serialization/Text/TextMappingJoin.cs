@@ -120,7 +120,7 @@ namespace EastFive.Serialization.Text
                         .Split(',');
 
                     return IndexLines(parser, headers)
-                        .ToDictionary();
+                        .ToDictionary((dict, dups) => dict);
                 }
             }
 
