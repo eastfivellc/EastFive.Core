@@ -1,13 +1,15 @@
-﻿using EastFive.Linq;
-using EastFive.Collections.Generic;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using EastFive.Extensions;
 
-namespace BlackBarLabs.Collections.Generic
+using EastFive;
+using EastFive.Extensions;
+using EastFive.Linq;
+using EastFive.Collections.Generic;
+
+namespace EastFive.Collections.Generic
 {
     public class RecursiveDictionary<TKey> : Dictionary<TKey, RecursiveDictionary<TKey>>
     {

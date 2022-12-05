@@ -1,11 +1,12 @@
-﻿using BlackBarLabs;
-using EastFive.Extensions;
-using EastFive.Linq.Async;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+
+using EastFive;
+using EastFive.Extensions;
+using EastFive.Linq.Async;
 
 namespace EastFive.Async
 {

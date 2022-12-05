@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BlackBarLabs
+namespace EastFive
 {
     public delegate object UnsettableDelegate<T>(
             Func<T, object> hasValue,
