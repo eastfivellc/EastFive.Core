@@ -38,7 +38,7 @@ namespace EastFive.Serialization.Text
             return this.Scope.IsNullOrWhiteSpace();
         }
 
-        abstract public TResource[] Parse<TResource>(Stream csvData, IFilterText[] textFilters,
+        abstract public IEnumerable<TResource> Parse<TResource>(Stream csvData, IFilterText[] textFilters,
             params Stream[] csvDataJoins);
     }
 }

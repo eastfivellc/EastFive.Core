@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace EastFive.Serialization.Text
@@ -7,7 +8,7 @@ namespace EastFive.Serialization.Text
     {
         bool DoesParse(string scope);
 
-        TResource[] Parse<TResource>(Stream csvData,
+        IEnumerable<TResource> Parse<TResource>(Stream csvData,
             IFilterText[] textFilters, 
             params Stream[] csvDataJoins);
     }

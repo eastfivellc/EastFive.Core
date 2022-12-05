@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -8,7 +9,7 @@ namespace EastFive.Serialization.Text
 {
 	public static class TextSerializationExtensions
 	{
-		public static TResource[] ParseCSV<TResource>(this Stream csvData,
+		public static IEnumerable<TResource> ParseCSV<TResource>(this Stream csvData,
             string scope, Stream[] extraStreams )
 		{
             var filters = typeof(TResource)
@@ -19,7 +20,7 @@ namespace EastFive.Serialization.Text
             return typeof(TResource)
                 .GetAttributesInterface<IMapText>()
                 .Where(attrInter => attrInter.DoesParse(scope))
-                .First<IMapText, TResource[]>(
+                .First<IMapText, IEnumerable<TResource>>(
                     (attrInter, next) =>
                     {
                         var resources = attrInter.Parse<TResource>(csvData, filters, extraStreams);

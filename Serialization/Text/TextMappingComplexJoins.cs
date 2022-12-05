@@ -30,7 +30,7 @@ namespace EastFive.Serialization.Text
             this.MappingScope = mappingScope;
         }
 
-        public override TResource[] Parse<TResource>(Stream csvDataSource,
+        public override IEnumerable<TResource> Parse<TResource>(Stream csvDataSource,
             IFilterText[] textFilters,
             params Stream[] csvDataJoins)
         {
@@ -53,7 +53,7 @@ namespace EastFive.Serialization.Text
                     .ReadLine()
                     .Split(',');
 
-                return ParseResources().ToArray();
+                return ParseResources();
 
                 IEnumerable<TResource> ParseResources()
                 {

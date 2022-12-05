@@ -31,7 +31,7 @@ namespace EastFive.Serialization.Text
             this.MatchingColumn = matchingColumn;
         }
 
-        public override TResource[] Parse<TResource>(Stream csvDataSource,
+        public override IEnumerable<TResource> Parse<TResource>(Stream csvDataSource,
             IFilterText[] textFilters,
             params Stream[] csvDataJoins)
         {
@@ -91,8 +91,7 @@ namespace EastFive.Serialization.Text
                         rowValues =>
                         {
                             return ParseResource(membersAndMappers, rowValues);
-                        })
-                    .ToArray();
+                        });
 
                 TResource ParseResource(
                         (MemberInfo, IMapTextProperty)[] membersAndMappers,
