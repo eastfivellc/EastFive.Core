@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 
 using EastFive;
@@ -19,6 +20,7 @@ namespace EastFive.Net
             Func<string, TResult> onFailure = default,
             Func<HttpStatusCode, string, TResult> onFailureWithBody = default,
             Func<HttpStatusCode, Func<Task<string>>, TResult> onResponseFailure = default,
+            Func<TResult> onTimeout = default,
             Func<HttpRequestMessage, HttpRequestMessage> mutateRequest = default)
         {
             using (var httpClient = new HttpClient())
@@ -37,7 +39,8 @@ namespace EastFive.Net
                                 },
                                 onFailureWithBody: onFailureWithBody,
                                 onResponseFailure: onResponseFailure,
-                                onFailure: onFailure);
+                                onFailure: onFailure,
+                                onTimeout:onTimeout);
                     }
                     catch (System.Net.Http.HttpRequestException ex)
                     {
@@ -70,6 +73,7 @@ namespace EastFive.Net
             Func<HttpStatusCode, string, TResult> onFailureWithBody = default,
             Func<HttpStatusCode, Func<Task<string>>, TResult> onResponseFailure = default,
             Func<string, string, TResult> onFailureToParse = default,
+            Func<TResult> onTimeout = default,
             Func<HttpRequestMessage, HttpRequestMessage> mutateRequest = default)
         {
             return await await location.HttpClientGetResponseAsync(
@@ -82,6 +86,7 @@ namespace EastFive.Net
                 onFailureWithBody: onFailureWithBody.AsAsyncFunc(),
                 onResponseFailure: onResponseFailure.AsAsyncFunc(),
                 onFailure: onFailure.AsAsyncFunc(),
+                onTimeout: onTimeout.AsAsyncFunc(),
                     mutateRequest: mutateRequest);
         }
 
@@ -573,6 +578,7 @@ namespace EastFive.Net
             Func<HttpStatusCode, string, TResult> onFailureWithBody = default,
             Func<HttpStatusCode, Func<Task<string>>, TResult> onResponseFailure = default,
             Func<string, string, TResult> onFailureToParse = default,
+            Func<TResult> onTimeout = default,
             Func<HttpRequestMessage, HttpRequestMessage> mutateRequest = default)
         {
             using (var httpClient = new HttpClient())
@@ -622,6 +628,16 @@ namespace EastFive.Net
                                             return onFailure($"Server returned arror code:{responseFailure.StatusCode}");
 
                                         throw new ArgumentException($"Server returned arror code:{responseFailure.StatusCode}");
+                                    },
+                                    onTimeout:() =>
+                                    {
+                                        if (onTimeout.IsNotDefaultOrNull())
+                                            return onTimeout().AsTask();
+
+                                        if (onFailure.IsNotDefaultOrNull())
+                                            return onFailure($"Timeout").AsTask();
+
+                                        throw new Exception($"Timeout");
                                     });
                         }
                         catch (System.Net.Http.HttpRequestException ex)
@@ -702,16 +718,17 @@ namespace EastFive.Net
             Func<HttpStatusCode, string, TResult> onFailureWithBody,
             Func<HttpStatusCode, Func<Task<string>>, TResult> onResponseFailure,
             Func<HttpResponseMessage, TResult> onFailureRequestMessage = default,
-            Func<string, TResult> onFailure = default)
+            Func<string, TResult> onFailure = default,
+            Func<TResult> onTimeout = default)
         {
             return await await responseFetching.IsSuccessStatusCodeAsync(
                 onSuccessCode: onSuccessCode.AsAsyncFunc(),
                 onFailureCode:
                     async (HttpResponseMessage responseFailure) =>
                     {
-                        if(responseFailure.IsDefaultOrNull())
+                        if (responseFailure.IsDefaultOrNull())
                         {
-                            if(onFailure.IsNotDefaultOrNull())
+                            if (onFailure.IsNotDefaultOrNull())
                                 return onFailure($"Server request timed out");
 
                             throw new Exception("Server request timed out");
@@ -734,12 +751,23 @@ namespace EastFive.Net
                             return onFailure($"Server returned error code:{responseFailure.StatusCode}");
 
                         throw new ArgumentException($"Server returned error code:{responseFailure.StatusCode}");
-                    });
+                    },
+                onTimeout: () =>
+                {
+                    if (onTimeout.IsNotDefaultOrNull())
+                        return onTimeout().AsTask();
+
+                    if (onFailure.IsNotDefaultOrNull())
+                        return onFailure($"Timeout").AsTask();
+
+                    throw new Exception($"Timeout");
+                });
         }
 
         public static async Task<TResult> IsSuccessStatusCodeAsync<TResult>(this Task<HttpResponseMessage> responseFetching,
             Func<HttpResponseMessage, TResult> onSuccessCode,
-            Func<HttpResponseMessage, TResult> onFailureCode)
+            Func<HttpResponseMessage, TResult> onFailureCode,
+            Func<TResult> onTimeout)
         {
             try
             {
@@ -750,9 +778,9 @@ namespace EastFive.Net
             } catch(System.Threading.Tasks.TaskCanceledException ex)
             {
                 if(ex.InnerException.GetType().IsAssignableTo(typeof(System.TimeoutException)))
-                    return onFailureCode(default);
+                    return onTimeout();
 
-                return onFailureCode(default);
+                return onTimeout();
             }
         }
 
