@@ -124,7 +124,7 @@ namespace EastFive.Serialization.Text
 
                     return joiners
                         .ToArray()
-                        .First(
+                        .First<IMapComplexTextJoin,(IMapComplexTextJoin, IDictionary<string, (string, string)[]>)>(
                             (joiner, next) =>
                             {
                                 if (!joiner.TryIndexLines<TResource>(parser,
@@ -135,7 +135,6 @@ namespace EastFive.Serialization.Text
                             () =>
                             {
                                 throw new Exception($"No matching joiner to parse file with headers:{headers.Join(',')}");
-                                return default((IMapComplexTextJoin, IDictionary<string, (string, string)[]>));
                             });
                 }
             }
