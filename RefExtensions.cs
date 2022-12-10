@@ -85,6 +85,31 @@ namespace EastFive
             return sourceRef.id.AsRef<TCast>();
         }
 
+        public static bool TryCastObjRef(this object refObj, Type type, out object parsedRefObj)
+        {
+            if (refObj.IsDefaultOrNull())
+            {
+                parsedRefObj = type.GetDefault();
+                return false;
+            }
+            var objType = refObj.GetType();
+
+            if (objType.IsAssignableTo(typeof(Guid)))
+            {
+                var refGuid = (Guid)refObj;
+                return refGuid.TryCastRef(type, out parsedRefObj);
+            }
+
+            if (objType.IsAssignableTo(typeof(string)))
+            {
+                var refStr = (string)refObj;
+                return refStr.TryParseRef(type, out parsedRefObj);
+            }
+
+            parsedRefObj = type.GetDefault();
+            return false;
+        }
+
         public static bool TryParseRef(this string refString, Type type, out object parsedRefObj)
         {
             if (type.IsSubClassOfGeneric(typeof(IReferenceable)))
