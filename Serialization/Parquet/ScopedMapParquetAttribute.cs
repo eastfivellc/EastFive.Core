@@ -11,10 +11,11 @@ using Newtonsoft.Json.Linq;
 
 using EastFive.Linq;
 using EastFive.Reflection;
+using EastFive.Linq.Async;
 
-namespace EastFive.Serialization.Text
+namespace EastFive.Serialization.Parquet
 {
-    public abstract class ScopedMapTextAttribute : Attribute, IMapText
+    public abstract class ScopedMapParquetAttribute : Attribute, IMapParquet
     {
         public string Scope { get; set; }
 
@@ -36,8 +37,9 @@ namespace EastFive.Serialization.Text
             return this.Scope.IsNullOrWhiteSpace();
         }
 
-        abstract public IEnumerable<TResource> Parse<TResource>(Stream csvData, IFilterText[] textFilters,
-            params Stream[] csvDataJoins);
+        abstract public IEnumerableAsync<TResource> Parse<TResource>(Stream parquetData,
+            IFilterParquet[] textFilters,
+            params Stream[] parquetDataJoins);
     }
 }
 

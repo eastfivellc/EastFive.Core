@@ -1,26 +1,16 @@
 ﻿using System;
-using System.Data;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using System.Collections.Generic;
-using System.IO;
 
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-
-using EastFive.Linq;
-using EastFive.Reflection;
-
-namespace EastFive.Serialization.Text
+namespace EastFive.Serialization.Parquet
 {
-    public abstract class ScopedMapTextAttribute : Attribute, IMapText
+    public abstract class ScopedMapParquetPropertyAttribute : Attribute, IMapParquetProperty
     {
         public string Scope { get; set; }
 
         public string Scopes { get; set; }
 
-        public virtual bool DoesParse(string scope)
+        public virtual bool DoesMap(string scope)
         {
             if (this.Scope.HasBlackSpace())
                 if (String.Equals(Scope, scope, StringComparison.Ordinal))
@@ -36,8 +26,7 @@ namespace EastFive.Serialization.Text
             return this.Scope.IsNullOrWhiteSpace();
         }
 
-        abstract public IEnumerable<TResource> Parse<TResource>(Stream csvData, IFilterText[] textFilters,
-            params Stream[] csvDataJoins);
+        abstract public TResource ParseRow<TResource>(TResource resource, MemberInfo member, (global::Parquet.Data.Field key, object value)[] rowValues);
     }
 }
 
