@@ -136,6 +136,13 @@ namespace EastFive
         /// <param name="time1"></param>
         /// <param name="time2"></param>
         /// <returns></returns>
+        public static bool IsEqualOrProirToDay(this DateTime time1, DateTime time2)
+        {
+            if (time1.EqualToDay(time2))
+                return true;
+            return time1 < time2;
+        }
+
         public static bool IsProirToDay(this DateTime time1, DateTime time2)
         {
             if (time1.EqualToDay(time2))
