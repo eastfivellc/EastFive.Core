@@ -24,5 +24,10 @@ namespace EastFive.Extensions
             member = default;
             return false;
         }
+
+        public static string Identification(this MemberInfo memberInfo)
+        {
+            return $"{memberInfo.DeclaringType.FullName}..{memberInfo.Name}";
+        }
     }
 }
