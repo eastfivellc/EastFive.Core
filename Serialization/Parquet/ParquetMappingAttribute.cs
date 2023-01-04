@@ -40,20 +40,12 @@ namespace EastFive.Serialization.Parquet
             IFilterParquet[] textFilters,
             params Stream[] parquetDataJoins)
         {
-            return ParseAsync<TResource>(parquetData, textFilters, parquetDataJoins)
-                .FoldTask();
-        }
-
-        private async Task<IEnumerable<TResource>> ParseAsync<TResource>(Stream parquetData,
-            IFilterParquet[] textFilters,
-            params Stream[] parquetDataJoins)
-        {
             var membersAndMappers = GetPropertyMappers<TResource>();
 
-            var table = await global::Parquet.ParquetReader.ReadTableFromStreamAsync(parquetData);
+            var table = global::Parquet.ParquetReader.ReadTableFromStream(parquetData);
             var headers = table.Schema.Fields;
 
-            return Iterate();
+            return Iterate().AsAsync();
 
             IEnumerable<TResource> Iterate()
             {
