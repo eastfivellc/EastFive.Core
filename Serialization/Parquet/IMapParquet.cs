@@ -9,7 +9,7 @@ namespace EastFive.Serialization.Parquet
     {
         bool DoesParse(string scope);
 
-        IEnumerableAsync<TResource> Parse<TResource>(Stream parquetData,
+        TResource[] Parse<TResource>(Stream parquetData,
             IFilterParquet[] textFilters,
             params Stream[] parquetDataJoins);
     }

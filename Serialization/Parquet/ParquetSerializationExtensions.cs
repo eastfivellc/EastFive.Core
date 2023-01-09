@@ -11,7 +11,7 @@ namespace EastFive.Serialization.Parquet
 {
 	public static class ParquetSerializationExtensions
 	{
-		public static IEnumerableAsync<TResource> ParseParquet<TResource>(this Stream parquetData,
+		public static TResource[] ParseParquet<TResource>(this Stream parquetData,
             string scope, Stream[] extraStreams )
 		{
             var filters = typeof(TResource)
@@ -22,7 +22,7 @@ namespace EastFive.Serialization.Parquet
             return typeof(TResource)
                 .GetAttributesInterface<IMapParquet>()
                 .Where(attrInter => attrInter.DoesParse(scope))
-                .First<IMapParquet, IEnumerableAsync<TResource>>(
+                .First<IMapParquet, TResource[]>(
                     (attrInter, next) =>
                     {
                         var resources = attrInter.Parse<TResource>(parquetData, filters, extraStreams);

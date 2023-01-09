@@ -36,7 +36,7 @@ namespace EastFive.Serialization.Parquet
                 .ToArray();
         }
 
-        public override IEnumerableAsync<TResource> Parse<TResource>(Stream parquetData,
+        public override TResource[] Parse<TResource>(Stream parquetData,
             IFilterParquet[] textFilters,
             params Stream[] parquetDataJoins)
         {
@@ -45,7 +45,7 @@ namespace EastFive.Serialization.Parquet
             var table = global::Parquet.ParquetReader.ReadTableFromStream(parquetData);
             var headers = table.Schema.Fields;
 
-            return Iterate().AsAsync();
+            return Iterate().ToArray();
 
             IEnumerable<TResource> Iterate()
             {

@@ -37,7 +37,7 @@ namespace EastFive.Serialization.Parquet
             return this.Scope.IsNullOrWhiteSpace();
         }
 
-        abstract public IEnumerableAsync<TResource> Parse<TResource>(Stream parquetData,
+        abstract public TResource[] Parse<TResource>(Stream parquetData,
             IFilterParquet[] textFilters,
             params Stream[] parquetDataJoins);
     }
