@@ -249,6 +249,11 @@ namespace EastFive
             return date.AddMonths(1).GetFirstOfMonth().AddDays(-1);
         }
 
+        public static DateTime GetFirstOfYear(this DateTime date)
+        {
+            return new DateTime(date.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        }
+
         // Taken from  https://www.codeproject.com/Tips/1168428/US-Federal-Holidays-Csharp
         public static bool IsFederalHoliday(this DateTime date)
         {
