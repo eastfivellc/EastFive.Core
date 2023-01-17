@@ -499,6 +499,38 @@ namespace EastFive.Linq.Async
                 });
         }
 
+        public static IEnumerableAsync<TItem2> SelectAsyncMany<TItem1, TItem2>(this IEnumerable<TItem1> items,
+            Func<TItem1, IEnumerableAsync<TItem2>> callback)
+        {
+            var enumerator = items.GetEnumerator();
+            var enumeratorInner = default(IEnumeratorAsync<TItem2>);
+            return Yield<TItem2>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    while (true)
+                    {
+                        if (await DidMoveAsync())
+                            break;
+
+                        if (!enumerator.MoveNext())
+                            return yieldBreak;
+
+                        enumeratorInner = callback(enumerator.Current).GetEnumerator();
+                    }
+
+                    return yieldReturn(enumeratorInner.Current);
+
+                    async Task<bool> DidMoveAsync()
+                    {
+                        if (enumeratorInner.IsDefaultOrNull())
+                            return false;
+
+                        var didMove = await enumeratorInner.MoveNextAsync();
+                        return didMove;
+                    }
+                });
+        }
+
         public static IEnumerableAsync<TResult> SelectAsyncWith<TWith, TItem, TResult>(this IEnumerable<TItem> items,
             TWith seed, Func<TWith, TItem, Task<(TResult, TWith)>> callback)
         {
