@@ -202,7 +202,7 @@ namespace EastFive.Serialization
         {
             return byteArrayOfDates
                 .ToLongsFromByteArray()
-                .Select(ticks => ticks == 0 ? default(DateTime?) : new DateTime(ticks, DateTimeKind.Utc))
+                .Select(ticks => (ticks < DateTime.MinValue.Ticks || ticks > DateTime.MaxValue.Ticks) ? default(DateTime?) : new DateTime(ticks, DateTimeKind.Utc))
                 .ToArray();
         }
 
