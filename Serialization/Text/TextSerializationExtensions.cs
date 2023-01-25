@@ -10,16 +10,18 @@ namespace EastFive.Serialization.Text
 	public static class TextSerializationExtensions
 	{
 		public static IEnumerable<TResource> ParseCSV<TResource>(this Stream csvData,
-            string scope, Stream[] extraStreams )
+            string scope = default, Stream[] extraStreams = default)
 		{
             var filters = typeof(TResource)
                 .GetAttributesInterface<IFilterText>()
-                .Where(attrInter => attrInter.DoesFilter(scope))
+                .If(scope.HasBlackSpace(),
+                    items => items.Where(attrInter => attrInter.DoesFilter(scope)))
                 .ToArray();
 
             return typeof(TResource)
                 .GetAttributesInterface<IMapText>()
-                .Where(attrInter => attrInter.DoesParse(scope))
+                .If(scope.HasBlackSpace(),
+                    items => items.Where(attrInter => attrInter.DoesParse(scope)))
                 .First<IMapText, IEnumerable<TResource>>(
                     (attrInter, next) =>
                     {
@@ -28,7 +30,7 @@ namespace EastFive.Serialization.Text
                     },
                     () => throw new Exception("No matching scope."));
         }
-	
-	}
+
+    }
 }
 
