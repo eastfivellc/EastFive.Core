@@ -45,12 +45,13 @@ namespace EastFive.Serialization.Text
             using (var parser = new TextFieldParser(csvData))
             {
                 parser.TextFieldType = FieldType.Delimited;
+                parser.HasFieldsEnclosedInQuotes = true;
                 parser.SetDelimiters(",");
                 var headers = parser
                     .ReadLine()
                     .Split(',');
 
-                return Parse();
+                return Parse().ToArray();
 
                 IEnumerable<TResource> Parse()
                 {
