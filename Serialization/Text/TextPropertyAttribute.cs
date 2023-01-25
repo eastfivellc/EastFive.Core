@@ -13,13 +13,24 @@ namespace EastFive.Serialization.Text
 
         public StringComparison ComparisonType { get; set; }
 
+        public bool IgnoreWhitespace { get; set; } = false;
+
         public override TResource ParseRow<TResource>(TResource resource,
             MemberInfo member, (string key, string value)[] rowValues)
         {
             var type = member.GetPropertyOrFieldType();
 
             var assignment = rowValues
-                .Where(tpl => String.Equals(this.Name, tpl.key, ComparisonType))
+                .Where(
+                    tpl =>
+                    {
+                        if (!this.IgnoreWhitespace)
+                            return String.Equals(this.Name, tpl.key, ComparisonType);
+
+                        var nameNoWhitespace = this.Name.RemoveWhitespace();
+                        var keyNoWhitespace = tpl.key.RemoveWhitespace();
+                        return String.Equals(nameNoWhitespace, keyNoWhitespace, ComparisonType);
+                    })
                 .First(
                     (rowKeyValue, next) =>
                     {
