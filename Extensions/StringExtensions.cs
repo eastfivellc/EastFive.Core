@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using EastFive.Linq;
 using EastFive.Serialization;
 
@@ -313,6 +314,31 @@ namespace EastFive
                 onIsNullOrWhiteSpace()
                 :
                 onHasContent(value);
+        }
+
+        public static string RemoveWhitespace(this string input)
+        {
+            if (input.IsNullOrEmpty())
+                return input;
+
+            if (input.Length < 100)
+            {
+                var charactersNoWhitespace = input
+                    .Where(c => !Char.IsWhiteSpace(c))
+                    .ToArray();
+                return new string(charactersNoWhitespace);
+            }
+
+            var whiteSpaceRegex = new Regex(@"\s+");
+            return whiteSpaceRegex.Replace(input, string.Empty);
+        }
+
+        public static bool EqualsTrimmed(this string str1, string str2)
+        {
+            if (str1.IsNullOrWhiteSpace())
+                return str2.IsNullOrWhiteSpace();
+
+            return String.Equals(str1.Trim(), str2.Trim());
         }
 
         public static TEnum AsEnum<TEnum>(this string value)
