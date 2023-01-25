@@ -4,8 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using EastFive.Linq;
 
-namespace BlackBarLabs
+namespace EastFive.Extensions
 {
     public static class ComputationExtensions
     {
@@ -40,6 +41,160 @@ namespace BlackBarLabs
 
             var value = multiplier * ((dollars * 100) + cents);
             return parsed(value);
+        }
+
+        private struct NumericalRange
+        {
+            public string preStr;
+            public string postStr;
+            public string comparisonStr;
+
+            internal bool TryParse(out Func<int, bool> isInRange)
+            {
+                isInRange = default;
+
+                if (!TryParseInt(this.preStr, out int? pre))
+                    return false;
+                
+                if (!TryParseInt(this.postStr, out int? post))
+                    return false;
+
+                if (pre.HasValue && post.HasValue)
+                {
+                    isInRange = (int v) =>
+                    {
+                        if (v < pre.Value)
+                            return false;
+                        return v < post.Value;
+                    };
+                    return true;
+                }
+
+                bool success;
+                var compStr = this.comparisonStr;
+                (success, isInRange) = compStr
+                    .NullToEmpty()
+                    .Where(c => !c.Equals('='))
+                    .Single(
+                        onSingle: (comparitor) =>
+                        {
+                            var hasEquals = compStr.Contains('=');
+                            if (!TryParseComparison(comparitor, out Func<int, int, bool> compareInner))
+                                return (false, default(Func<int, bool>));
+
+                            if (pre.HasValue)
+                                return (true,
+                                    (v) =>
+                                    {
+                                        if (hasEquals)
+                                            if (pre.Value == v)
+                                                return true;
+                                        return compareInner(pre.Value, v);
+                                    });
+
+                            if (post.HasValue)
+                                return (true,
+                                    (v) =>
+                                    {
+                                        if (hasEquals)
+                                            if (post.Value == v)
+                                                return true;
+                                        return compareInner(v, post.Value);
+                                    });
+
+                            return (false, default(Func<int, bool>));
+                        },
+                        onNoneOrMultiple: () =>
+                        {
+                            var isAllEquals = compStr
+                                .NullToEmpty()
+                                .All(c => c.Equals('='));
+                            if(!isAllEquals)
+                                return (false, default(Func<int, bool>));
+
+                            if (pre.HasValue)
+                                return (true,
+                                    v =>
+                                    {
+                                        return v == pre.Value;
+                                    });
+
+                            if (post.HasValue)
+                                return (true,
+                                    v =>
+                                    {
+                                        return v == post.Value;
+                                    }
+                                );
+
+                            return (false, default(Func<int, bool>));
+                        });
+
+                return success;
+
+
+                bool TryParseInt(string input, out int? result)
+                {
+                    if (int.TryParse(input, out int inputInt))
+                    {
+                        result = inputInt;
+                        return true;
+                    }
+
+                    result = default(int?);
+                    return input.IsNullOrWhiteSpace();
+                }
+
+                bool TryParseComparison(char input, out Func<int, int, bool> compare)
+                {
+                    if (input == '>')
+                    {
+                        compare = (vInput, vCompareTo) => vInput > vCompareTo;
+                        return true;
+                    }
+                    if (input == '<')
+                    {
+                        compare = (vInput, vCompareTo) => vInput < vCompareTo;
+                        return true;
+                    }
+                    if (input == '≤')
+                    {
+                        compare = (vInput, vCompareTo) => vInput <= vCompareTo;
+                        return true;
+                    }
+                    if (input == '�')
+                    {
+                        compare = (vInput, vCompareTo) => vInput >= vCompareTo;
+                        return true;
+                    }
+                    if (input == '≥')
+                    {
+                        compare = (vInput, vCompareTo) => vInput >= vCompareTo;
+                        return true;
+                    }
+
+                    compare = default;
+                    return true;
+                }
+            }
+        }
+
+        public static bool TryParseNumericalRange(this string numericalRangeString, out Func<int, bool> isInRange)
+        {
+            NumericalRange range;
+            if (!numericalRangeString.TryMatchRegex(
+                "(?<pre>[0-9]*)\\s*(?<comparison>[≤≥�<=>-]+)\\s*(?<post>[0-9]*)",
+                (pre, comparison, post) => new NumericalRange { preStr = pre, comparisonStr = comparison, postStr = post },
+                out range))
+            {
+                isInRange = default;
+                return false;
+            }
+
+            if (!range.TryParse(out isInRange))
+                return false;
+
+            return true;
         }
 
         //public static void Main(string[] args)
