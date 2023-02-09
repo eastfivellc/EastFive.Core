@@ -13,6 +13,15 @@ namespace EastFive.Serialization.Parquet
 
         public StringComparison ComparisonType { get; set; }
 
+        public ParquetPropertyAttribute()
+        {
+        }
+
+        public ParquetPropertyAttribute(string name)
+        {
+            this.Name = name;
+        }
+
         public override TResource ParseRow<TResource>(TResource resource,
             MemberInfo member, (global::Parquet.Data.Field key, object value)[] rowValues)
         {
@@ -60,7 +69,7 @@ namespace EastFive.Serialization.Parquet
                 return Text.TextPropertyAttribute.ParseAssignment<TResource>(type, member, strValue, comparisonType);
             }
 
-            if(rowValue.TryCastObjRef(type, out object parsedRefObj))
+            if (rowValue.TryCastObjRef(type, out object parsedRefObj))
             {
                 Func<TResource, TResource> assign = (res) =>
                     (TResource)member.SetPropertyOrFieldValue(res, parsedRefObj);

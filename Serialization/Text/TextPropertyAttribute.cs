@@ -78,10 +78,25 @@ namespace EastFive.Serialization.Text
             }
             if (type.IsEnum)
             {
+
+                var rowValueMapped = Enum.GetNames(type)
+                    .Where(
+                        enumVal =>
+                        {
+                            var memInfo = type.GetMember(enumVal).First();
+                            if (!memInfo.TryGetAttributeInterface(out IMapEnumValues mapper))
+                                return false;
+                            return mapper.DoesMatch(rowValue);
+                        })
+                    .First(
+                        (x, next) => x,
+                        () => rowValue);
+
                 var ignoreCase = comparisonType == StringComparison.OrdinalIgnoreCase
                     || comparisonType == StringComparison.InvariantCultureIgnoreCase
                     || comparisonType == StringComparison.CurrentCultureIgnoreCase;
-                if (Enum.TryParse(type, rowValue, ignoreCase, out object newValue))
+                
+                if (Enum.TryParse(type, rowValueMapped, ignoreCase, out object newValue))
                 {
                     Func<TResource, TResource> assign = (res) =>
                         (TResource)member.SetPropertyOrFieldValue(res, newValue);
@@ -107,5 +122,7 @@ namespace EastFive.Serialization.Text
     public class TextProperty6Attribute : TextPropertyAttribute { };
     public class TextProperty7Attribute : TextPropertyAttribute { };
     public class TextProperty8Attribute : TextPropertyAttribute { };
+
+    
 }
 
