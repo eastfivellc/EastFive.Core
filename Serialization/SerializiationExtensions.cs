@@ -692,6 +692,7 @@ namespace EastFive.Serialization
         /// <returns></returns>
         public static string MD5HashString(this string concatination, MD5 md5 = default(MD5))
         {
+            #pragma warning disable SCS0006 // Weak hashing function
             string getHashString(MD5 algorithm) => Convert.ToBase64String(
                 algorithm.ComputeHash(
                     Encoding.UTF8.GetBytes(concatination)));
@@ -701,6 +702,7 @@ namespace EastFive.Serialization
 
             using (var algorithm = MD5.Create())
                 return getHashString(algorithm);
+            #pragma warning restore SCS0006 // Weak hashing function
         }
 
         /// <summary>
@@ -711,6 +713,7 @@ namespace EastFive.Serialization
         /// <returns></returns>
         public static string MD5HashHex(this string concatination, MD5 md5 = default(MD5))
         {
+            #pragma warning disable SCS0006 // Weak hashing function
             string getHashHex(MD5 algorithm) => algorithm
                 .ComputeHash(Encoding.UTF8.GetBytes(concatination))
                 .Select(b => b.ToString("X2"))
@@ -721,6 +724,7 @@ namespace EastFive.Serialization
 
             using (var algorithm = MD5.Create())
                 return getHashHex(algorithm);
+            #pragma warning restore SCS0006 // Weak hashing function
         }
 
         public static byte[] SHAHash(this byte[] bytes, SHA256 sha256 = default(SHA256))

@@ -39,6 +39,7 @@ namespace EastFive
         /// <returns></returns>
         public static string Md5Checksum(this Stream stream)
         {
+            #pragma warning disable SCS0006 // Weak hashing function
             using (var algorithm = MD5.Create())
             {
                 var hash = algorithm.ComputeHash(stream);
@@ -47,6 +48,7 @@ namespace EastFive
                     .ToUpper();
                 return result;
             }
+            #pragma warning restore SCS0006 // Weak hashing function
         }
 
 
@@ -57,6 +59,7 @@ namespace EastFive
         /// <returns></returns>
         public static string Md5Checksum(this byte[] bytes)
         {
+            #pragma warning disable SCS0006 // Weak hashing function
             using (var algorithm = MD5.Create())
             {
                 var hash = algorithm.ComputeHash(bytes);
@@ -65,6 +68,7 @@ namespace EastFive
                     .ToUpper();
                 return result;
             }
+            #pragma warning restore SCS0006 // Weak hashing function
         }
 
         public static Task<string> ReadAsStringAsync(this Stream stream, 
