@@ -111,6 +111,41 @@ namespace EastFive
             return onNullable(Nullable.GetUnderlyingType(type));
         }
 
+        /// <summary>
+        /// Cast a nullable value to it's non-nullable type, if it is not null.
+        /// </summary>
+        /// <exception cref="ArgumentException">If <paramref name="nullableValue"/> is not a nullable type</exception>
+        /// <param name="nullableValue">Value that is of a nullable type.</param>
+        /// <param name="nonNullValue">Value that has been cast from <paramref name="nullableValue"/>.</param>
+        /// <returns></returns>
+        public static bool TryGetNullableValue(this object nullableValue, out object nonNullValue)
+        {
+            var nullableType = nullableValue.GetType();
+            if (!nullableType.TryGetNullableUnderlyingType(out Type nonNullableType))
+                throw new ArgumentException($"`{nullableType.FullName}` is not nullable.");
+
+            if (nullableValue.IsDefaultOrNull())
+            {
+                nonNullValue = default;
+                return false;
+            }
+
+            nonNullValue = Convert.ChangeType(nullableValue, nonNullableType);
+            return true;
+        }
+
+        public static bool TryGetNullableUnderlyingType(this Type type, out Type nonNullableType)
+        {
+            if (type.IsNullable())
+            {
+                nonNullableType = Nullable.GetUnderlyingType(type);
+                return true;
+            }
+
+            nonNullableType = default;
+            return false;
+        }
+
         public static Type GetNullableUnderlyingType(this Type type)
         {
             return Nullable.GetUnderlyingType(type);
