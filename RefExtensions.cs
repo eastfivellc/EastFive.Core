@@ -207,6 +207,18 @@ namespace EastFive
             return refOptional.HasValue && !refOptional.Ref.id.IsDefault();
         }
 
+        public static TResult HasValueNotDefault<T, TResult>(this IRefOptional<T> refOptional,
+            Func<IRef<T>, TResult> onValue,
+            Func<TResult> onEmpty)
+            where T : IReferenceable
+        {
+            if (!refOptional.IsDefaultOrNull())
+                if (refOptional.HasValue)
+                    if (!refOptional.Ref.id.IsDefault())
+                        return onValue(refOptional.Ref);
+            return onEmpty();
+        }
+
         public static Guid? GetIdMaybeNullSafe<T>(this IRefOptional<T> refOptional)
             where T : IReferenceable
         {
