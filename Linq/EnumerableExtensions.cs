@@ -1103,6 +1103,21 @@ namespace EastFive.Linq
                 .SelectWhere();
         }
 
+        public static IEnumerable<(TItem, TOut)> TrySelectWith<TItem, TOut>(this IEnumerable<TItem> items,
+            TrySelectDelegate<TItem, TOut> trySelect)
+        {
+            return items
+                .NullToEmpty()
+                .Select(
+                    item =>
+                    {
+                        TOut @out;
+                        var keep = trySelect(item, out @out);
+                        return (keep, item, @out);
+                    })
+                .SelectWhere();
+        }
+
 #endif
         public static T Random<T>(this IEnumerable<T> items, int total, Random rand = null)
         {
