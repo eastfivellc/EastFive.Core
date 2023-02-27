@@ -254,6 +254,26 @@ namespace EastFive
             return new DateTime(date.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         }
 
+        public static DateTime GetLastDayOfYear(this DateTime date)
+        {
+            return new DateTime(date.Year, 12, 31, 0, 0, 0, DateTimeKind.Utc);
+        }
+
+        public static DateTime GetBusinessDay(this DateTime date)
+        {
+            DayOfWeek dayName = date.DayOfWeek;
+            if (dayName == DayOfWeek.Saturday)
+                return date.AddDays(2).GetBusinessDay();
+
+            if (dayName == DayOfWeek.Sunday)
+                return date.AddDays(1).GetBusinessDay();
+
+            if (date.IsFederalHoliday())
+                return date.AddDays(1).GetBusinessDay();
+
+            return date;
+        }
+
         // Taken from  https://www.codeproject.com/Tips/1168428/US-Federal-Holidays-Csharp
         public static bool IsFederalHoliday(this DateTime date)
         {
