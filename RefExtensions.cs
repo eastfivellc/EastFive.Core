@@ -57,7 +57,7 @@ namespace EastFive
         }
 
         public static IRefOptional<T> Optional<T>(this IRef<T> baseRef)
-            where T: IReferenceable
+            where T : IReferenceable
         {
             return new RefOptional<T>(baseRef);
         }
@@ -108,6 +108,12 @@ namespace EastFive
 
             parsedRefObj = type.GetDefault();
             return false;
+        }
+
+        public static IRef<T> ParseRef<T>(this string guidString)
+            where T : IReferenceable
+        {
+            return Ref<T>.NewRef(guidString);
         }
 
         public static bool TryParseRef(this string refString, Type type, out object parsedRefObj)
