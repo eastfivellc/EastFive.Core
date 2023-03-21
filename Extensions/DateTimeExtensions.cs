@@ -85,7 +85,7 @@ namespace EastFive
                 return false;
             return time1.Value.EqualToMinute(time2);
         }
-        
+
         public static bool EqualToMinute(this DateTime time1, DateTime? time2)
         {
             if (!time2.HasValue)
@@ -99,7 +99,7 @@ namespace EastFive
         }
 
         #endregion
-        
+
         #region EqualToDay
 
         public static bool EqualToDay(this DateTime time1, DateTime time2)
@@ -353,6 +353,9 @@ namespace EastFive
                 return time1;
             return time2;
         }
+
+        public static bool IsInWindow(this DateTime when, DateTime start, TimeSpan duration,
+            TimeSpanUnits units = TimeSpanUnits.continuous) => when.IsInWindow(start, start + duration, units: units);
 
         public static bool IsInWindow(this DateTime when, DateTime start, DateTime end,
             TimeSpanUnits units = TimeSpanUnits.continuous)
