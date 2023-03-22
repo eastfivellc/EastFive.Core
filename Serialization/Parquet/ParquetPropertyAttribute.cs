@@ -22,7 +22,7 @@ namespace EastFive.Serialization.Parquet
             this.Name = name;
         }
 
-        public override TResource ParseRow<TResource>(TResource resource,
+        public override TResource ParseMemberValueFromRow<TResource>(TResource resource,
             MemberInfo member, (global::Parquet.Data.Field key, object value)[] rowValues)
         {
             var type = member.GetPropertyOrFieldType();
@@ -44,46 +44,52 @@ namespace EastFive.Serialization.Parquet
                         Func<TResource, TResource> assign = (res) => res;
                         return assign;
                     });
-            return assignment(resource);
+            var updatedResource = assignment(resource);
+            return updatedResource;
         }
 
         public static Func<TResource, TResource> ParseAssignment<TResource>(Type type, MemberInfo member, object rowValue,
             StringComparison comparisonType)
         {
-            if(!rowValue.TryGetType(out Type rowValueType))
+            try
             {
-                Func<TResource, TResource> noAssign = (res) => res;
-                return noAssign;
-            }
-
-            if(type.IsAssignableFrom(rowValueType))
-            {
-                Func<TResource, TResource> assign = (res) =>
-                    (TResource)member.SetPropertyOrFieldValue(res, rowValue);
-                return assign;
-            }
-
-            if (typeof(string).IsAssignableFrom(rowValueType))
-            {
-                var strValue = (string)rowValue;
-                return Text.TextPropertyAttribute.ParseAssignment<TResource>(type, member, strValue, comparisonType);
-            }
-
-            if (rowValue.TryCastObjRef(type, out object parsedRefObj))
-            {
-                Func<TResource, TResource> assign = (res) =>
-                    (TResource)member.SetPropertyOrFieldValue(res, parsedRefObj);
-                return assign;
-            }
-
-            return type.IsNullable(
-                baseType => ParseAssignment<TResource>(baseType, member, rowValue, comparisonType),
-                () =>
+                if (type.TryGetNullableUnderlyingType(out Type baseType))
                 {
-                    throw new Exception($"{nameof(ParquetPropertyAttribute)} cannot parse {type.FullName} on {member.DeclaringType.FullName}..{member.Name}");
-                });
+                    return ParseAssignment<TResource>(baseType, member, rowValue, comparisonType);
+                }
 
-            
+                if (!rowValue.TryGetType(out Type rowValueType))
+                {
+                    Func<TResource, TResource> noAssign = (res) => res;
+                    return noAssign;
+                }
+
+                if (type.IsAssignableFrom(rowValueType))
+                {
+                    Func<TResource, TResource> assign = (res) =>
+                        (TResource)member.SetPropertyOrFieldValue(res, rowValue);
+                    return assign;
+                }
+
+                if (typeof(string).IsAssignableFrom(rowValueType))
+                {
+                    var strValue = (string)rowValue;
+                    return Text.TextPropertyAttribute.ParseAssignment<TResource>(type, member, strValue, comparisonType);
+                }
+
+                if (rowValue.TryCastObjRef(type, out object parsedRefObj))
+                {
+                    Func<TResource, TResource> assign = (res) =>
+                        (TResource)member.SetPropertyOrFieldValue(res, parsedRefObj);
+                    return assign;
+                }
+            } catch(Exception ex)
+            {
+                return (r) => r;
+            }
+
+            throw new Exception($"{nameof(ParquetPropertyAttribute)} cannot parse {type.FullName} on {member.DeclaringType.FullName}..{member.Name}");
+
         }
     }
 

@@ -21,7 +21,7 @@ namespace EastFive.Serialization.Parquet
 
         public StringComparison ComparisonType { get; set; }
 
-        public override TResource ParseRow<TResource>(TResource resource, MemberInfo member, (global::Parquet.Data.Field key, object value)[] rowValues)
+        public override TResource ParseMemberValueFromRow<TResource>(TResource resource, MemberInfo member, (global::Parquet.Data.Field key, object value)[] rowValues)
         {
             var guidValue = Fields
                 .Split(',')

@@ -26,7 +26,7 @@ namespace EastFive.Serialization.Parquet
             return this.Scope.IsNullOrWhiteSpace();
         }
 
-        abstract public TResource ParseRow<TResource>(TResource resource, MemberInfo member, (global::Parquet.Data.Field key, object value)[] rowValues);
+        abstract public TResource ParseMemberValueFromRow<TResource>(TResource resource, MemberInfo member, (global::Parquet.Data.Field key, object value)[] rowValues);
     }
 }
 

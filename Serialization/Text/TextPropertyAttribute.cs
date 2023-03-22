@@ -108,7 +108,7 @@ namespace EastFive.Serialization.Text
             if (rowValue.TryParseRef(type, out object refObj))
             {
                 Func<TResource, TResource> assign = (res) =>
-                    (TResource)member.SetPropertyOrFieldValue(res, rowValue);
+                    (TResource)member.SetPropertyOrFieldValue(res, refObj);
                 return assign;
             }
             throw new Exception($"{nameof(TextPropertyAttribute)} cannot parse {type.FullName} on {member.DeclaringType.FullName}..{member.Name}");

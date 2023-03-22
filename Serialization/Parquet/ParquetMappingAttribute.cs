@@ -69,7 +69,7 @@ namespace EastFive.Serialization.Parquet
                                     (resource, memberAndMapper) =>
                                     {
                                         var (member, mapper) = memberAndMapper;
-                                        return mapper.ParseRow(resource, member, rowValues);
+                                        return mapper.ParseMemberValueFromRow(resource, member, rowValues);
                                     });
                         }
                     }
