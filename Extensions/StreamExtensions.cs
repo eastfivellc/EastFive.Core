@@ -13,23 +13,34 @@ namespace EastFive
     {
         public static async Task<byte []> ToBytesAsync(this Stream stream)
         {
-            using (var memoryStream = new MemoryStream())
+            using (var memoryStream = await stream.ToCachedStreamAsync())
             {
-                await stream.CopyToAsync(memoryStream);
                 var bytes = memoryStream.ToArray();
                 return bytes;
             }
         }
 
-        public static TResult ToBytes<TResult>(this Stream stream,
-            Func<byte [], TResult> success)
+        public static async Task<MemoryStream> ToCachedStreamAsync(this Stream stream)
         {
-            using (var memoryStream = new MemoryStream())
+            var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            return memoryStream;
+        }
+
+        public static byte [] ToBytes(this Stream stream)
+        {
+            using (var memoryStream = stream.ToCachedStream())
             {
-                stream.CopyTo(memoryStream);
                 var bytes = memoryStream.ToArray();
-                return success(bytes);
+                return bytes;
             }
+        }
+
+        public static MemoryStream ToCachedStream(this Stream stream)
+        {
+            var memoryStream = new MemoryStream();
+            stream.CopyTo(memoryStream);
+            return memoryStream;
         }
 
         /// <summary>
