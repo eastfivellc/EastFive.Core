@@ -311,8 +311,23 @@ namespace EastFive.Serialization
 
         #region Enums
 
-        public static object ToEnumsFromByteArray(this byte[] byteArrayOfEnums, Type enumType)
+        public static object ToEnumsFromByteArray(this byte[] byteArrayOfEnums, Type enumType,
+            bool repair = false)
         {
+            if(repair)
+                return byteArrayOfEnums
+                    .ToStringsFromUTF8ByteArray()
+                    .Select(
+                        enumName =>
+                        {
+                            if (!Enum.TryParse(enumType, enumName, out object result))
+                                return null;
+                            return result;
+                            // Enum.Parse(enumType, enumName);
+                        })
+                    .Where(v => v != null)
+                    .CastArray(enumType);
+
             return byteArrayOfEnums
                 .ToStringsFromUTF8ByteArray()
                 .Select(enumName => Enum.Parse(enumType, enumName))
