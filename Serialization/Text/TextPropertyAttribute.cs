@@ -76,6 +76,13 @@ namespace EastFive.Serialization.Text
                     (TResource)member.SetPropertyOrFieldValue(res, boolValue);
                 return assign;
             }
+            if (typeof(int).IsAssignableTo(type))
+            {
+                int.TryParse(rowValue, out var intValue);
+                Func<TResource, TResource> assign = (res) =>
+                    (TResource)member.SetPropertyOrFieldValue(res, intValue);
+                return assign;
+            }
             if (type.IsEnum)
             {
 
