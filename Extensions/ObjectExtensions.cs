@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using EastFive.Linq;
+using System.Diagnostics.CodeAnalysis;
 
 namespace EastFive.Extensions
 {
@@ -141,10 +142,22 @@ namespace EastFive.Extensions
             return !value.IsDefaultOrNull();
         }
 
-        public static bool IsDefaultOrNull<T>(this T value)
+        public static bool IsDefaultOrNull<T>([DoesNotReturnIf(false)] this T value)
            where T : class
         {
             return EqualityComparer<T>.Default.Equals(value, default(T));
+        }
+
+        public static bool TryIsNotDefaultOrNull<T>(this T? valueMaybe, out T value)
+           where T : class
+        {
+            if(EqualityComparer<T>.Default.Equals(valueMaybe, default(T)))
+            {
+                value = default;
+                return false;
+            }
+            value = valueMaybe;
+            return true;
         }
 
         public static bool IsNull<T>(this T value)
