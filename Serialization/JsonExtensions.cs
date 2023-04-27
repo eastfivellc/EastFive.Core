@@ -25,6 +25,9 @@ namespace EastFive.Serialization.Json
                 if (typeof(TResource) == typeof(string))
                     return onSuccess((TResource)(object)jsonData);
 
+                if (jsonData.IsNull())
+                    return onFailureToParse("Null data");
+
                 resource = JsonConvert.DeserializeObject<TResource>(jsonData, converters: converters);
             }
             catch (JsonReaderException jsonEx)
