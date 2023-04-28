@@ -1,6 +1,7 @@
 ﻿using EastFive.Extensions;
 using EastFive.Linq;
 using EastFive.Reflection;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -122,6 +123,24 @@ namespace EastFive.Serialization
                 .ToArray();
         }
 
+        public static decimal?[] ToNullableDecimalsFromByteArray(this byte[] byteArrayOfGuids)
+        {
+            var values = byteArrayOfGuids.ToNullablesFromByteArray<decimal>(
+                byteArray =>
+                {
+                    if (byteArray.TryConvertToDecimal(out decimal decimalValue))
+                        return decimalValue;
+                    return default(decimal);
+                });
+            return values;
+        }
+
+        public static byte[] ToByteArrayOfNullableDecimals(this IEnumerable<decimal?> values)
+        {
+            var bytes = values.ToByteArrayOfNullables(d => d.ConvertToBytes());
+            return bytes;
+        }
+
         #endregion
 
         #region Double
@@ -168,10 +187,28 @@ namespace EastFive.Serialization
             return guids.SelectMany(guid => guid.ToByteArray()).ToArray();
         }
 
+        public static Guid?[] ToNullableGuidsFromByteArray(this byte[] byteArrayOfGuids)
+        {
+            var values = byteArrayOfGuids.ToNullablesFromByteArray<Guid>(
+                (byteArray) =>
+                {
+                    if (byteArray.Length == 16)
+                        return new Guid(byteArray);
+                    return default(Guid);
+                });
+            return values;
+        }
+
+        public static byte[] ToByteArrayOfNullableGuids(this IEnumerable<Guid?> values)
+        {
+            var bytes = values.ToByteArrayOfNullables(g => g.ToByteArray());
+            return bytes;
+        }
+
         #endregion
 
         #region Dates
-        
+
         public static DateTime[] ToDateTimesFromByteArray(this byte[] byteArrayOfDates)
         {
             return byteArrayOfDates
@@ -198,17 +235,53 @@ namespace EastFive.Serialization
             return dates.SelectMany(date => BitConverter.GetBytes((date.Year << 9) | (date.Month << 5) | date.Day)).ToArray();
         }
 
+        private static long nullTicksPlaceholder = DateTime.MinValue.Ticks - 1;
+
         public static DateTime?[] ToNullableDateTimesFromByteArray(this byte[] byteArrayOfDates)
         {
             return byteArrayOfDates
                 .ToLongsFromByteArray()
-                .Select(ticks => (ticks < DateTime.MinValue.Ticks || ticks > DateTime.MaxValue.Ticks) ? default(DateTime?) : new DateTime(ticks, DateTimeKind.Utc))
+                .Select(
+                    ticks =>
+                    {
+                        if(ticks == nullTicksPlaceholder)
+                            return default(DateTime?);
+
+                        if (IsValid())
+                            return new DateTime(ticks, DateTimeKind.Utc);
+
+                        return default(DateTime?);
+
+                        bool IsValid()
+                        {
+                            if (ticks < DateTime.MinValue.Ticks)
+                                return false;
+                            if (ticks > DateTime.MaxValue.Ticks)
+                                return false;
+
+                            return true;
+                        }
+                    })
                 .ToArray();
         }
 
         public static byte[] ToByteArrayOfNullableDateTimes(this IEnumerable<DateTime?> dates)
         {
-            return dates.SelectMany(date => BitConverter.GetBytes(date.HasValue ? ((DateTime)date).Ticks : 0)).ToArray();
+            return dates
+                .SelectMany(
+                    date =>
+                    {
+                        var ticks = GetTicks();
+                        return BitConverter.GetBytes(ticks);
+
+                        long GetTicks()
+                        {
+                            if (date.HasValue)
+                                return date.Value.Ticks;
+                            return nullTicksPlaceholder;
+                        }
+                    })
+                .ToArray();
         }
 
         #endregion
