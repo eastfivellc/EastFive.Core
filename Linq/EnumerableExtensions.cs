@@ -1200,6 +1200,28 @@ namespace EastFive.Linq
             return onLast(items.Last());
         }
 
+        public static IEnumerable<T> Pop<T>(this IEnumerable<T> items, out T nextItem)
+        {
+            var iterator = items.GetEnumerator();
+            if(!iterator.MoveNext())
+            {
+                nextItem = default(T);
+                return new T[] { };
+            }
+
+            nextItem = iterator.Current;
+
+            return SkipAndGo();
+
+            IEnumerable<T> SkipAndGo()
+            {
+                while (iterator.MoveNext())
+                {
+                    yield return iterator.Current;
+                }
+            }
+        }
+
         public static TResult GetDistinctKvpValueByKey<TResult>(this IEnumerable<KeyValuePair<string, object>> kvps, string key,
             Func<object, TResult> found,
             Func<string, TResult> notFound,
