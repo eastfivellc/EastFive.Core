@@ -1007,16 +1007,31 @@ namespace EastFive.Linq
             return false;
         }
 
-        public static IEnumerable<IEnumerable<T>> Split<T>(this IEnumerable<T> items, Func<int, int> batchSizeCallback)
+        public static IEnumerable<T[]> Split<T>(this IEnumerable<T> items, Func<int, int> batchSizeCallback)
         {
+            // Cannot return IEnumerable<IEnumerable<T>> because it's risky. Here's why
+            // If the resulting enumerators are being read at the same time, they will move each other's
+            // index, which results in not all items being returned. Therefore, IEnumerable<T[]> is safer.
             var itemsCopy = items.NullToEmpty();
             var index = 0;
-            while (itemsCopy.Any())
+            var iterator = items.GetEnumerator();
+            bool cont = true;
+            do
             {
                 var batchsize = batchSizeCallback(index);
-                yield return itemsCopy.Take(batchsize);
-                itemsCopy = itemsCopy.Skip(batchsize);
+                yield return Inner(batchsize).ToArray();
                 index += batchsize;
+            }
+            while (cont);
+
+            IEnumerable<T> Inner(int countDown)
+            {
+                while (countDown > 0 && iterator.MoveNext())
+                {
+                    yield return iterator.Current;
+                    countDown--;
+                }
+                cont = countDown <= 0;
             }
         }
 
