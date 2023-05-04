@@ -1081,25 +1081,30 @@ namespace EastFive.Linq.Async
             System.Threading.CancellationToken cancellationToken = default)
         {
             var enumerator = enumerables.GetEnumerator();
-            var enumeratorInner = default(IEnumerator<TResult>);
+            var enumeratorInnerPreserved = default(IEnumerator<TResult>);
             var scopedLogger = logger.CreateScope($"SelectMany:{enumerables.GetHashCode()}");
             return Yield<TResult>(
                 async (yieldReturn, yieldBreak) =>
                 {
-                    while (true)
+                    if (!cancellationToken.IsDefault())
+                        if (cancellationToken.IsCancellationRequested)
+                            return yieldBreak;
+
+                    (var didMove, enumeratorInnerPreserved) = await MoveNextAsync(enumeratorInnerPreserved);
+                    if (!didMove)
+                        return yieldBreak;
+
+                    scopedLogger.Trace("Yielding value");
+                    return yieldReturn(enumeratorInnerPreserved.Current);
+
+                    async Task<(bool, IEnumerator<TResult>)> MoveNextAsync(IEnumerator<TResult> enumeratorInner)
                     {
-                        if(!cancellationToken.IsDefault())
-                            if (cancellationToken.IsCancellationRequested)
-                                return yieldBreak;
-                        scopedLogger.Trace("Looping...");
-                        if (enumeratorInner.IsDefaultOrNull())
+                        if (DidMove())
+                            return (true, enumeratorInner);
+
+                        while (await enumerator.MoveNextAsync())
                         {
-                            scopedLogger.Trace("Moving Outer");
-                            if (!await enumerator.MoveNextAsync())
-                            {
-                                scopedLogger.Trace("Complete");
-                                return yieldBreak;
-                            }
+                            scopedLogger.Trace("Moved Outer");
 
                             var current = enumerator.Current;
                             var many = selectMany(current);
@@ -1108,23 +1113,23 @@ namespace EastFive.Linq.Async
                                 scopedLogger.Trace("FAILURE:selectMany returned null IEnumerable");
                                 continue;
                             }
-                            enumeratorInner = many.GetEnumerator();
-                            continue;
-                        }
-                        scopedLogger.Trace("Moving Inner");
-                        if (!enumeratorInner.MoveNext())
-                        {
-                            scopedLogger.Trace("Moving Outer");
-                            if (!await enumerator.MoveNextAsync())
+                            var newEnumeratorInner = many.GetEnumerator();
+                            if (newEnumeratorInner.MoveNext())
                             {
-                                scopedLogger.Trace("Complete");
-                                return yieldBreak;
+                                return (true, newEnumeratorInner);
                             }
-                            enumeratorInner = selectMany(enumerator.Current).GetEnumerator();
-                            continue;
                         }
-                        scopedLogger.Trace("Yielding value");
-                        return yieldReturn(enumeratorInner.Current);
+
+                        scopedLogger.Trace("Complete");
+                        return (false, default(IEnumerator<TResult>));
+
+                        bool DidMove()
+                        {
+                            if (enumeratorInner.IsDefaultOrNull())
+                                return false;
+
+                            return enumeratorInner.MoveNext();
+                        }
                     }
                 });
         }
