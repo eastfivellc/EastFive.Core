@@ -1014,24 +1014,29 @@ namespace EastFive.Linq
             // index, which results in not all items being returned. Therefore, IEnumerable<T[]> is safer.
             var itemsCopy = items.NullToEmpty();
             var index = 0;
-            var iterator = items.GetEnumerator();
-            bool cont = true;
-            do
+            var iterator = itemsCopy.GetEnumerator();
+            bool cont = iterator.MoveNext();
+
+            while (cont)
             {
                 var batchsize = batchSizeCallback(index);
-                yield return Inner(batchsize).ToArray();
+                yield return Inner(batchsize);
                 index += batchsize;
             }
-            while (cont);
 
-            IEnumerable<T> Inner(int countDown)
+            T[] Inner(int batchsize)
             {
-                while (countDown > 0 && iterator.MoveNext())
+                var nextBatch = new T[batchsize];
+                foreach (var index in Enumerable.Range(0, batchsize))
                 {
-                    yield return iterator.Current;
-                    countDown--;
+                    nextBatch[index] = iterator.Current;
+                    if (!iterator.MoveNext())
+                    {
+                        cont = false;
+                        return nextBatch;
+                    }
                 }
-                cont = countDown <= 0;
+                return nextBatch;
             }
         }
 
