@@ -19,6 +19,7 @@ using EastFive.Collections.Generic;
 
 namespace EastFive.Serialization.Text
 {
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = true)]
     public class TextMappingComplexJoinsAttribute : TextMappingAttribute
     {
         public string MappingScope { get; set; }
@@ -139,31 +140,6 @@ namespace EastFive.Serialization.Text
                 }
             }
         }
-    }
-
-    public class TextMappingComplexJoins2Attribute : TextMappingComplexJoinsAttribute
-    {
-        public TextMappingComplexJoins2Attribute(string mappingScope) : base(mappingScope) { }
-    }
-
-    public class TextMappingComplexJoins3Attribute : TextMappingComplexJoinsAttribute
-    {
-        public TextMappingComplexJoins3Attribute(string mappingScope) : base(mappingScope) { }
-    }
-
-    public class TextMappingComplexJoins4Attribute : TextMappingComplexJoinsAttribute
-    {
-        public TextMappingComplexJoins4Attribute(string mappingScope) : base(mappingScope) { }
-    }
-
-    public class TextMappingComplexJoins5Attribute : TextMappingComplexJoinsAttribute
-    {
-        public TextMappingComplexJoins5Attribute(string mappingScope) : base(mappingScope) { }
-    }
-
-    public class TextMappingComplexJoins6Attribute : TextMappingComplexJoinsAttribute
-    {
-        public TextMappingComplexJoins6Attribute(string mappingScope) : base(mappingScope) { }
     }
 }
 

@@ -7,6 +7,7 @@ using EastFive.Reflection;
 
 namespace EastFive.Serialization.Text
 {
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = true)]
     public class TextPropertyAttribute : ScopedMapTextPropertyAttribute
     {
         public string Name { get; set; }
@@ -122,13 +123,13 @@ namespace EastFive.Serialization.Text
         }
     }
 
-    public class TextProperty2Attribute : TextPropertyAttribute { };
-    public class TextProperty3Attribute : TextPropertyAttribute { };
-    public class TextProperty4Attribute : TextPropertyAttribute { };
-    public class TextProperty5Attribute : TextPropertyAttribute { };
-    public class TextProperty6Attribute : TextPropertyAttribute { };
-    public class TextProperty7Attribute : TextPropertyAttribute { };
-    public class TextProperty8Attribute : TextPropertyAttribute { };
+    //public class TextProperty2Attribute : TextPropertyAttribute { };
+    //public class TextProperty3Attribute : TextPropertyAttribute { };
+    //public class TextProperty4Attribute : TextPropertyAttribute { };
+    //public class TextProperty5Attribute : TextPropertyAttribute { };
+    //public class TextProperty6Attribute : TextPropertyAttribute { };
+    //public class TextProperty7Attribute : TextPropertyAttribute { };
+    //public class TextProperty8Attribute : TextPropertyAttribute { };
 
     
 }

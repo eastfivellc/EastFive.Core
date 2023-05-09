@@ -5,6 +5,7 @@ using EastFive.Reflection;
 
 namespace EastFive.Serialization.Text
 {
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = true)]
     public class TextStaticAttribute : ScopedMapTextPropertyAttribute
     {
         public string Value { get; set; }
@@ -20,11 +21,11 @@ namespace EastFive.Serialization.Text
         }
     }
 
-    public class TextStatic2Attribute : TextStaticAttribute { }
-    public class TextStatic3Attribute : TextStaticAttribute { }
-    public class TextStatic4Attribute : TextStaticAttribute { }
-    public class TextStatic5Attribute : TextStaticAttribute { }
-    public class TextStatic6Attribute : TextStaticAttribute { }
-    public class TextStatic7Attribute : TextStaticAttribute { }
+    //public class TextStaticAttribute : TextStaticAttribute { }
+    //public class TextStaticAttribute : TextStaticAttribute { }
+    //public class TextStaticAttribute : TextStaticAttribute { }
+    //public class TextStaticAttribute : TextStaticAttribute { }
+    //public class TextStaticAttribute : TextStaticAttribute { }
+    //public class TextStaticAttribute : TextStaticAttribute { }
 }
 

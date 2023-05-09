@@ -12,6 +12,7 @@ using System.Reflection.PortableExecutable;
 
 namespace EastFive.Serialization.Text
 {
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = true)]
     public class TextMappingComplexJoinAttribute : System.Attribute, IMapComplexTextJoin
     {
         public string MappingScope { get; set; }
@@ -166,54 +167,54 @@ namespace EastFive.Serialization.Text
         }
     }
 
-    public class TextMappingComplexJoin2Attribute : TextMappingComplexJoinAttribute
-    {
-        public TextMappingComplexJoin2Attribute(string mappingScope) : base(mappingScope) { }
-    }
+    //public class TextMappingComplexJoin2Attribute : TextMappingComplexJoinAttribute
+    //{
+    //    public TextMappingComplexJoin2Attribute(string mappingScope) : base(mappingScope) { }
+    //}
 
-    public class TextMappingComplexJoin3Attribute : TextMappingComplexJoinAttribute
-    {
-        public TextMappingComplexJoin3Attribute(string mappingScope) : base(mappingScope) { }
-    }
+    //public class TextMappingComplexJoin3Attribute : TextMappingComplexJoinAttribute
+    //{
+    //    public TextMappingComplexJoin3Attribute(string mappingScope) : base(mappingScope) { }
+    //}
 
-    public class TextMappingComplexJoin4Attribute : TextMappingComplexJoinAttribute
-    {
-        public TextMappingComplexJoin4Attribute(string mappingScope) : base(mappingScope) { }
-    }
+    //public class TextMappingComplexJoin4Attribute : TextMappingComplexJoinAttribute
+    //{
+    //    public TextMappingComplexJoin4Attribute(string mappingScope) : base(mappingScope) { }
+    //}
 
-    public class TextMappingComplexJoin5Attribute : TextMappingComplexJoinAttribute
-    {
-        public TextMappingComplexJoin5Attribute(string mappingScope) : base(mappingScope) { }
-    }
+    //public class TextMappingComplexJoin5Attribute : TextMappingComplexJoinAttribute
+    //{
+    //    public TextMappingComplexJoin5Attribute(string mappingScope) : base(mappingScope) { }
+    //}
 
-    public class TextMappingComplexJoin6Attribute : TextMappingComplexJoinAttribute
-    {
-        public TextMappingComplexJoin6Attribute(string mappingScope) : base(mappingScope) { }
-    }
+    //public class TextMappingComplexJoin6Attribute : TextMappingComplexJoinAttribute
+    //{
+    //    public TextMappingComplexJoin6Attribute(string mappingScope) : base(mappingScope) { }
+    //}
 
-    public class TextMappingComplexJoin7Attribute : TextMappingComplexJoinAttribute
-    {
-        public TextMappingComplexJoin7Attribute(string mappingScope) : base(mappingScope) { }
-    }
+    //public class TextMappingComplexJoin7Attribute : TextMappingComplexJoinAttribute
+    //{
+    //    public TextMappingComplexJoin7Attribute(string mappingScope) : base(mappingScope) { }
+    //}
 
-    public class TextMappingComplexJoin8Attribute : TextMappingComplexJoinAttribute
-    {
-        public TextMappingComplexJoin8Attribute(string mappingScope) : base(mappingScope) { }
-    }
+    //public class TextMappingComplexJoin8Attribute : TextMappingComplexJoinAttribute
+    //{
+    //    public TextMappingComplexJoin8Attribute(string mappingScope) : base(mappingScope) { }
+    //}
 
-    public class TextMappingComplexJoin9Attribute : TextMappingComplexJoinAttribute
-    {
-        public TextMappingComplexJoin9Attribute(string mappingScope) : base(mappingScope) { }
-    }
+    //public class TextMappingComplexJoin9Attribute : TextMappingComplexJoinAttribute
+    //{
+    //    public TextMappingComplexJoin9Attribute(string mappingScope) : base(mappingScope) { }
+    //}
 
-    public class TextMappingComplexJoin10Attribute : TextMappingComplexJoinAttribute
-    {
-        public TextMappingComplexJoin10Attribute(string mappingScope) : base(mappingScope) { }
-    }
+    //public class TextMappingComplexJoin10Attribute : TextMappingComplexJoinAttribute
+    //{
+    //    public TextMappingComplexJoin10Attribute(string mappingScope) : base(mappingScope) { }
+    //}
 
-    public class TextMappingComplexJoin11Attribute : TextMappingComplexJoinAttribute
-    {
-        public TextMappingComplexJoin11Attribute(string mappingScope) : base(mappingScope) { }
-    }
+    //public class TextMappingComplexJoin11Attribute : TextMappingComplexJoinAttribute
+    //{
+    //    public TextMappingComplexJoin11Attribute(string mappingScope) : base(mappingScope) { }
+    //}
 }
 
