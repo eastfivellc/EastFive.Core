@@ -1033,6 +1033,7 @@ namespace EastFive.Linq
                     if (!iterator.MoveNext())
                     {
                         cont = false;
+                        Array.Resize(ref nextBatch, index+1);
                         return nextBatch;
                     }
                 }
