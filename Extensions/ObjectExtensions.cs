@@ -142,23 +142,27 @@ namespace EastFive.Extensions
             return !value.IsDefaultOrNull();
         }
 
-        public static bool IsDefaultOrNull<T>([DoesNotReturnIf(false)] this T value)
+        public static bool IsDefaultOrNull<T>([NotNull]this T value)
            where T : class
         {
             return EqualityComparer<T>.Default.Equals(value, default(T));
         }
+
+#nullable enable
 
         public static bool TryIsNotDefaultOrNull<T>(this T? valueMaybe, out T value)
            where T : class
         {
             if(EqualityComparer<T>.Default.Equals(valueMaybe, default(T)))
             {
-                value = default;
+                value = default(T);
                 return false;
             }
             value = valueMaybe;
             return true;
         }
+
+#nullable restore
 
         public static bool IsNull<T>(this T value)
            where T : class

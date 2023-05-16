@@ -83,7 +83,7 @@ namespace EastFive.Serialization.Parquet
                         (TResource)member.SetPropertyOrFieldValue(res, parsedRefObj);
                     return assign;
                 }
-            } catch(Exception ex)
+            } catch(Exception)
             {
                 return (r) => r;
             }
