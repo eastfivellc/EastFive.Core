@@ -77,6 +77,31 @@ namespace EastFive.Serialization.Parquet
                     return Text.TextPropertyAttribute.ParseAssignment<TResource>(type, member, strValue, comparisonType);
                 }
 
+                if (typeof(DateTime).IsAssignableFrom(rowValueType))
+                {
+                    var dtValue = (DateTime)rowValue;
+                    var memberType = member.GetPropertyOrFieldType();
+                    if (memberType.IsAssignableFrom(typeof(DateTime)))
+                    {
+                        Func<TResource, TResource> assign = (res) =>
+                            (TResource)member.SetPropertyOrFieldValue(res, dtValue);
+                        return assign;
+                    }
+                }
+
+                if (typeof(DateTimeOffset).IsAssignableFrom(rowValueType))
+                {
+                    var dtoValue = (DateTimeOffset)rowValue;
+                    var dtValue = dtoValue.DateTime;
+                    var memberType = member.GetPropertyOrFieldType();
+                    if (memberType.IsAssignableFrom(typeof(DateTime)))
+                    {
+                        Func<TResource, TResource> assign = (res) =>
+                            (TResource)member.SetPropertyOrFieldValue(res, dtValue);
+                        return assign;
+                    }
+                }
+
                 if (rowValue.TryCastObjRef(type, out object parsedRefObj))
                 {
                     Func<TResource, TResource> assign = (res) =>
