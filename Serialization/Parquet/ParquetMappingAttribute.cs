@@ -1,21 +1,18 @@
 ﻿using System;
 using System.Data;
-using System.Diagnostics;
+using System.Threading.Tasks;
 using System.Linq;
 using System.Reflection;
 using System.Collections.Generic;
 using System.IO;
 
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-
 using EastFive.Linq;
 using EastFive.Reflection;
 using EastFive.Linq.Async;
-using System.Threading.Tasks;
 
 namespace EastFive.Serialization.Parquet
 {
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = true)]
     public class ParquetMappingAttribute : ScopedMapParquetAttribute
     {
         public virtual (MemberInfo, IMapParquetProperty)[] GetPropertyMappers<TResource>()
@@ -83,14 +80,5 @@ namespace EastFive.Serialization.Parquet
             }
         }
     }
-
-    public class ParquetMapping2Attribute : ParquetMappingAttribute { }
-    public class ParquetMapping3Attribute : ParquetMappingAttribute { }
-    public class ParquetMapping4Attribute : ParquetMappingAttribute { }
-    public class ParquetMapping5Attribute : ParquetMappingAttribute { }
-    public class ParquetMapping6Attribute : ParquetMappingAttribute { }
-    public class ParquetMapping7Attribute : ParquetMappingAttribute { }
-    public class ParquetMapping8Attribute : ParquetMappingAttribute { }
-    public class ParquetMapping9Attribute : ParquetMappingAttribute { }
 }
 

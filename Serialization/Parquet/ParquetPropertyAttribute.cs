@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Linq;
 using System.Reflection;
+
+using Parquet.Data;
+
 using EastFive.Extensions;
 using EastFive.Linq;
 using EastFive.Reflection;
@@ -119,5 +122,23 @@ namespace EastFive.Serialization.Parquet
         }
     }
 
+    public class ParquetPropertyDebugAttribute : ParquetPropertyAttribute
+    {
+        public override bool DoesMap(string scope)
+        {
+            return base.DoesMap(scope);
+        }
+
+        public override bool Match(object obj)
+        {
+            return base.Match(obj);
+        }
+
+        public override TResource ParseMemberValueFromRow<TResource>(TResource resource, MemberInfo member,
+            (Field key, object value)[] rowValues)
+        {
+            return base.ParseMemberValueFromRow(resource, member, rowValues);
+        }
+    }
 }
 
