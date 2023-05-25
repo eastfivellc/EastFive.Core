@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Runtime.Serialization;
 using System.Security.Cryptography;
 using System.Text;
@@ -852,6 +853,40 @@ namespace EastFive.Serialization
         }
         #endregion 
 
+        public static bool TryParseBool(this string boolStr, out bool boolValue)
+        {
+            boolValue = default;
+            if (boolStr.IsDefaultNullOrEmpty())
+                return false;
+
+            var content = boolStr.ToLower();
+            if ("t" == content)
+            {
+                boolValue = true;
+                return true;
+            }
+
+            if ("on" == content) // used in check boxes
+            {
+                boolValue = true;
+                return true;
+            }
+
+            if ("f" == content)
+            {
+                boolValue = false;
+                return true;
+            }
+
+            if ("off" == content) // used in some check boxes
+            {
+                boolValue = false;
+                return true;
+            }
+
+            // TryParse may convert "on" to false TODO: Test theory
+            return bool.TryParse(content, out boolValue);
+        }
 
         //abstract class AtomicEntity<TKey, TDocument> : IDisposable
         //where TDocument : TableEntity, IDocument
