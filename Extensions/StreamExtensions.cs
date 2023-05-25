@@ -40,6 +40,7 @@ namespace EastFive
         {
             var memoryStream = new MemoryStream();
             stream.CopyTo(memoryStream);
+            memoryStream.Position = 0;
             return memoryStream;
         }
 
