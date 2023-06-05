@@ -1,11 +1,14 @@
-﻿using EastFive.Collections.Generic;
-using System;
+﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+
+using EastFive;
+using EastFive.Collections.Generic;
 using EastFive.Linq;
-using System.Diagnostics.CodeAnalysis;
+using EastFive.Reflection;
 
 namespace EastFive.Extensions
 {
@@ -315,6 +318,32 @@ namespace EastFive.Extensions
                 return (T)memberwiseCloneMethod.Invoke(obj, null);
             
             return null;
+        }
+
+        public static T CloneObjectPropertiesWithAttributeInterface<T>(this T obj, T objectToUpdate,
+            Type attributeInterface, bool skipNullAndDefault = false, bool inherit = false)
+        {
+            if (obj == null)
+                return objectToUpdate;
+
+            if (objectToUpdate == null)
+                return objectToUpdate;
+
+            return typeof(T)
+                .GetPropertyAndFieldsWithAttributesInterface(attributeInterface, inherit: inherit)
+                .Aggregate(
+                    objectToUpdate,
+                    (objToUpdate, memberInfo) =>
+                    {
+                        var v = memberInfo.GetPropertyOrFieldValue(obj);
+                        if(skipNullAndDefault)
+                        {
+                            if (v.IsDefaultOrNull())
+                                return objectToUpdate;
+                        }
+                        objToUpdate = (T)memberInfo.SetPropertyOrFieldValue(objToUpdate, v);
+                        return objToUpdate;
+                    });
         }
     }
 }

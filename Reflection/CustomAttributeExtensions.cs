@@ -172,6 +172,21 @@ namespace EastFive
                     });
         }
 
+        public static IEnumerable<MemberInfo> GetPropertyAndFieldsWithAttributesInterface(this Type type,
+            Type attributeInterfaceType, bool inherit = false)
+        {
+            if (!attributeInterfaceType.IsInterface)
+                throw new ArgumentException($"{attributeInterfaceType.FullName} is not an interface.");
+
+            return type
+                .GetPropertyOrFieldMembers()
+                .Where(
+                    (MemberInfo member) =>
+                    {
+                        return member.ContainsCustomAttribute(attributeInterfaceType, inherit: inherit);
+                    });
+        }
+
         public static IEnumerable<(ParameterInfo, T)> GetParametersAndAttributesInterface<T>(this System.Reflection.MethodInfo method,
             bool inherit = false)
         {
