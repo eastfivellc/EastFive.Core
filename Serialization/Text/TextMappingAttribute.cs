@@ -16,6 +16,7 @@ using EastFive.Reflection;
 
 namespace EastFive.Serialization.Text
 {
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = true)]
     public class TextMappingAttribute : ScopedMapTextAttribute
     {
         public virtual (MemberInfo, IMapTextProperty)[] GetPropertyMappers<TResource>()
@@ -47,9 +48,12 @@ namespace EastFive.Serialization.Text
                 parser.TextFieldType = FieldType.Delimited;
                 parser.HasFieldsEnclosedInQuotes = true;
                 parser.SetDelimiters(",");
-                var headers = parser
-                    .ReadLine()
-                    .Split(',');
+                var headerLine = parser
+                    .ReadLine();
+                var headers = headerLine.HasBlackSpace()?
+                    headerLine.Split(',')
+                    :
+                    new string[] { };
 
                 return Parse().ToArray();
 
@@ -91,13 +95,13 @@ namespace EastFive.Serialization.Text
         }
     }
 
-    public class TextMapping2Attribute : TextMappingAttribute{ }
-    public class TextMapping3Attribute : TextMappingAttribute { }
-    public class TextMapping4Attribute : TextMappingAttribute { }
-    public class TextMapping5Attribute : TextMappingAttribute { }
-    public class TextMapping6Attribute : TextMappingAttribute { }
-    public class TextMapping7Attribute : TextMappingAttribute { }
-    public class TextMapping8Attribute : TextMappingAttribute { }
-    public class TextMapping9Attribute : TextMappingAttribute { }
+    //public class TextMapping2Attribute : TextMappingAttribute{ }
+    //public class TextMapping3Attribute : TextMappingAttribute { }
+    //public class TextMapping4Attribute : TextMappingAttribute { }
+    //public class TextMapping5Attribute : TextMappingAttribute { }
+    //public class TextMapping6Attribute : TextMappingAttribute { }
+    //public class TextMapping7Attribute : TextMappingAttribute { }
+    //public class TextMapping8Attribute : TextMappingAttribute { }
+    //public class TextMapping9Attribute : TextMappingAttribute { }
 }
 

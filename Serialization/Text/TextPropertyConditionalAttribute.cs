@@ -8,6 +8,7 @@ using Newtonsoft.Json.Linq;
 
 namespace EastFive.Serialization.Text
 {
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = true)]
     public class TextPropertyConditionalAttribute : ScopedMapTextPropertyAttribute
     {
         public string Condition1 { get; set; }
@@ -153,12 +154,12 @@ namespace EastFive.Serialization.Text
         }
     }
 
-    public class TextPropertyConditional2Attribute : TextPropertyConditionalAttribute { };
-    public class TextPropertyConditional3Attribute : TextPropertyConditionalAttribute { };
-    public class TextPropertyConditional4Attribute : TextPropertyConditionalAttribute { };
-    public class TextPropertyConditional5Attribute : TextPropertyConditionalAttribute { };
-    public class TextPropertyConditional6Attribute : TextPropertyConditionalAttribute { };
-    public class TextPropertyConditional7Attribute : TextPropertyConditionalAttribute { };
-    public class TextPropertyConditional8Attribute : TextPropertyConditionalAttribute { };
+    //public class TextPropertyConditional2Attribute : TextPropertyConditionalAttribute { };
+    //public class TextPropertyConditional3Attribute : TextPropertyConditionalAttribute { };
+    //public class TextPropertyConditional4Attribute : TextPropertyConditionalAttribute { };
+    //public class TextPropertyConditional5Attribute : TextPropertyConditionalAttribute { };
+    //public class TextPropertyConditional6Attribute : TextPropertyConditionalAttribute { };
+    //public class TextPropertyConditional7Attribute : TextPropertyConditionalAttribute { };
+    //public class TextPropertyConditional8Attribute : TextPropertyConditionalAttribute { };
 }
 
