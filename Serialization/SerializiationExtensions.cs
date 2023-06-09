@@ -947,6 +947,15 @@ namespace EastFive.Serialization
 
         public static Guid ComposeGuid(this Guid guid1, string textKey)
         {
+            if (textKey.IsDefaultOrNull())
+            {
+                var noHashButChanged = guid1
+                    .ToByteArray()
+                    .ToArray()
+                    .MD5HashGuid();
+                return noHashButChanged;
+            }
+
             var id = guid1
                 .ToByteArray()
                 .Concat(
