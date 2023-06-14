@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
+
 using EastFive.Linq;
 
 namespace EastFive.Serialization.Text
@@ -30,7 +32,6 @@ namespace EastFive.Serialization.Text
                     },
                     () => throw new Exception("No matching scope."));
         }
-
     }
 }
 
