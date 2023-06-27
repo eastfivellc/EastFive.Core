@@ -1107,6 +1107,32 @@ namespace EastFive.Linq
                 item => (item.Item1, item.Item2));
         }
 
+#nullable enable
+
+        public static IEnumerable<T> SelectWhereDenull<T>(this IEnumerable<(bool, T?)> items)
+            where T : class
+        {
+            return SelectWhereDenull(items, default);
+        }
+
+        private static IEnumerable<T> SelectWhereDenull<T>(IEnumerable<(bool, T?)> items, T empty)
+            where T : class
+        {
+            return items
+                .SelectWhere<bool, T?, T>(
+                    item =>
+                    {
+                        if (!item.Item1)
+                            return (false, empty);
+
+                        if (item.Item2.TryIsNotDefaultOrNull(out T nonNullValue))
+                            return (true, nonNullValue);
+
+                        return (false, empty);
+                    });
+        }
+
+#nullable restore
 
         public delegate bool TrySelectDelegate<TItem, TOut>(TItem item, out TOut @out);
         public static IEnumerable<TOut> TrySelect<TItem, TOut>(this IEnumerable<TItem> items,
