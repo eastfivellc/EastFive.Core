@@ -28,7 +28,11 @@ namespace EastFive.Serialization.Parquet
                         var resources = attrInter.Parse<TResource>(parquetData, filters, extraStreams);
                         return resources;
                     },
-                    () => throw new Exception("No matching scope."));
+                    () =>
+                    {
+                        var msg = $"{typeof(TResource).FullName} does not have an attribute implementing {nameof(IMapParquet)}.";
+                        throw new Exception(msg);
+                    });
         }
 	
 	}
