@@ -135,7 +135,7 @@ namespace EastFive
             var uriBuilder = new UriBuilder(uri);
             var query = HttpUtility.ParseQueryString(uriBuilder.Query);
             query[parameter] = value;
-            uriBuilder.Query = query.ToString();
+            uriBuilder.Query = query.CompileQueryParameters();
             return uriBuilder.Uri;
         }
 
@@ -181,8 +181,26 @@ namespace EastFive
             var uriBuilder = new UriBuilder(uri);
             var query = HttpUtility.ParseQueryString(uriBuilder.Query);
             query.Remove(parameter);
-            uriBuilder.Query = query.ToString();
+            uriBuilder.Query = query.CompileQueryParameters();
             return uriBuilder.Uri;
+        }
+
+        /// <summary>
+        /// Compile the query parameters into a string without URL encoding the parameter values.
+        /// </summary>
+        /// <param name="queryParameters"></param>
+        /// <returns></returns>
+        public static string CompileQueryParameters(this System.Collections.Specialized.NameValueCollection queryParameters)
+        {
+            return queryParameters
+                .ToEnumerable()
+                .NullToEmpty()
+                .Select(
+                    (kvp) =>
+                    {
+                        return $"{kvp.key}={kvp.value}";
+                    })
+                .Join("&");
         }
 
         public static Uri CopyPathAndQuery(this Uri uri, Uri uriToCopyFrom)
