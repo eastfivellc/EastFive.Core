@@ -223,6 +223,19 @@ namespace EastFive.Collections.Generic
                 .ToDictionary();
         }
 
+        public static IEnumerable<(string key, string value)> ToEnumerable(this System.Collections.Specialized.NameValueCollection nameValueCollection)
+        {
+            if (nameValueCollection.IsDefaultOrNull())
+                return new (string, string)[] { };
+
+            if(nameValueCollection.AllKeys.IsDefaultOrNull())
+                return new (string, string)[] { };
+
+            return nameValueCollection.AllKeys
+                .Where(key => key != null)
+                .Select(key => (key, nameValueCollection[key]));
+        }
+
         /// <summary>
         /// If <paramref name="key"/> is contained in <paramref name="dictionary"/> then call <paramref name="onDictionaryHasValue"/>.
         /// Otherwise, call <paramref name="onAddValueSinceMissing"/> to add the key.
