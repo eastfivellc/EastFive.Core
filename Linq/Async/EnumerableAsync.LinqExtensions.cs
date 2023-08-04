@@ -1496,18 +1496,9 @@ namespace EastFive.Linq.Async
                 });
         }
 
-        [Obsolete("Use AggregateAsync")]
-        public static async Task<TResult[]> AsyncAggregateAsync<TItem, TResult>(this IEnumerableAsync<TItem> enumerable,
-            Func<TResult[], TItem, Task<TResult[]>> funcAsync)
+        public static IEnumerableAsync<TItem> AsAsyncEnumerable<TItem>(this TItem item)
         {
-            var accumulation = new TResult[] { }; // TODO: Should be a hash
-            var enumeratorAsync = enumerable.GetEnumerator();
-            while(await enumeratorAsync.MoveNextAsync())
-            {
-                var current = enumeratorAsync.Current;
-                accumulation = await funcAsync(accumulation, current);
-            }
-            return accumulation;
+            return EnumerableAsyncStart(item);
         }
 
     }
