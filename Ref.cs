@@ -111,6 +111,12 @@ namespace EastFive
             return false;
         }
 
+        public static IRef<TType> Parse(string input)
+        {
+            var guidResult = Guid.Parse(input);
+            return guidResult.AsRef<TType>();
+        }
+
         public static IRef<TType> SecureRef()
         {
             return SecureGuid.Generate().AsRef<TType>();
