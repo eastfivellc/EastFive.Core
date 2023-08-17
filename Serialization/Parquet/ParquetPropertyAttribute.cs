@@ -83,8 +83,14 @@ namespace EastFive.Serialization.Parquet
 
                 if (typeof(DateTime).IsAssignableFrom(rowValueType))
                 {
-                    var dtValue = (DateTime)rowValue;
                     var memberType = member.GetPropertyOrFieldType();
+                    var dtValue = memberType.IsNullable()?
+                        (rowValue.IsDefaultOrNull()?
+                            default(DateTime?)
+                            :
+                            (DateTime?)rowValue)
+                        :
+                        (DateTime)rowValue;
                     if (memberType.IsAssignableFrom(typeof(DateTime)))
                     {
                         Func<TResource, TResource> assign = (res) =>
