@@ -57,6 +57,16 @@ namespace EastFive.Reflection
                 $"Cannot determine type of {memberInfo.GetType().FullName} since it could not be casted to {typeof(PropertyInfo).Name} or {typeof(FieldInfo).Name}.");
         }
 
+        public static bool IsSettable(this MemberInfo memberInfo)
+        {
+            if (!typeof(PropertyInfo).IsAssignableFrom(memberInfo.GetType()))
+                return true;
+
+            var setter = (memberInfo as PropertyInfo).GetSetMethod(true);
+
+            return (setter != null);
+        }
+
         public static object SetPropertyOrFieldValue(this MemberInfo memberInfo, object objectToUpdate, object propertyOrFieldValue)
         {
             if (memberInfo is PropertyInfo)

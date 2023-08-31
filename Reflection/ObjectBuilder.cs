@@ -27,12 +27,18 @@ namespace EastFive.Reflection
 
         public static TSubclass PopulateSubclassWithParentValues<TBase, TSubclass>(this TBase baseObj, TSubclass subclassObj)
         {
-            foreach(var member in typeof(TBase).GetPropertyOrFieldMembers())
-            {
-                var value = member.GetPropertyOrFieldValue(baseObj);
-                subclassObj = (TSubclass)member.SetPropertyOrFieldValue(subclassObj, value);
-            }
-            return subclassObj;
+            return typeof(TBase)
+                .GetPropertyOrFieldMembers()
+                .Where(
+                    mi => mi.IsSettable())
+                .Aggregate(
+                    subclassObj,
+                    (objToPop, member) =>
+                    {
+
+                        var value = member.GetPropertyOrFieldValue(baseObj);
+                        return (TSubclass)member.SetPropertyOrFieldValue(objToPop, value);
+                    });
         }
     }
 }
