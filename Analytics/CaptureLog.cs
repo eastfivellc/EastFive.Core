@@ -49,7 +49,7 @@ namespace EastFive.Analytics
         public void LogCritical(string message)
         {
             this.logMessages.Enqueue($"WARNING:{message}");
-            passthrough.LogCritical(message);
+            passthrough.Critical(message);
         }
 
         public string[] Dump()

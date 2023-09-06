@@ -35,5 +35,12 @@ namespace EastFive.Analytics
                 return;
             logger.LogWarning(message);
         }
+
+        public static void Critical(this ILogger logger, string message)
+        {
+            if (logger.IsDefault())
+                return;
+            logger.LogCritical(message);
+        }
     }
 }
