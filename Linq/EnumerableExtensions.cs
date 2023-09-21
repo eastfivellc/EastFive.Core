@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -255,11 +256,6 @@ namespace EastFive.Linq
                     () => onDidNotContain());
         }
 
-        //public static IEnumerable<T> Append<T>(this IEnumerable<T> items, T item)
-        //{
-        //    return items.NullToEmpty().Concat(new T[] { item });
-        //}
-
         public static IEnumerable<T> AppendIf<T>(this IEnumerable<T> items, T item, bool condition)
         {
             if (!condition)
@@ -285,6 +281,14 @@ namespace EastFive.Linq
                 appendItems.Add(item);
             });
             return items.Concat(appendItems);
+        }
+
+
+        public static IEnumerable<T> ConcatIf<T>(this IEnumerable<T> items1, IEnumerable<T> items2, bool condition)
+        {
+            if (!condition)
+                return items1;
+            return items1.Concat(items2);
         }
 
         public static IEnumerable<T> RemoveItemAtIndex<T>(this IEnumerable<T> items, int index)
@@ -1041,6 +1045,45 @@ namespace EastFive.Linq
             }
         }
 
+        public static IEnumerable<T[]> Split<T>(this IEnumerable<T> items,
+            Func<T, T, bool> isSplittingPoint)
+        {
+            using(var enumerator = items.NullToEmpty().GetEnumerator())
+            {
+                if (!enumerator.MoveNext())
+                    yield break;
+
+                bool hasEnded = false;
+                while(!hasEnded)
+                {
+                    // Must be an array otherwise the enumerator will not iterate
+                    // and this function will be an infinite loop
+                    var subset = ProcessUntilSplit().ToArray(); 
+                    if(subset.Any())
+                        yield return subset;
+                }
+
+                IEnumerable<T> ProcessUntilSplit()
+                {
+                    var prior = enumerator.Current;
+                    yield return prior;
+
+                    while (enumerator.MoveNext())
+                    {
+                        var next = enumerator.Current;
+
+                        var shouldSplit = isSplittingPoint(prior, next);
+                        prior = next;
+                        if (shouldSplit)
+                            yield break;
+
+                        yield return next;
+                    }
+                    hasEnded = true;
+                }
+            }
+        }
+
 #if NET5_0_OR_GREATER
 
         public delegate bool TryPredicate<TItem, TOut>(TItem item, out TOut result);
@@ -1241,10 +1284,12 @@ namespace EastFive.Linq
             Func<TITem, TResult> onLast,
             Func<TResult> onEmpty)
         {
-            var enumerator = items.GetEnumerator();
-            if (!enumerator.MoveNext())
-                return onEmpty();
-            return onLast(items.Last());
+            using (var enumerator = items.GetEnumerator())
+            {
+                if (!enumerator.MoveNext())
+                    return onEmpty();
+                return onLast(items.Last());
+            }
         }
 
         public static IEnumerable<T> Pop<T>(this IEnumerable<T> items, out T nextItem)
@@ -1315,6 +1360,28 @@ namespace EastFive.Linq
                 current = iter.Current;
             }
             yield return last(lastValue, current);
+        }
+
+        public static IEnumerable<TItem> SelectIndexes<TItem>(this IEnumerable<TItem> items,
+            int[] indexes)
+        {
+            var itemsArray = items.ToArray();
+            foreach (var index in indexes)
+            {
+                if (index < itemsArray.Length)
+                    yield return itemsArray[index];
+            }
+        }
+
+        public static IEnumerable<(int, TItem)> SelectWithIndexes<TItem>(this IEnumerable<TItem> items,
+            int[] indexes)
+        {
+            var itemsArray = items.ToArray();
+            foreach (var index in indexes)
+            {
+                if (index < itemsArray.Length)
+                    yield return (index, itemsArray[index]);
+            }
         }
 
 #if NET5_0_OR_GREATER
@@ -1793,7 +1860,10 @@ namespace EastFive.Linq
             {
                 var compressedResults = compressor(current, iterator.Current);
                 if (!compressedResults.Any())
+                {
+                    current = iterator.Current;
                     continue;
+                }
 
                 current = compressedResults.Last();
                 foreach (var item in compressedResults.Take(compressedResults.Length - 1))
