@@ -237,5 +237,30 @@ namespace EastFive.Reflection
                 System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
             return valueProp.GetValue(valueTypeValue);
         }
+
+        public static IEnumerable<Type> GetAllSubClassTypes(this Type type,
+            Func<Assembly, bool> shouldCheckAssembly)
+        {
+            return AppDomain.CurrentDomain.GetAssemblies()
+                .Where(shouldCheckAssembly)
+                .SelectMany(
+                    a =>
+                    {
+                        try
+                        {
+                            return a.GetTypes();
+                        }
+                        catch (Exception)
+                        {
+                            return new Type[] { };
+                        }
+                    })
+                .Where(
+                    (possibleMatch) =>
+                    {
+                        return possibleMatch
+                            .IsSubClassOfGeneric(type);
+                    });
+        }
     }
 }
