@@ -262,5 +262,28 @@ namespace EastFive
             }
             return !refOptional2.HasValueNotNull();
         }
+
+        public static bool EqualsRef<T>(this IRefOptional<T> refOptional1, IRefOptional<T> refOptional2,
+                out bool areBothNull)
+            where T : IReferenceable
+        {
+            if (refOptional1.HasValueNotNull())
+            {
+                var refValue = refOptional1.Ref;
+                areBothNull = false;
+                return refValue.EqualsRef(refOptional2);
+            }
+            areBothNull = !refOptional2.HasValueNotNull();
+            return areBothNull;
+        }
+
+        public static bool EqualsRefAndHasValue<T>(this IRefOptional<T> refOptional1, IRefOptional<T> refOptional2)
+            where T : IReferenceable
+        {
+            var areEqual = refOptional1.EqualsRef(refOptional2, out var areBothNull);
+            if (areBothNull)
+                return false;
+            return areEqual;
+        }
     }
 }
