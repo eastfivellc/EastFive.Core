@@ -19,15 +19,16 @@ namespace EastFive
         Guid id { get; }
     }
 
-    public interface IRef
-    {
-        Guid id { get; }
-    }
-
     public interface IRef<TType> : IReferenceable // TODO: , IRef
         where TType : IReferenceable
     {
         // Guid id { get; }
+    }
+
+    public interface IImplementRef<TType> : IReferenceable // TODO: , IRef
+        where TType : IReferenceable
+    {
+        Type type { get; }
     }
 
     #endregion
@@ -57,7 +58,7 @@ namespace EastFive
     }
 
     public interface IRefs<TType> : IReferences, IEnumerable<IRef<TType>>
-        where  TType : IReferenceable
+        where TType : IReferenceable
     {
         IRef<TType>[] refs { get; }
     }
@@ -81,11 +82,11 @@ namespace EastFive
                 id = value,
             };
         }
-        
+
         public static implicit operator Ref<TType>(TType value)
         {
-            return value.IsDefault() ? 
-                default(Ref<TType>) 
+            return value.IsDefault() ?
+                default(Ref<TType>)
                 :
                 new Ref<TType>(value.id);
         }
@@ -128,6 +129,70 @@ namespace EastFive
             return $"{this.id}<{typeName}>";
         }
 
+    }
+
+    public struct ImplementRef<TInterface, TType> : IImplementRef<TInterface>
+        where TInterface : IReferenceable
+        where TType : TInterface
+    {
+        public Guid id { get; private set; }
+
+        public Type type => typeof(TType);
+
+        public ImplementRef(Guid id) : this()
+        {
+            this.id = id;
+        }
+
+        public static implicit operator ImplementRef<TInterface, TType>(Guid value)
+        {
+            return new ImplementRef<TInterface, TType>()
+            {
+                id = value,
+            };
+        }
+
+        public static implicit operator ImplementRef<TInterface, TType>(TInterface value)
+        {
+            return value.IsDefault() ?
+                default(ImplementRef<TInterface, TType>)
+                :
+                new ImplementRef<TInterface, TType>(value.id);
+        }
+
+        public static IImplementRef<TInterface> NewRef()
+        {
+            return Guid.NewGuid().AsImplementRef<TInterface, TType>();
+        }
+
+        public static IImplementRef<TInterface> NewRef(string guidString)
+        {
+            return new Guid(guidString).AsImplementRef<TInterface, TType>();
+        }
+
+        public static bool TryParse(string input, out IImplementRef<TInterface> result)
+        {
+            if (Guid.TryParse(input, out Guid guidResult))
+            {
+                result = guidResult.AsImplementRef<TInterface, TType>();
+                return true;
+            }
+            result = default;
+            return false;
+        }
+
+        public static IImplementRef<TInterface> Parse(string input)
+        {
+            var guidResult = Guid.Parse(input);
+            return guidResult.AsImplementRef<TInterface, TType>();
+        }
+
+        public override string ToString()
+        {
+            var typeName = typeof(TType).FullName;
+            var interfaceName = typeof(TInterface).FullName;
+            return $"{this.id}<{interfaceName}:{typeName}>";
+        }
     }
 
     public static class RefOptionalHelper

@@ -205,6 +205,27 @@ namespace EastFive
 
         }
 
+        public static IImplementRef<TInterface> AsImplementRef<TInterface, TType>(this Guid id)
+            where TInterface : IReferenceable
+            where TType : TInterface
+        {
+            return new ImplementRef<TInterface, TType>(id);
+        }
+
+        public static IImplementRef<TInterface> AsImplementRef<TInterface, TType>(this IRef<TType> @ref)
+            where TInterface : IReferenceable
+            where TType : TInterface
+        {
+            return @ref.id.AsImplementRef<TInterface, TType>();
+        }
+
+        public static void AsImplementRef<TInterface, TType>(this IRef<TType> @ref, out IImplementRef<TInterface> implementRef)
+            where TInterface : IReferenceable
+            where TType : TInterface
+        {
+            implementRef = @ref.id.AsImplementRef<TInterface, TType>();
+        }
+
         public static bool HasValueNotNull<T>(this IRefOptional<T> refOptional) 
             where T : IReferenceable
         {
@@ -236,6 +257,12 @@ namespace EastFive
         public static bool EqualsRef<T>(this IRef<T> refValue1, IRef<T> refValue2)
             where T : IReferenceable
         {
+            if (refValue1.IsDefaultOrNull())
+                return refValue2.IsDefaultOrNull();
+
+            if (refValue2.IsDefaultOrNull())
+                return false;
+
             return refValue1.id == refValue2.id;
         }
 
