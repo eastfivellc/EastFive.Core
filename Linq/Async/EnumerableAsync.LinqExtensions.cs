@@ -260,6 +260,13 @@ namespace EastFive.Linq.Async
                 .Select(valueMaybe => valueMaybe as TCast);
         }
 
+        public static IEnumerableAsync<TCast> CastAsBase<T, TCast>(this IEnumerableAsync<T> enumerable)
+            where T : TCast
+        {
+            return enumerable
+                .Select(valueMaybe => (TCast)valueMaybe);
+        }
+
         public static IEnumerableAsync<TCast> CastDynamicAs<TCast>(this IEnumerableAsync<dynamic> enumerable)
         {
             return enumerable
