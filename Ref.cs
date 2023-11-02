@@ -358,6 +358,12 @@ namespace EastFive
                 .GetEnumerator();
         }
 
+        //IEnumerator<Guid> IEnumerable<Guid>.GetEnumerator()
+        //{
+        //    var safeIds = ids ?? new Guid[] { };
+        //    return safeIds.AsEnumerable<Guid>().GetEnumerator();
+        //}
+
         public static implicit operator Refs<TType>(Guid [] values)
         {
             return new Refs<TType>(values);

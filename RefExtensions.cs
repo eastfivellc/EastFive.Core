@@ -223,6 +223,11 @@ namespace EastFive
             where TInterface : IReferenceable
             where TType : TInterface
         {
+            if(@ref.IsDefaultOrNull())
+            {
+                implementRef = default;
+                return;
+            }
             implementRef = @ref.id.AsImplementRef<TInterface, TType>();
         }
 
