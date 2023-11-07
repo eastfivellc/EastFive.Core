@@ -253,7 +253,7 @@ namespace EastFive.Serialization
             if (type.IsArray)
             {
                 return content.MatchRegexInvoke(
-                    @"(\[(?<index>[0-9]+)\]=)?(?<value>([^\;]|(?<=\\)\;)+)",
+                    @"(\[(?<index>[0-9]+)\]=)(?<value>([^\;]|(?<=\\)\;)+)",
                     (index, value) => index.PairWithValue(value),
                     onMatched: tpls =>
                     {
@@ -272,6 +272,10 @@ namespace EastFive.Serialization
                                 match => match.item.Value.PairWithKey(match.@out))
                             .ToDictionary();
 
+                        if(matchesDictionary.IsDefaultNullOrEmpty())
+                        {
+                            return TryMatchJsonStyle();
+                        }
 
                         // matchesDictionary.Keys will throw if empty
                         var ordered = matchesDictionary.IsDefaultNullOrEmpty() ?
@@ -315,6 +319,64 @@ namespace EastFive.Serialization
                                                 return onParsed(value);
                                             });
                                 });
+
+                        TResult TryMatchJsonStyle()
+                        {
+                            return content.MatchRegexInvoke(
+                                @"\[(?<items>[^\[\]]+)\]",
+                                (items) => items,
+                                onMatched: tpls =>
+                                {
+                                    return tpls.NullToEmpty().Single(
+                                        tpl => TryDelimited(tpl),
+                                        onNoneOrMultiple: () => TryDelimited(content));
+                                });
+                        }
+
+                        TResult TryDelimited(string delimitedContent)
+                        {
+                            if (delimitedContent.Contains(';'))
+                                return DoSplit(';');
+                            if (delimitedContent.Contains(','))
+                                return DoSplit(',');
+
+                            return onParsed(delimitedContent.AsArray());
+
+                            TResult DoSplit(char delimiter)
+                            {
+                                var values = delimitedContent
+                                    .Split(delimiter)
+                                    .Select(v => v.Trim());
+
+                                return Trim(new char[] { '\'', '"' });
+
+                                TResult Trim(char[] trimChars)
+                                {
+                                    if (trimChars.IsDefaultNullOrEmpty())
+                                        return onParsed(values);
+
+                                    var trimChar = trimChars.First();
+                                    var allValuesInQuotes = values
+                                        .All(
+                                            v =>
+                                            {
+                                                if (!v.StartsWith(trimChar))
+                                                    return false;
+                                                if (!v.EndsWith(trimChar))
+                                                    return false;
+
+                                                return true;
+                                            });
+                                    if (allValuesInQuotes)
+                                    {
+                                        var trimmedValues = values.Select(v => v.Trim(trimChar)).ToArray();
+                                        return onParsed(trimmedValues);
+                                    }
+
+                                    return Trim(trimChars.Skip(1).ToArray());
+                                }
+                            }
+                        }
 
                     });
                 // return onDidNotBind($"Array not formatted correctly. It must be [0]=asdf;[1]=qwer;[2]=zxcv");
