@@ -120,15 +120,15 @@ namespace EastFive
         /// <returns></returns>
         public static bool TryGetNullableValue(this object nullableValue, out object nonNullValue)
         {
-            var nullableType = nullableValue.GetType();
-            if (!nullableType.TryGetNullableUnderlyingType(out Type nonNullableType))
-                throw new ArgumentException($"`{nullableType.FullName}` is not nullable.");
-
             if (nullableValue.IsDefaultOrNull())
             {
                 nonNullValue = default;
                 return false;
             }
+
+            var nullableType = nullableValue.GetType();
+            if (!nullableType.TryGetNullableUnderlyingType(out Type nonNullableType))
+                throw new ArgumentException($"`{nullableType.FullName}` is not nullable.");
 
             nonNullValue = Convert.ChangeType(nullableValue, nonNullableType);
             return true;
