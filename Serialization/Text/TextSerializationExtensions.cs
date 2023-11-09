@@ -30,7 +30,7 @@ namespace EastFive.Serialization.Text
                         var resources = attrInter.Parse<TResource>(csvData, filters, extraStreams);
                         return resources;
                     },
-                    () => throw new Exception("No matching scope."));
+                    () => throw new Exception($"{typeof(TResource).FullName} does not have any attributes implementing {typeof(IMapText).FullName}."));
         }
     }
 }

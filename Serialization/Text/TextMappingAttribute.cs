@@ -94,14 +94,5 @@ namespace EastFive.Serialization.Text
             }
         }
     }
-
-    //public class TextMapping2Attribute : TextMappingAttribute{ }
-    //public class TextMapping3Attribute : TextMappingAttribute { }
-    //public class TextMapping4Attribute : TextMappingAttribute { }
-    //public class TextMapping5Attribute : TextMappingAttribute { }
-    //public class TextMapping6Attribute : TextMappingAttribute { }
-    //public class TextMapping7Attribute : TextMappingAttribute { }
-    //public class TextMapping8Attribute : TextMappingAttribute { }
-    //public class TextMapping9Attribute : TextMappingAttribute { }
 }
 
