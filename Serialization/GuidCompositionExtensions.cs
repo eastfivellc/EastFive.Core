@@ -116,6 +116,11 @@ namespace EastFive.Serialization
             return id;
         }
 
-
+        public static Guid ComposeGuid(this Guid guid1, IReferenceable refRef)
+        {
+            var refId = refRef.IsDefaultOrNull() ? default(Guid) : refRef.id;
+            var id = guid1.ToByteArray().Concat(refId.ToByteArray()).ToArray().MD5HashGuid();
+            return id;
+        }
     }
 }
