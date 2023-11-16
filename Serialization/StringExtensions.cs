@@ -335,6 +335,8 @@ namespace EastFive.Serialization
 
                         TResult TryDelimited(string delimitedContent)
                         {
+                            if (delimitedContent.IsDefaultOrNull())
+                                return onParsed(new string[] { });
                             if (delimitedContent.Contains(';'))
                                 return DoSplit(';');
                             if (delimitedContent.Contains(','))
