@@ -6,6 +6,7 @@
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace EastFive.Serialization
 {
@@ -25,6 +26,11 @@ namespace EastFive.Serialization
         private const uint prime32v3 = 3266489917u;
         private const uint prime32v4 = 668265263u;
         private const uint prime32v5 = 374761393u;
+
+        public static uint HashXX32(this string buffer, uint seed = 0, Encoding encoding = null)
+        {
+            return buffer.GetBytes(encoding).HashXX32(seed);
+        }
 
         public static unsafe uint HashXX32(this byte[] buffer, uint seed = 0)
             => new ReadOnlySpan<byte>(buffer).HashXX32(seed: seed);

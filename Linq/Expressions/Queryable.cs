@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace EastFive.Linq
 {
     public class Queryable<T, TQueryProvider> : IQueryable<T>
-        where TQueryProvider : QueryProvider<Queryable<T, TQueryProvider>>
+        where TQueryProvider : IQueryProvider
     {
         private TQueryProvider provider;
 
