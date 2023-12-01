@@ -113,10 +113,15 @@ namespace EastFive.Serialization.Text
                 Func<TResource, TResource> noAssign = (res) => res;
                 return noAssign;
             }
-            if (rowValue.TryParseRef(type, out object refObj))
+            if (rowValue.TryParseRef(type, out object refObj, out var didMatch))
             {
                 Func<TResource, TResource> assign = (res) =>
                     (TResource)member.SetPropertyOrFieldValue(res, refObj);
+                return assign;
+            }
+            if (didMatch)
+            {
+                Func<TResource, TResource> assign = (res) => res;
                 return assign;
             }
             throw new Exception($"{nameof(TextPropertyAttribute)} cannot parse {type.FullName} on {member.DeclaringType.FullName}..{member.Name}");

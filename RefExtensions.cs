@@ -103,7 +103,7 @@ namespace EastFive
             if (objType.IsAssignableTo(typeof(string)))
             {
                 var refStr = (string)refObj;
-                return refStr.TryParseRef(type, out parsedRefObj);
+                return refStr.TryParseRef(type, out parsedRefObj, out var didMatchType);
             }
 
             parsedRefObj = type.GetDefault();
@@ -116,10 +116,12 @@ namespace EastFive
             return Ref<T>.NewRef(guidString);
         }
 
-        public static bool TryParseRef(this string refString, Type type, out object parsedRefObj)
+        public static bool TryParseRef(this string refString, Type type,
+            out object parsedRefObj, out bool didMatch)
         {
             if (type.IsSubClassOfGeneric(typeof(IReferenceable)))
             {
+                didMatch = true;
                 if (type.IsSubClassOfGeneric(typeof(IRef<>)))
                 {
                     var refType = typeof(Ref<>).MakeGenericType(type.GenericTypeArguments);
@@ -135,6 +137,7 @@ namespace EastFive
 
             if (type.IsSubClassOfGeneric(typeof(IReferenceableOptional)))
             {
+                didMatch = true;
                 if (type.IsSubClassOfGeneric(typeof(IRefOptional<>)))
                 {
                     var refType = typeof(RefOptional<>).MakeGenericType(type.GenericTypeArguments);
@@ -150,6 +153,7 @@ namespace EastFive
 
             if (type.IsSubClassOfGeneric(typeof(IReferences)))
             {
+                didMatch = true;
                 if (type.IsSubClassOfGeneric(typeof(IRefs<>)))
                 {
                     var ids = GetGuids();
@@ -159,6 +163,7 @@ namespace EastFive
                 }
             }
 
+            didMatch = false;
             parsedRefObj = type.GetDefault();
             return false;
 
