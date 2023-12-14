@@ -59,6 +59,9 @@ namespace EastFive
         public static IRefOptional<T> Optional<T>(this IRef<T> baseRef)
             where T : IReferenceable
         {
+            if (baseRef == null)
+                return RefOptional<T>.Empty();
+
             return new RefOptional<T>(baseRef);
         }
 
