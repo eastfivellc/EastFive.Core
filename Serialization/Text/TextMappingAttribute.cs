@@ -65,6 +65,9 @@ namespace EastFive.Serialization.Text
                         try
                         {
                             var fields = parser.ReadFields();
+                            if (fields.NullToEmpty().Where(field => field.HasBlackSpace()).None())
+                                continue;
+
                             var values = headers.CollateSimple(fields).ToArray();
 
                             resource = ParseResource(membersAndMappers, values);
