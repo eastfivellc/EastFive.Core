@@ -65,10 +65,19 @@ namespace EastFive.Serialization.Text
             }
             if (typeof(DateTime).IsAssignableTo(type))
             {
-                DateTime.TryParse(rowValue, out DateTime dtValue);
-                Func<TResource, TResource> assign = (res) =>
-                    (TResource)member.SetPropertyOrFieldValue(res, dtValue);
-                return assign;
+                var didParseDt = DateTime.TryParse(rowValue, out DateTime dtValue);
+                if((!didParseDt) && type.IsNullable())
+                {
+                    Func<TResource, TResource> assign = (res) =>
+                        (TResource)member.SetPropertyOrFieldValue(res, default(DateTime?));
+                    return assign;
+                }
+                else
+                {
+                    Func<TResource, TResource> assign = (res) =>
+                        (TResource)member.SetPropertyOrFieldValue(res, dtValue);
+                    return assign;
+                }
             }
             if (typeof(bool).IsAssignableTo(type))
             {
