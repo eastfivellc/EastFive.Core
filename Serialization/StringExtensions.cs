@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
@@ -252,140 +253,140 @@ namespace EastFive.Serialization
 
             if (type.IsArray)
             {
-                return content.MatchRegexInvoke(
-                    @"(\[(?<index>[0-9]+)\]=)(?<value>([^\;]|(?<=\\)\;)+)",
-                    (index, value) => index.PairWithValue(value),
-                    onMatched: tpls =>
-                    {
-                        // either abc;def
-                        // or [0]=abc;[1]=def
-                        var matchesDictionary = tpls.Any(kvp => string.IsNullOrEmpty(kvp.Key))
-                            ? tpls
-                            .Select(
-                                (kvp, index) => kvp.Value.PairWithKey(index))
-                            .ToDictionary()
-                            : tpls
-                            .TryWhere(
-                                (KeyValuePair<string, string> kvp, out int indexedValue) =>
-                                    int.TryParse(kvp.Key, out indexedValue))
-                            .Select(
-                                match => match.item.Value.PairWithKey(match.@out))
-                            .ToDictionary();
+                var arrayType = type.GetElementType();
+                var parsedAndBindedStringsTpl = content
+                    .ParseStringToArray()
+                    .Select(
+                        value => BindTo(value, arrayType,
+                            v => (0, v),
+                            why => (1, why),
+                            why => (2, why)))
+                    .ToArray();
 
-                        if(matchesDictionary.IsDefaultNullOrEmpty())
+                return parsedAndBindedStringsTpl
+                    .Where(tpl => tpl.Item1 != 0)
+                    .First(
+                        (tpl, next) => onBindingFailure((string)tpl.Item2),
+                        () =>
                         {
-                            return TryMatchJsonStyle();
-                        }
-
-                        // matchesDictionary.Keys will throw if empty
-                        var ordered = matchesDictionary.IsDefaultNullOrEmpty() ?
-                            new (bool, string)[] { }
-                            :
-                            Enumerable
-                                .Range(0, matchesDictionary.Keys.Max() + 1)
-                                .Select(
-                                    (index) =>
-                                    {
-                                        if (!matchesDictionary.TryGetValue(index, out string value))
-                                            return (false, $"Missing index {index}");
-                                        return (true, value);
-                                    })
-                                .ToArray();
-
-                        var arrayType = type.GetElementType();
-                        return ordered
-                            .Where(tpl => !tpl.Item1)
-                            .First(
-                                (tpl, next) => onBindingFailure(tpl.Item2),
-                                () =>
-                                {
-                                    var parsed = ordered
-                                        .SelectWhere()
-                                        .Select(value => BindTo(value, arrayType,
-                                            v => (0, v),
-                                            why => (1, why),
-                                            why => (2, why)))
-                                        .ToArray();
-                                    return parsed
-                                        .Where(tpl => tpl.Item1 != 0)
-                                        .First(
-                                            (tpl, next) => onBindingFailure((string)tpl.Item2),
-                                            () =>
-                                            {
-                                                var value = parsed
-                                                    .Select(tpl => tpl.Item2)
-                                                    .ToArray()
-                                                    .CastArray(arrayType);
-                                                return onParsed(value);
-                                            });
-                                });
-
-                        TResult TryMatchJsonStyle()
-                        {
-                            return content.MatchRegexInvoke(
-                                @"\[(?<items>[^\[\]]+)\]",
-                                (items) => items,
-                                onMatched: tpls =>
-                                {
-                                    return tpls.NullToEmpty().Single(
-                                        tpl => TryDelimited(tpl),
-                                        onNoneOrMultiple: () => TryDelimited(content));
-                                });
-                        }
-
-                        TResult TryDelimited(string delimitedContent)
-                        {
-                            if (delimitedContent.IsDefaultOrNull())
-                                return onParsed(new string[] { });
-                            if (delimitedContent.Contains(';'))
-                                return DoSplit(';');
-                            if (delimitedContent.Contains(','))
-                                return DoSplit(',');
-
-                            return onParsed(delimitedContent.AsArray());
-
-                            TResult DoSplit(char delimiter)
-                            {
-                                var values = delimitedContent
-                                    .Split(delimiter)
-                                    .Select(v => v.Trim())
-                                    .ToArray();
-
-                                return Trim(new char[] { '\'', '"' });
-
-                                TResult Trim(char[] trimChars)
-                                {
-                                    if (trimChars.IsDefaultNullOrEmpty())
-                                        return onParsed(values);
-
-                                    var trimChar = trimChars.First();
-                                    var allValuesInQuotes = values
-                                        .All(
-                                            v =>
-                                            {
-                                                if (!v.StartsWith(trimChar))
-                                                    return false;
-                                                if (!v.EndsWith(trimChar))
-                                                    return false;
-
-                                                return true;
-                                            });
-                                    if (allValuesInQuotes)
-                                    {
-                                        var trimmedValues = values.Select(v => v.Trim(trimChar)).ToArray();
-                                        return onParsed(trimmedValues);
-                                    }
-
-                                    return Trim(trimChars.Skip(1).ToArray());
-                                }
-                            }
-                        }
-
-                    });
-                // return onDidNotBind($"Array not formatted correctly. It must be [0]=asdf;[1]=qwer;[2]=zxcv");
+                            var value = parsedAndBindedStringsTpl
+                                .Select(tpl => tpl.Item2)
+                                .ToArray()
+                                .CastArray(arrayType);
+                            return onParsed(value);
+                        });
             }
 
             return onDidNotBind($"No binding for type `{type.FullName}` provided by {typeof(StringExtensions).FullName}..{nameof(BindTo)}");
+        }
+
+        public static string [] ParseStringToArray(this string content)
+        {
+            return content.MatchRegexInvoke(
+                @"(\[(?<index>[0-9]+)\]=)(?<value>([^\;]|(?<=\\)\;)+)",
+                (index, value) => index.PairWithValue(value),
+                onMatched: tpls =>
+                {
+                    // either abc;def
+                    // or [0]=abc;[1]=def
+                    var matchesDictionary = tpls.Any(kvp => string.IsNullOrEmpty(kvp.Key))?
+                            tpls
+                                .Select(
+                                    (kvp, index) => kvp.Value.PairWithKey(index))
+                                .ToDictionary()
+                        :
+                            tpls
+                                .TryWhere(
+                                    (KeyValuePair<string, string> kvp, out int indexedValue) =>
+                                        int.TryParse(kvp.Key, out indexedValue))
+                                .Select(
+                                    match => match.item.Value.PairWithKey(match.@out))
+                                .ToDictionary();
+
+                    if(matchesDictionary.IsDefaultNullOrEmpty())
+                    {
+                        return TryMatchJsonStyle();
+                    }
+
+                    // matchesDictionary.Keys will throw if empty
+                    var extractedItems = Enumerable
+                        .Range(0, matchesDictionary.Keys.Max() + 1)
+                        .Select(
+                            (index) =>
+                            {
+                                if (!matchesDictionary.TryGetValue(index, out string value))
+                                    return (false, $"Missing index {index}");
+                                return (true, value);
+                            })
+                        .SelectWhere()
+                        .ToArray();
+
+                    return extractedItems;
+
+                    string[] TryMatchJsonStyle()
+                    {
+                        return content.MatchRegexInvoke(
+                            @"\[(?<items>[^\[\]]+)\]",
+                            (items) => items,
+                            onMatched: tpls =>
+                            {
+                                return tpls
+                                    .NullToEmpty()
+                                    .Single(
+                                        tpl => TryDelimited(tpl),
+                                        onNoneOrMultiple: () => TryDelimited(content));
+                            });
+                    }
+
+                    string[] TryDelimited(string delimitedContent)
+                    {
+                        if (delimitedContent.IsDefaultOrNull())
+                            return new string[] { };
+                        if (delimitedContent.Contains(';'))
+                            return DoSplit(';');
+                        if (delimitedContent.Contains(','))
+                            return DoSplit(',');
+
+                        return delimitedContent.AsArray();
+
+                        string[] DoSplit(char delimiter)
+                        {
+                            var values = delimitedContent
+                                .Split(delimiter)
+                                .Select(v => v.Trim())
+                                .ToArray();
+
+                            return Trim(new char[] { '\'', '"' });
+
+                            string [] Trim(char[] trimChars)
+                            {
+                                if (trimChars.IsDefaultNullOrEmpty())
+                                    return values;
+
+                                var trimChar = trimChars.First();
+                                var allValuesInQuotes = values
+                                    .All(
+                                        v =>
+                                        {
+                                            if (!v.StartsWith(trimChar))
+                                                return false;
+                                            if (!v.EndsWith(trimChar))
+                                                return false;
+
+                                            return true;
+                                        });
+                                if (allValuesInQuotes)
+                                {
+                                    var trimmedValues = values.Select(v => v.Trim(trimChar)).ToArray();
+                                    return trimmedValues;
+                                }
+
+                                return Trim(trimChars.Skip(1).ToArray());
+                            }
+                        }
+                    }
+                });
+                // return onDidNotBind($"Array not formatted correctly. It must be [0]=asdf;[1]=qwer;[2]=zxcv");
         }
 
         public static bool TryParseBool(this string boolStr, out bool boolValue)
