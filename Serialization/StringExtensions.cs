@@ -348,7 +348,8 @@ namespace EastFive.Serialization
                             {
                                 var values = delimitedContent
                                     .Split(delimiter)
-                                    .Select(v => v.Trim());
+                                    .Select(v => v.Trim())
+                                    .ToArray();
 
                                 return Trim(new char[] { '\'', '"' });
 
