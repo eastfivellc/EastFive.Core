@@ -7,7 +7,7 @@ using EastFive.Reflection;
 
 namespace EastFive.Serialization.Text
 {
-
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = true)]
     public class TextIdAttribute : ScopedMapTextPropertyAttribute
     {
         public string Fields { get; set; }
@@ -46,9 +46,5 @@ namespace EastFive.Serialization.Text
             return resource;
         }
     }
-
-    public class TextId2Attribute : TextIdAttribute { }
-
-    public class TextId3Attribute : TextIdAttribute { }
 }
 

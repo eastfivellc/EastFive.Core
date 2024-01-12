@@ -16,6 +16,16 @@ namespace EastFive.Serialization.Text
 
         public bool IgnoreWhitespace { get; set; } = false;
 
+        public TextPropertyAttribute()
+        {
+
+        }
+
+        public TextPropertyAttribute(string name)
+        {
+            this.Name = name;
+        }
+
         public override TResource ParseRow<TResource>(TResource resource,
             MemberInfo member, (string key, string value)[] rowValues)
         {
