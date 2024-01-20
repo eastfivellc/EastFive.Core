@@ -35,6 +35,36 @@ namespace EastFive
                 yield return capture;
         }
 
+        public static IEnumerable<(string name, string value)[]> AsSuccessfulMatchValues(this MatchCollection collection)
+        {
+            return collection
+                .AsMatches()
+                .Where(match => match.Success)
+                .Select(
+                    (match) =>
+                    {
+                        var matchingGroups = match.Groups
+                            .AsGroups()
+                            .Skip(1)
+                            .Where(
+                                groupMaybe =>
+                                {
+                                    var isGroup = groupMaybe is System.Text.RegularExpressions.Group;
+                                    return isGroup;
+                                })
+                            .Select(
+                                groupCast =>
+                                {
+                                    var group = groupCast as System.Text.RegularExpressions.Group;
+                                    var groupName = group.Name;
+                                    return (name: group.Name, value: group.Value);
+                                })
+                            .ToArray();
+
+                        return matchingGroups;
+                    });
+        }
+
         /// <summary>
         /// Populates an object of type <typeparamref name="T"/> for each matching expression. The objects' properties are specified in <paramref name="expressions"/>
         /// </summary>
@@ -70,28 +100,45 @@ namespace EastFive
             var regex = new Regex(regularExpression);
             var results = regex
                 .Matches(input)
-                .AsMatches()
-                .Where(match => match.Success && match.Groups.Count == (expressions.Length + 1))
+                .AsSuccessfulMatchValues() // .AsMatches()
+                //.Where(match => match.Success && match.Groups.Count == (expressions.Length + 1))
+                .Where(match => match.Length == (expressions.Length + 1))
                 .Select(
-                    (match) =>
+                    (matchItems) =>
                     {
-                        var groups = match.Groups.AsGroups().Skip(1).ToArray();
+                        // var groups = match.Groups.AsGroups().Skip(1).ToArray();
 
                         var assignmentCollection = expressionLookup
                             .Select(
                                 expKvp =>
                                 {
-                                    var matchingGroups = groups
+                                    return matchItems
                                         .Where(
-                                            group =>
+                                            matchItem =>
                                             {
-                                                var groupName = group.Name;
-                                                return groupName == expKvp.Key;
+                                                return matchItem.name == expKvp.Key;
+                                            })
+                                        .First(
+                                            (matchItem, next) =>
+                                            {
+                                                return expKvp.Value.PairWithValue(matchItem.value);
+                                            },
+                                            () =>
+                                            {
+                                                return default(KeyValuePair<MemberInfo, string>?);
                                             });
-                                    if (!matchingGroups.Any())
-                                        return default(KeyValuePair<MemberInfo, string>?);
 
-                                    return expKvp.Value.PairWithValue(matchingGroups.First().Value);
+                                    //var matchingGroups = groups
+                                    //    .Where(
+                                    //        group =>
+                                    //        {
+                                    //            var groupName = group.Name;
+                                    //            return groupName == expKvp.Key;
+                                    //        });
+                                    //if (!matchingGroups.Any())
+                                    //    return default(KeyValuePair<MemberInfo, string>?);
+
+                                    //return expKvp.Value.PairWithValue(matchingGroups.First().Value);
                                 })
                             .SelectWhereHasValue()
                             .ToArray();
@@ -360,7 +407,7 @@ namespace EastFive
 
 
         public static bool TryMatchRegex(this string input, string regularExpression,
-            out (string, string)[] matches,
+            out (string name, string value)[] matches,
             RegexOptions? optionsMaybe = default(RegexOptions?))
         {
             if (input.IsNullOrWhiteSpace())
@@ -379,15 +426,18 @@ namespace EastFive
                     new Regex(regularExpression, optionsMaybe.Value)
                     :
                     new Regex(regularExpression);
-                var totalMatches = regex
+                var successfulMatches = regex
                     .Matches(input)
-                    .AsMatches()
-                    .ToArray();
-                matches = totalMatches
-                    .Where(match => match.Success)
-                    .Select(match => (match.Name, match.Value))
-                    .ToArray();
-                return matches.Any();
+                    .AsSuccessfulMatchValues();
+
+                if(successfulMatches.None())
+                {
+                    matches = new (string name, string value)[] { };
+                    return false;
+                }
+
+                matches = successfulMatches.First();
+                return true;
             } catch (RegexParseException)
             {
                 matches = default;
