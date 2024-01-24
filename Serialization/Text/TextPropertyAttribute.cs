@@ -35,18 +35,13 @@ namespace EastFive.Serialization.Text
                 .Where(
                     tpl =>
                     {
-                        if (!this.IgnoreWhitespace)
-                            return String.Equals(this.Name, tpl.key, ComparisonType);
-
-                        var nameNoWhitespace = this.Name.RemoveWhitespace();
-                        var keyNoWhitespace = tpl.key.RemoveWhitespace();
-                        return String.Equals(nameNoWhitespace, keyNoWhitespace, ComparisonType);
+                        return IsMatch(tpl.key, tpl.value);
                     })
                 .First(
                     (rowKeyValue, next) =>
                     {
                         var (rowKey, rowValue) = rowKeyValue;
-                        var assign = ParseAssignment<TResource>(type, member, rowValue, this.ComparisonType);
+                        var assign = member.ParseTextAsAssignment<TResource>(type, rowValue, this.ComparisonType);
                         return assign;
                     },
                     () =>
@@ -57,104 +52,22 @@ namespace EastFive.Serialization.Text
             return assignment(resource);
         }
 
-        public static Func<TResource, TResource> ParseAssignment<TResource>(Type type, MemberInfo member, string rowValue,
-            StringComparison comparisonType)
+        public virtual bool IsMatch(string key, string value)
         {
-            if (typeof(string).IsAssignableTo(type))
-            {
-                Func<TResource, TResource> assign = (res) =>
-                    (TResource)member.SetPropertyOrFieldValue(res, rowValue);
-                return assign;
-            }
-            if (typeof(Guid).IsAssignableTo(type))
-            {
-                Guid.TryParse(rowValue, out Guid guidValue);
-                Func<TResource, TResource> assign = (res) =>
-                    (TResource)member.SetPropertyOrFieldValue(res, guidValue);
-                return assign;
-            }
-            if (typeof(DateTime).IsAssignableTo(type))
-            {
-                var didParseDt = DateTime.TryParse(rowValue, out DateTime dtValue);
-                if((!didParseDt) && type.IsNullable())
-                {
-                    Func<TResource, TResource> assign = (res) =>
-                        (TResource)member.SetPropertyOrFieldValue(res, default(DateTime?));
-                    return assign;
-                }
-                else
-                {
-                    Func<TResource, TResource> assign = (res) =>
-                        (TResource)member.SetPropertyOrFieldValue(res, dtValue);
-                    return assign;
-                }
-            }
-            if (typeof(bool).IsAssignableTo(type))
-            {
-                bool.TryParse(rowValue, out bool boolValue);
-                Func<TResource, TResource> assign = (res) =>
-                    (TResource)member.SetPropertyOrFieldValue(res, boolValue);
-                return assign;
-            }
-            if (typeof(int).IsAssignableTo(type))
-            {
-                int.TryParse(rowValue, out var intValue);
-                Func<TResource, TResource> assign = (res) =>
-                    (TResource)member.SetPropertyOrFieldValue(res, intValue);
-                return assign;
-            }
-            if (type.IsEnum)
-            {
+            if (!this.IgnoreWhitespace)
+                return String.Equals(this.Name, key, ComparisonType);
 
-                var rowValueMapped = Enum.GetNames(type)
-                    .Where(
-                        enumVal =>
-                        {
-                            var memInfo = type.GetMember(enumVal).First();
-                            if (!memInfo.TryGetAttributeInterface(out IMapEnumValues mapper))
-                                return false;
-                            return mapper.DoesMatch(rowValue);
-                        })
-                    .First(
-                        (x, next) => x,
-                        () => rowValue);
-
-                var ignoreCase = comparisonType == StringComparison.OrdinalIgnoreCase
-                    || comparisonType == StringComparison.InvariantCultureIgnoreCase
-                    || comparisonType == StringComparison.CurrentCultureIgnoreCase;
-                
-                if (Enum.TryParse(type, rowValueMapped, ignoreCase, out object newValue))
-                {
-                    Func<TResource, TResource> assign = (res) =>
-                        (TResource)member.SetPropertyOrFieldValue(res, newValue);
-                    return assign;
-                }
-                Func<TResource, TResource> noAssign = (res) => res;
-                return noAssign;
-            }
-            if (rowValue.TryParseRef(type, out object refObj, out var didMatch))
-            {
-                Func<TResource, TResource> assign = (res) =>
-                    (TResource)member.SetPropertyOrFieldValue(res, refObj);
-                return assign;
-            }
-            if (didMatch)
-            {
-                Func<TResource, TResource> assign = (res) => res;
-                return assign;
-            }
-            throw new Exception($"{nameof(TextPropertyAttribute)} cannot parse {type.FullName} on {member.DeclaringType.FullName}..{member.Name}");
+            var nameNoWhitespace = this.Name.RemoveWhitespace();
+            var keyNoWhitespace = key.RemoveWhitespace();
+            return String.Equals(nameNoWhitespace, keyNoWhitespace, ComparisonType);
         }
+
+        public virtual Func<TResource, TResource> ParseAsAssignment<TResource>(MemberInfo member,
+            Type type, string rowValue, StringComparison comparisonType)
+        {
+            return member.ParseTextAsAssignment<TResource>(type, rowValue, comparisonType);
+        }
+
     }
-
-    //public class TextProperty2Attribute : TextPropertyAttribute { };
-    //public class TextProperty3Attribute : TextPropertyAttribute { };
-    //public class TextProperty4Attribute : TextPropertyAttribute { };
-    //public class TextProperty5Attribute : TextPropertyAttribute { };
-    //public class TextProperty6Attribute : TextPropertyAttribute { };
-    //public class TextProperty7Attribute : TextPropertyAttribute { };
-    //public class TextProperty8Attribute : TextPropertyAttribute { };
-
-    
 }
 

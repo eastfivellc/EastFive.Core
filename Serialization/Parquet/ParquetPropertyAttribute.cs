@@ -7,6 +7,7 @@ using Parquet.Data;
 using EastFive.Extensions;
 using EastFive.Linq;
 using EastFive.Reflection;
+using EastFive.Serialization.Text;
 
 namespace EastFive.Serialization.Parquet
 {
@@ -40,7 +41,7 @@ namespace EastFive.Serialization.Parquet
                     (rowKeyValue, next) =>
                     {
                         var (rowKey, rowValue) = rowKeyValue;
-                        var assign = ParseAssignment<TResource>(type, member, rowValue, this.ComparisonType);
+                        var assign = member.ParseObjectAsAssignment<TResource>(type, rowValue, this.ComparisonType);
                         return assign;
                     },
                     () =>
@@ -52,80 +53,7 @@ namespace EastFive.Serialization.Parquet
             return updatedResource;
         }
 
-        public static Func<TResource, TResource> ParseAssignment<TResource>(Type type, MemberInfo member, object rowValue,
-            StringComparison comparisonType)
-        {
-            try
-            {
-                if (type.TryGetNullableUnderlyingType(out Type baseType))
-                {
-                    return ParseAssignment<TResource>(baseType, member, rowValue, comparisonType);
-                }
-
-                if (!rowValue.TryGetType(out Type rowValueType))
-                {
-                    Func<TResource, TResource> noAssign = (res) => res;
-                    return noAssign;
-                }
-
-                if (type.IsAssignableFrom(rowValueType))
-                {
-                    Func<TResource, TResource> assign = (res) =>
-                        (TResource)member.SetPropertyOrFieldValue(res, rowValue);
-                    return assign;
-                }
-
-                if (typeof(string).IsAssignableFrom(rowValueType))
-                {
-                    var strValue = (string)rowValue;
-                    return Text.TextPropertyAttribute.ParseAssignment<TResource>(type, member, strValue, comparisonType);
-                }
-
-                if (typeof(DateTime).IsAssignableFrom(rowValueType))
-                {
-                    var memberType = member.GetPropertyOrFieldType();
-                    var dtValue = memberType.IsNullable()?
-                        (rowValue.IsDefaultOrNull()?
-                            default(DateTime?)
-                            :
-                            (DateTime?)rowValue)
-                        :
-                        (DateTime)rowValue;
-                    if (memberType.IsAssignableFrom(typeof(DateTime)))
-                    {
-                        Func<TResource, TResource> assign = (res) =>
-                            (TResource)member.SetPropertyOrFieldValue(res, dtValue);
-                        return assign;
-                    }
-                }
-
-                if (typeof(DateTimeOffset).IsAssignableFrom(rowValueType))
-                {
-                    var dtoValue = (DateTimeOffset)rowValue;
-                    var dtValue = dtoValue.DateTime;
-                    var memberType = member.GetPropertyOrFieldType();
-                    if (memberType.IsAssignableFrom(typeof(DateTime)))
-                    {
-                        Func<TResource, TResource> assign = (res) =>
-                            (TResource)member.SetPropertyOrFieldValue(res, dtValue);
-                        return assign;
-                    }
-                }
-
-                if (rowValue.TryCastObjRef(type, out object parsedRefObj))
-                {
-                    Func<TResource, TResource> assign = (res) =>
-                        (TResource)member.SetPropertyOrFieldValue(res, parsedRefObj);
-                    return assign;
-                }
-            } catch(Exception)
-            {
-                return (r) => r;
-            }
-
-            throw new Exception($"{nameof(ParquetPropertyAttribute)} cannot parse {type.FullName} on {member.DeclaringType.FullName}..{member.Name}");
-
-        }
+        
     }
 
     public class ParquetPropertyDebugAttribute : ParquetPropertyAttribute
