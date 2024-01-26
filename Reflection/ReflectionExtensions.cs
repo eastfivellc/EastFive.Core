@@ -120,7 +120,7 @@ namespace EastFive.Reflection
         public static object Cast(this IEnumerable<object> enumerableOfObj, Type enumerableType)
         {
             var typeConvertedEnumerable = typeof(System.Linq.Enumerable)
-                .GetMethod("Cast", BindingFlags.Static | BindingFlags.Public)
+                .GetMethod(nameof(System.Linq.Enumerable.Cast), BindingFlags.Static | BindingFlags.Public)
                 .MakeGenericMethod(new Type[] { enumerableType })
                 .Invoke(null, new object[] { enumerableOfObj });
 
@@ -131,7 +131,7 @@ namespace EastFive.Reflection
         {
             var typeConvertedEnumerable = arrayOfObj.Cast(arrayType);
             var typeConvertedArray = typeof(System.Linq.Enumerable)
-                .GetMethod("ToArray", BindingFlags.Static | BindingFlags.Public)
+                .GetMethod(nameof(System.Linq.Enumerable.ToArray), BindingFlags.Static | BindingFlags.Public)
                 .MakeGenericMethod(new Type[] { arrayType })
                 .Invoke(null, new object[] { typeConvertedEnumerable });
             return typeConvertedArray;

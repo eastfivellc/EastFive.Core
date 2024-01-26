@@ -100,7 +100,7 @@ namespace EastFive.Linq
             if (typeof(TResult).IsGenericType && typeof(TResult).GetGenericTypeDefinition() == typeof(Task<>))
             {
                 // Call it this way because we need to remap TResult from Task<TR> to TR
-                var method = typeof(MapReduceExtensions).GetMethod("FlatMapGenericAsync", BindingFlags.NonPublic | BindingFlags.Static);
+                var method = typeof(MapReduceExtensions).GetMethod(nameof(MapReduceExtensions.FlatMapGenericAsync), BindingFlags.NonPublic | BindingFlags.Static);
                 var generic = method.MakeGenericMethod(typeof(TItem), typeof(T1), typeof(TSelect), typeof(TResult).GenericTypeArguments.First());
                 var r = generic.Invoke(null, new object[] { items.NullToEmpty(), item1, callback, complete });
                 var tr = (TResult)r;
@@ -192,149 +192,7 @@ namespace EastFive.Linq
                     return await complete(globalSelection, item1);
                 });
         }
-        
-        public static TResult FlatMap<TItem, TSelect, TResult>(this IEnumerable<TItem> items,
-            Func<
-                TItem,
-                Func<TSelect, TResult>,  // next
-                Func<TResult>, // skip
-                Func<TResult, TResult>, // tail
-                TResult> callback,
-            Func<IEnumerable<TSelect>, TResult> complete)
-        {
-            return items.FlatMap<TItem, int, TSelect, TResult>(
-                1,
-                (item, t1, next, skip, tail) => callback(item,
-                    (select) => next(select, t1),
-                    () => skip(t1),
-                    tail),
-                (selections, t1) => complete(selections));
-        }
 
-        public static TResult FlatMap<TItem, T1, TSelect, TResult>(this IEnumerable<TItem> items,
-                T1 item1,
-            Func<
-                TItem, T1,
-                Func<TSelect, T1, TResult>,  // next
-                Func<T1, TResult>, // skip
-                Func<TResult, TResult>, // tail
-                TResult> callback,
-            Func<TSelect[], T1, TResult> complete)
-        {
-            if (typeof(TResult).IsGenericType && typeof(TResult).GetGenericTypeDefinition() == typeof(Task<>))
-            {
-                // Call it this way because we need to remap TResult from Task<TR> to TR
-                var method = typeof(MapReduceExtensions).GetMethod("FlatMapGenericTailAsync", BindingFlags.NonPublic | BindingFlags.Static);
-                var generic = method.MakeGenericMethod(typeof(TItem), typeof(T1), typeof(TSelect), typeof(TResult).GenericTypeArguments.First());
-                var r = generic.Invoke(null, new object[] { items, item1, callback, complete });
-                var tr = (TResult)r;
-                return tr;
-            }
-
-            var itemValue = new T1[] { item1 };
-            var aggr = new TSelect[] { };
-            foreach (var item in items)
-            {
-                var block = new ManualResetEvent(false);
-                var keepResult = false;
-                var resultToDiscard = callback(
-                    item, itemValue[0],
-                    (selection, item1Next) =>
-                    {
-                        itemValue[0] = item1Next;
-                        aggr = aggr.Append(selection).ToArray();
-                        block.Set();
-                        return default(TResult);
-                    },
-                    (item1Next) =>
-                    {
-                        itemValue[0] = item1Next;
-                        block.Set();
-                        return default(TResult);
-                    },
-                    (result) =>
-                    {
-                        keepResult = true;
-                        block.Set();
-                        return result;
-                    });
-                block.WaitOne();
-                if (keepResult)
-                    return resultToDiscard;
-            }
-            return complete(aggr, itemValue[0]);
-        }
-
-        //private async static Task<TResult> FlatMapGenericTailAsync<TItem, T1, TSelect, TResult>(this IEnumerable<TItem> items,
-        //        T1 item1,
-        //    Func<
-        //        TItem, T1,
-        //        Func<TSelect, T1, Task<TResult>>,  // next
-        //        Func<T1, Task<TResult>>, // skip
-        //        Func<Task<TResult>, Task<TResult>>, // tail
-        //        Task<TResult>> callback,
-        //    Func<TSelect[], T1, Task<TResult>> complete)
-        //{
-        //    var globalSelection = new List<TSelect>();
-        //    var itemsEnumerator = items.GetEnumerator();
-        //    //var lastTask = default(Task<TResult>);
-        //    while (true)
-        //    {
-        //        if(!itemsEnumerator.MoveNext())
-        //            return await complete(globalSelection.ToArray(), item1);
-        //        var item = itemsEnumerator.Current;
-
-        //        //var block = new ManualResetEvent(false);
-        //        var tailed = false;
-        //        var tailedValue = default(TResult).ToTask();
-        //        var lastTask = callback(
-        //            item, item1,
-        //            (selection, item1Next) =>
-        //            {
-        //                globalSelection.Add(selection);
-        //                //globalSelection = globalSelection.Add(selection).ToArray();
-        //                item1 = item1Next;
-        //                //block.Set();
-        //                return tailedValue; // lastTask;
-        //            },
-        //            (item1Next) =>
-        //            {
-        //                item1 = item1Next;
-        //                //block.Set();
-        //                return tailedValue; // lastTask;
-        //            },
-        //            (tailResult) =>
-        //            {
-        //                tailed = true;
-        //                //block.Set();
-        //                tailedValue = tailResult;
-        //                return tailResult;
-        //            });
-
-
-        //        var taskChainNext = (object)lastTask;
-        //        while (true)
-        //        {
-        //            if (taskChainNext.IsDefaultOrNull())
-        //                break;
-
-        //            var taskChainNextType = taskChainNext.GetType();
-        //            if (!taskChainNextType.IsGenericType)
-        //                break;
-        //            if (taskChainNextType.GetGenericTypeDefinition() != typeof(Task<>))
-        //                break;
-
-        //            var task = (Task)taskChainNext;
-        //            await task.ConfigureAwait(false);
-        //            // Harvest the result
-        //            taskChainNext = task.Result;
-        //        }
-
-        //        if (tailed)
-        //            return await tailedValue;
-        //    }
-        //}
-        
         /// <summary>
         /// This method is tail optimized mean that calling methods should not use the return values from callback's next/skip
         /// </summary>

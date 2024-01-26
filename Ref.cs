@@ -201,7 +201,7 @@ namespace EastFive
         {
             var emptyValue = typeof(RefOptional<>)
                 .MakeGenericType(type)
-                .GetMethod("Empty", BindingFlags.Static | BindingFlags.Public)
+                .GetMethod(nameof(RefOptional<IReferenceable>.Empty), BindingFlags.Static | BindingFlags.Public)
                 .Invoke(null, new object[] { });
             return emptyValue;
         }
