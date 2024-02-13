@@ -27,6 +27,21 @@ namespace EastFive.Reflection
                     });
         }
 
+        public static IEnumerable<MemberInfo> GetStaticPropertyOrFieldMembers(this Type type)
+        {
+            return type
+                .GetMembers(BindingFlags.Static | BindingFlags.Public)
+                .Where(
+                    member =>
+                    {
+                        if (member.MemberType == MemberTypes.Property)
+                            return true;
+                        if (member.MemberType == MemberTypes.Field)
+                            return true;
+                        return false;
+                    });
+        }
+
         public static Type GetPropertyOrFieldType(this MemberInfo memberType)
         {
             if (memberType is PropertyInfo)

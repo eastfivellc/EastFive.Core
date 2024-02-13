@@ -200,6 +200,20 @@ namespace EastFive
                 .ToArray();
         }
 
+        public static IEnumerable<(MemberInfo, T)> GetStaticPropertyAndFieldsWithAttributesInterface<T>(this Type type)
+        {
+            if (!typeof(T).IsInterface)
+                throw new ArgumentException($"{typeof(T).FullName} is not an interface.");
+
+            return type
+                .GetStaticPropertyOrFieldMembers()
+                .TryWhere(
+                    (MemberInfo member, out T attr) =>
+                    {
+                        return member.TryGetAttributeInterface(out attr);
+                    });
+        }
+
         public static T[] GetAttributesInterface<T>(this System.Reflection.MethodInfo method, bool inherit = false)
         {
             if (!typeof(T).IsInterface)
