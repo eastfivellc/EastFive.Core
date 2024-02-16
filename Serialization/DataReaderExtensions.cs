@@ -6,6 +6,8 @@ using System.Linq;
 using System.Collections.Generic;
 
 using EastFive.Serialization.DataReader;
+using Newtonsoft.Json;
+using System.Dynamic;
 
 namespace EastFive.Serialization
 {
@@ -59,6 +61,40 @@ namespace EastFive.Serialization
                 yield return populatedRow;
             }
         }
-	}
+
+        public static IEnumerable<string> ReadAsJsonRows(this IDataReader dataReader)
+        {
+            var fieldCount = dataReader.FieldCount;
+
+            while (dataReader.Read())
+            {
+                dynamic myobject = new ExpandoObject();
+                try
+                {
+                    var myUnderlyingObject = Enumerable
+                        .Range(0, fieldCount)
+                        .Aggregate((IDictionary<string, object>)myobject,
+                            (myUnderlyingObject, index) =>
+                            {
+                                var name = dataReader.GetName(index);
+                                var value = dataReader.GetValue(index);
+                                var type = dataReader.GetFieldType(index);
+                                myUnderlyingObject.Add(name, value); // Adding dynamically named property
+
+                                return myUnderlyingObject;
+                            })
+                        .ToArray();
+                }
+                catch (Exception ex)
+                {
+                    ex.GetType();
+                    continue;
+                }
+
+                var jsonString = JsonConvert.SerializeObject(myobject);
+                yield return jsonString;
+            }
+        }
+    }
 }
 
