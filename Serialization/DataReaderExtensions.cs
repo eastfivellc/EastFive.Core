@@ -95,6 +95,44 @@ namespace EastFive.Serialization
                 yield return jsonString;
             }
         }
+
+        public static IEnumerable<string> ReadAsSqlStatements(this IDataReader dataReader, string tableName, string key)
+        {
+            var fieldCount = dataReader.FieldCount;
+
+            while (dataReader.Read())
+            {
+                var statement = "";
+                try
+                {
+                    var myUnderlyingObject = Enumerable
+                        .Range(0, fieldCount)
+                        .Select(
+                            (index) =>
+                            {
+                                var name = dataReader.GetName(index);
+                                var value = dataReader.GetValue(index);
+                                var type = dataReader.GetFieldType(index);
+                                return (name, value);
+                            })
+                        .ToArray();
+
+                    var names = myUnderlyingObject.Select(tpl => tpl.name.ToString().Replace("'", "''")).Join(',');
+                    var values = myUnderlyingObject.Select(tpl => tpl.value.ToString().Replace("'", "''")).Join(',');
+                    var updates = myUnderlyingObject.Select(tpl => $"{tpl.name} = {tpl.value.ToString().Replace("'", "''")}").Join(',');
+                    statement = $"MERGE {tableName} AS target" +
+                        $" USING (SELECT {values}) AS source ({names}) ON (target.{key}= source.{key})" +
+                        $" WHEN MATCHED THEN UPDATE SET {updates}" +
+                        $" WHEN NOT MATCHED THEN INSERT ({names}) VALUES ({values})";
+                }
+                catch (Exception ex)
+                {
+                    ex.GetType();
+                    continue;
+                }
+                yield return statement;
+            }
+        }
     }
 }
 
