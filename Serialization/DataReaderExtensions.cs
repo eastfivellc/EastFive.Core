@@ -15,7 +15,27 @@ namespace EastFive.Serialization
 	{
         public delegate bool TryParseTextValueDelegate(Type type, object value, out string parsedValue);
 
-		public static IEnumerable<string[]> ReadAsTextValues(this IDataReader dataReader,
+        public static IEnumerable<(string name, Type type, object value)[]> ReadAsTuple(this IDataReader dataReader)
+        {
+            var fieldCount = dataReader.FieldCount;
+
+            while (dataReader.Read())
+            {
+                yield return Enumerable
+                    .Range(0, fieldCount)
+                    .Select(
+                        index =>
+                        {
+                            var name = dataReader.GetName(index);
+                            var value = dataReader.GetValue(index);
+                            var type = dataReader.GetFieldType(index);
+                            return (name, type, value);
+                        })
+                    .ToArray();
+            }
+        }
+
+        public static IEnumerable<string[]> ReadAsTextValues(this IDataReader dataReader,
             TryParseTextValueDelegate tryParseValue)
 		{
             if (!dataReader.Read())
@@ -133,6 +153,30 @@ namespace EastFive.Serialization
                 yield return statement;
             }
         }
+
+        public static global::Parquet.Data.Schema GetParquetSchema(this IDataReader dataReader)
+        {
+            var fieldCount = dataReader.FieldCount;
+            var fields = Enumerable
+                .Range(0, fieldCount)
+                .Select(
+                    (index) =>
+                    {
+                        var name = dataReader.GetName(index);
+                        var type = dataReader.GetFieldType(index);
+                        if (type == typeof(DateTime))
+                            type = typeof(DateTime?);
+                        if (type == typeof(long))
+                            type = typeof(long?);
+                        if (type == typeof(int))
+                            type = typeof(int?);
+                        if (type == typeof(bool))
+                            type = typeof(bool?);
+                        return new global::Parquet.Data.DataField(name, type);
+                    })
+                .ToArray();
+
+            return new global::Parquet.Data.Schema(fields);
+        }
     }
 }
-

@@ -122,7 +122,21 @@ namespace EastFive.Serialization.Text
                 Func<TResource, TResource> assign = (res) => res;
                 return assign;
             }
-            throw new Exception($"{nameof(TextPropertyAttribute)} cannot parse {type.FullName} on {member.DeclaringType.FullName}..{member.Name}");
+            return type.IsNullable(
+                (baseType) =>
+                {
+                    if (rowValue.IsNullOrWhiteSpace())
+                    {
+                        Func<TResource, TResource> noop = (res) => res;
+                        return noop;
+                    }
+                    return ParseTextAsAssignment<TResource>(member, baseType, rowValue, comparisonType);
+                },
+                () =>
+                {
+                    throw new Exception($"{nameof(TextPropertyAttribute)} cannot parse {type.FullName} on {member.DeclaringType.FullName}..{member.Name}");
+                });
+            
         }
 
         public static Func<TResource, TResource> ParseObjectAsAssignment<TResource>(this MemberInfo member,

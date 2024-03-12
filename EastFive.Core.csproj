@@ -29,7 +29,6 @@
 	  <None Remove="Serialization\Text\" />
 	  <None Remove="Serialization\Parquet\" />
 	  <None Remove="Parquet.Net" />
-	  <None Remove="Serialization\Parquet\Parquet\" />
 	  <None Remove="Serialization\DataReader\" />
 	</ItemGroup>
 	<ItemGroup>
@@ -37,7 +36,6 @@
 	  <Folder Include="Diagnostics\" />
 	  <Folder Include="Serialization\Text\" />
 	  <Folder Include="Serialization\Parquet\" />
-	  <Folder Include="Serialization\Parquet\Parquet\" />
 	  <Folder Include="Serialization\DataReader\" />
 	</ItemGroup>
 </Project>
