@@ -107,10 +107,12 @@ namespace EastFive.Serialization
 
         public static Guid ComposeGuid(this Guid guid1, Guid guid2, int intKey1)
         {
-            var id = guid1
-                .ToByteArray()
-                .Concat(guid2.ToByteArray())
-                .Concat(BitConverter.GetBytes(intKey1))
+            var guid1Bytes = guid1.ToByteArray();
+            var guid2Bytes = guid2.ToByteArray();
+            var intKey1Bytes = BitConverter.GetBytes(intKey1);
+            var id = guid1Bytes
+                .Concat(guid2Bytes)
+                .Concat(intKey1Bytes)
                 .ToArray()
                 .MD5HashGuid();
             return id;
