@@ -244,6 +244,20 @@ namespace EastFive
                 .Replace("\'", "\'\'");
         }
 
+        public static string ToHypenCase(this string source)
+        {
+            return source
+                .NullToEmpty()
+                .Select(
+                    c =>
+                    {
+                        if (char.IsUpper(c))
+                            return $"-{c}";
+                        return c.ToString();
+                    })
+                .Join("");
+        }
+
         public static bool IsGuid(this string possibleGuid)
         {
             Guid discard;
