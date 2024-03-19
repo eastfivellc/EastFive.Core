@@ -624,31 +624,35 @@ namespace EastFive.Linq.Async
 
         public static IEnumerableAsync<T[]> Segments<T>(this IEnumerableAsync<T> enumerable, int segmentSize)
         {
-            var segmentIndex = 0;
-            var segment = new T[segmentSize];
             var enumerator = enumerable.GetEnumerator();
             return Yield<T[]>(
                 async (yieldReturn, yieldBreak) =>
                 {
                     // Works with nullification below to prevent double failed moveNexts
-                    if (segment.IsDefaultOrNull())
+                    if (enumerator.IsDefaultOrNull())
                         return yieldBreak;
+
+                    var segmentIndex = 0;
+                    var segment = new T[segmentSize];
 
                     while (segmentIndex < segmentSize)
                     {
-                        if (!await enumerator.MoveNextAsync())
+                        var hasMoreData = await enumerator.MoveNextAsync();
+                        if (hasMoreData)
                         {
-                            var subseg = segment.Take(segmentIndex).ToArray();
-                            segment = null; // Ensure failed MoveNext is only called once.
-                            if (!subseg.Any())
-                                return yieldBreak;
-
-                            segmentIndex = 0;
-                            return yieldReturn(subseg);
+                            segment[segmentIndex] = enumerator.Current;
+                            segmentIndex++;
+                            continue;
                         }
-                        segment[segmentIndex] = enumerator.Current;
+
+                        var subseg = segment.Take(segmentIndex).ToArray();
+                        if(subseg.None())
+                            return yieldBreak;
+
+                        enumerator = null; // yieldBreak will be used on the next call so  ensure failed MoveNext is only called once.
+                        return yieldReturn(subseg);
                     }
-                    segmentIndex++;
+
                     return yieldReturn(segment);
                 });
         }
