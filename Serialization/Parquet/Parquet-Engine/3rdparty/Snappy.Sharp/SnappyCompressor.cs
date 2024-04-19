@@ -23,17 +23,17 @@ namespace Snappy.Sharp
       {
          if (intPtrBytes == 4)
          {
-            Debug.WriteLine("Using 32-bit optimized FindMatchLength");
+            // Debug.WriteLine("Using 32-bit optimized FindMatchLength");
             FindMatchLength = FindMatchLength32;
          }
          else if (intPtrBytes == 8)
          {
-            Debug.WriteLine("Using 64-bit optimized FindMatchLength");
+            // Debug.WriteLine("Using 64-bit optimized FindMatchLength");
             FindMatchLength = FindMatchLength64;
          }
          else
          {
-            Debug.WriteLine("Using unoptimized FindMatchLength");
+            // Debug.WriteLine("Using unoptimized FindMatchLength");
             FindMatchLength = FindMatchLengthBasic;
          }
       }
