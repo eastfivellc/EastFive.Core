@@ -700,6 +700,117 @@ namespace EastFive.Serialization
             return byteLines;
         }
 
+        public static byte[] ToByteArray(this object value, Type typeOfValue = default)
+        {
+            if (typeOfValue.IsDefaultOrNull())
+            {
+                if (value == null)
+                    return new byte[] { };
+
+                typeOfValue = value.GetType();
+            }
+            
+            return typeof(ByteArrayExtensions)
+                .GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                .Where(
+                    method =>
+                    {
+                        if (!method.ReturnType.IsAssignableTo(typeof(byte[])))
+                            return false;
+
+                        return method
+                            .GetParameters()
+                            .Where(param => !param.HasDefaultValue)
+                            .Single(
+                                onNone:() => false,
+                                onSingle:(parameter) =>
+                                {
+                                    if (parameter.ParameterType == typeof(Object))
+                                        return false; // This method, could cause infinite loop
+
+                                    bool isMatch = parameter.ParameterType.IsAssignableFrom(typeOfValue);
+                                    return isMatch;
+                                },
+                                onMultiple:(x) =>
+                                {
+                                    return false;
+                                });
+                    })
+                .First<System.Reflection.MethodInfo, byte[]>(
+                    (matchingMethod, next) =>
+                    {
+                        var callParams = matchingMethod
+                            .GetParameters()
+                            .Select(param => param.HasDefaultValue ?
+                                param.DefaultValue
+                                :
+                                value)
+                            .ToArray();
+                        var invocationResult = matchingMethod.Invoke(null, callParams);
+                        var castInvocationResult = (byte[])invocationResult;
+                        return castInvocationResult;
+                    },
+                    () =>
+                    {
+                        throw new Exception($"No serialization available for type `{typeOfValue}`");
+                    });
+        }
+
+        public static object FromByteArray(this byte[] data, Type type)
+        {
+            if (data == null)
+                return type.GetDefault();
+
+            if (data.Length == 0)
+                return type.GetDefault();
+
+            return typeof(ByteArrayExtensions)
+                .GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                .Where(
+                    method =>
+                    {
+                        if (!method.ReturnType.IsAssignableTo(type))
+                            return false;
+
+                        if (method.ReturnType == typeof(Object))
+                            return false; // This method, could cause infinite loop
+
+                        return method
+                            .GetParameters()
+                            .Where(param => !param.HasDefaultValue)
+                            .Single(
+                                onNone:() => false,
+                                onSingle:(parameter) =>
+                                {
+                                    bool isMatch = parameter.ParameterType.IsAssignableFrom(typeof(byte[]));
+                                    return isMatch;
+                                },
+                                onMultiple:(discard) =>
+                                {
+                                    return false;
+                                });
+                    })
+                .First<System.Reflection.MethodInfo, object>(
+                    (matchingMethod, next) =>
+                    {
+                        var callParams = matchingMethod
+                            .GetParameters()
+                            .Select(param => param.HasDefaultValue ?
+                                param.DefaultValue
+                                :
+                                data)
+                            .ToArray();
+                        var invocationResult = matchingMethod.Invoke(null, callParams);
+                        return invocationResult;
+                    },
+                    () =>
+                    {
+                        throw new Exception($"No serialization available to type `{type}`");
+                    });
+        }
+
+
+
         //internal static List<Guid> GetGuidStorageString(this string storageString)
         //{
         //    var list = GetGuidStorage(storageString);
