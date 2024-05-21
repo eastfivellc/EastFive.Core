@@ -374,5 +374,14 @@ namespace EastFive
                 return value;
             return value.ToUpper();
         }
+
+        public static System.Security.SecureString AsReadOnlySecureString(this string stringValue)
+        {
+            var secureString = new System.Security.SecureString();
+            foreach (var c in stringValue)
+                secureString.AppendChar(c);
+            secureString.MakeReadOnly();
+            return secureString;
+        }
     }
 }
