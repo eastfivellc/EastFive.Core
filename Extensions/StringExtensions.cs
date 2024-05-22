@@ -264,16 +264,25 @@ namespace EastFive
             return Guid.TryParse(possibleGuid, out discard);
         }
 
-        public static bool IsGuids(this string possibleGuids)
+        public static bool IsGuids(this string possibleGuids, out Guid[] values)
         {
             if (possibleGuids.IsNullOrWhiteSpace())
+            {
+                values = new Guid[] { };
                 return false;
+            }
 
-            if (Guid.TryParse(possibleGuids, out Guid guidDiscard))
-                return true;
-
-            var possibleGuidArray = possibleGuids.Split(',');
-            return possibleGuidArray.Any(possibleGuid => Guid.TryParse(possibleGuid, out Guid discard));
+            var possibleGuidArray = possibleGuids.Split(',', StringSplitOptions.TrimEntries);
+            values = possibleGuidArray
+                .Select(possibleGuid =>
+                {
+                    return Guid.TryParse(possibleGuid, out Guid guid)
+                        ? guid
+                        : default(Guid?);
+                })
+                .SelectWhereHasValue()
+                .ToArray();
+            return values.Any();
         }
 
         public static string ToText(this byte [] bytes, System.Text.Encoding encoding = default(System.Text.Encoding))
