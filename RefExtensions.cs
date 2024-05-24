@@ -259,6 +259,24 @@ namespace EastFive
             return onEmpty();
         }
 
+        public static bool TryGetRefWithValue<T>(this IRefOptional<T> refOptional, out IRef<T> refValue)
+            where T : IReferenceable
+        {
+            if (!refOptional.IsDefaultOrNull())
+            {
+                if (refOptional.HasValue)
+                {
+                    if (!refOptional.Ref.id.IsDefault())
+                    {
+                        refValue = refOptional.Ref;
+                        return true;
+                    }
+                }
+            }
+            refValue = default;
+            return false;
+        }
+
         public static Guid? GetIdMaybeNullSafe<T>(this IRefOptional<T> refOptional)
             where T : IReferenceable
         {
@@ -323,6 +341,35 @@ namespace EastFive
             var areEqual = refOptional1.EqualsRef(refOptional2, out var areBothNull);
             if (areBothNull)
                 return false;
+            return areEqual;
+        }
+
+        public static bool EqualsRefOrEitherIsNull<T>(this IRefOptional<T> refOptional1, IRefOptional<T> refOptional2)
+            where T : IReferenceable
+        {
+            if (!refOptional1.HasValueNotNull())
+                return true;
+            if (!refOptional2.HasValueNotNull())
+                return true;
+            var areEqual = refOptional1.EqualsRef(refOptional2);
+            return areEqual;
+        }
+
+        public static bool EqualsRefOrIsNull<T>(this IRefOptional<T> refOptional1, IRef<T> refOptional2)
+            where T : IReferenceable
+        {
+            if (!refOptional1.HasValueNotNull())
+                return true;
+            var areEqual = refOptional1.EqualsRef(refOptional2);
+            return areEqual;
+        }
+
+        public static bool EqualsRefOrIsNull<T>(this IRef<T> refOptional1, IRefOptional<T> refOptional2)
+            where T : IReferenceable
+        {
+            if (!refOptional2.HasValueNotNull())
+                return true;
+            var areEqual = refOptional1.EqualsRef(refOptional2);
             return areEqual;
         }
     }
