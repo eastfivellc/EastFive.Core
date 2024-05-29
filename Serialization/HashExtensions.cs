@@ -30,6 +30,9 @@ namespace EastFive.Serialization
 
         public static Guid MD5HashGuid(this byte[] bytes, MD5 md5 = default(MD5))
         {
+            if (bytes.IsDefaultNullOrEmpty())
+                return default(Guid);
+
             #pragma warning disable SCS0006 // Weak hashing function
             Guid getHashGuid(MD5 algorithm) => new Guid(algorithm.ComputeHash(bytes));
 

@@ -172,6 +172,12 @@ namespace EastFive.Serialization
                             type = typeof(int?);
                         if (type == typeof(bool))
                             type = typeof(bool?);
+                        if (type == typeof(float))
+                            type = typeof(float?);
+                        if (type == typeof(double))
+                            type = typeof(double?);
+                        if (type == typeof(decimal))
+                            type = typeof(decimal?);
                         return new global::Parquet.Data.DataField(name, type);
                     })
                 .ToArray();
