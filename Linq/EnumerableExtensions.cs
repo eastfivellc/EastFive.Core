@@ -450,6 +450,47 @@ namespace EastFive.Linq
             return (intersectingValues, item1Values, item2Values);
         }
 
+        public static (T[] intersectingValues, TP[] intersectingKeys, T1[] uniques1, T2[] uniques2) Intersect<T, T1, T2, TP>(
+            this IEnumerable<T1> items1, IEnumerable<T2> items2,
+            Func<T1, T2, T> merge,
+            Func<T1, TP> hash1, Func<T2, TP> hash2,
+            Func<TP, TP, bool> predicateComparison = default)
+        {
+            var items1Dictionary = items1
+                .Select(item => hash1(item).PairWithValue(item))
+                .ToDictionary();
+
+            var items2Dictionary = items2
+                .Select(item => hash2(item).PairWithValue(item))
+                .ToDictionary();
+
+            var intersectingKeys = predicateComparison
+                .TryIsNotDefaultOrNull(out var predicateComparisonValue)?
+                    items1Dictionary.Keys
+                        .Intersect(items2Dictionary.Keys, predicateComparisonValue)
+                        .ToArray()
+                    :
+                    items1Dictionary.Keys
+                        .Intersect(items2Dictionary.Keys)
+                        .ToArray();
+
+            var intersectingValues = intersectingKeys
+                .Select(key => merge(items1Dictionary[key], items2Dictionary[key]))
+                .ToArray();
+
+            var item1Values = items1Dictionary.Keys
+                .Except(intersectingKeys)
+                .Select(key => items1Dictionary[key])
+                .ToArray();
+
+            var item2Values = items2Dictionary.Keys
+                .Except(intersectingKeys)
+                .Select(key => items2Dictionary[key])
+                .ToArray();
+
+            return (intersectingValues, intersectingKeys, item1Values, item2Values);
+        }
+
         public static IEnumerable<TITem> Merge<TITem>(this IEnumerable<TITem> items1, IEnumerable<TITem> items2,
             Func<TITem, TITem, bool> isMatch,
             Func<TITem, TITem, TITem> merger,
