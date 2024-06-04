@@ -170,6 +170,46 @@ namespace EastFive.Serialization.Text
                     return member.ParseTextAsAssignment<TResource>(type, strValue, comparisonType);
                 }
 
+                if (typeof(int).IsAssignableFrom(rowValueType))
+                {
+                    var intValue = (int)rowValue;
+                    var memberType = member.GetPropertyOrFieldType();
+                    if (memberType.IsAssignableFrom(typeof(int)))
+                    {
+                        Func<TResource, TResource> assign = (res) =>
+                            (TResource)member.SetPropertyOrFieldValue(res, intValue);
+                        return assign;
+                    }
+
+                    if (memberType.IsAssignableFrom(typeof(string)))
+                    {
+                        var strValue = intValue.ToString();
+                        Func<TResource, TResource> assign = (res) =>
+                            (TResource)member.SetPropertyOrFieldValue(res, strValue);
+                        return assign;
+                    }
+                }
+
+                if (typeof(long).IsAssignableFrom(rowValueType))
+                {
+                    var longValue = (long)rowValue;
+                    var memberType = member.GetPropertyOrFieldType();
+                    if (memberType.IsAssignableFrom(typeof(long)))
+                    {
+                        Func<TResource, TResource> assign = (res) =>
+                            (TResource)member.SetPropertyOrFieldValue(res, longValue);
+                        return assign;
+                    }
+
+                    if (memberType.IsAssignableFrom(typeof(string)))
+                    {
+                        var strValue = longValue.ToString();
+                        Func<TResource, TResource> assign = (res) =>
+                            (TResource)member.SetPropertyOrFieldValue(res, strValue);
+                        return assign;
+                    }
+                }
+
                 if (typeof(DateTime).IsAssignableFrom(rowValueType))
                 {
                     var memberType = member.GetPropertyOrFieldType();
