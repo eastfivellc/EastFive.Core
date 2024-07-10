@@ -146,6 +146,76 @@ namespace EastFive
             return false;
         }
 
+        public static bool IsTuple(this Type type)
+        {
+            if (type.IsNull())
+                return false;
+
+            if (!typeof(TypeInfo).IsAssignableFrom(type.GetType()))
+                return false;
+
+            var valueType = (TypeInfo)type;
+            var isTuple = valueType.ImplementedInterfaces
+                .Contains(typeof(System.Runtime.CompilerServices.ITuple));
+
+            return isTuple;
+        }
+
+        public static bool IsTuple(this Type type, out (Type type, string name)[] properties)
+        {
+            properties = new (Type type, string name)[] { };
+            if (type.IsNull())
+                return false;
+
+            if (!typeof(TypeInfo).IsAssignableFrom(type.GetType()))
+                return false;
+
+            var valueType = (TypeInfo)type;
+            var isTuple = valueType.ImplementedInterfaces
+                .Contains(typeof(System.Runtime.CompilerServices.ITuple));
+
+            if(isTuple)
+            {
+                properties = valueType.DeclaredFields
+                    .Select(
+                        declaredField =>
+                        {
+                            return (declaredField.FieldType, declaredField.Name);
+                        })
+                    .ToArray();
+            }
+
+            return isTuple;
+        }
+
+        public static bool IsTuple(this Type type, object value, out (Type type, string name, object value)[] properties)
+        {
+            properties = new (Type type, string name, object value)[] { };
+            if (type.IsNull())
+                return false;
+
+            if (!typeof(TypeInfo).IsAssignableFrom(type.GetType()))
+                return false;
+
+            var valueType = (TypeInfo)type;
+            var isTuple = valueType.ImplementedInterfaces
+                .Contains(typeof(System.Runtime.CompilerServices.ITuple));
+
+            if (isTuple)
+            {
+                properties = valueType.DeclaredFields
+                    .Select(
+                        declaredField =>
+                        {
+                            var v = declaredField.GetValue(value);
+                            return (declaredField.FieldType, declaredField.Name, v);
+                        })
+                    .ToArray();
+            }
+
+            return isTuple;
+        }
+
         public static Type GetNullableUnderlyingType(this Type type)
         {
             return Nullable.GetUnderlyingType(type);
