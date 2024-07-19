@@ -8,11 +8,57 @@ using Newtonsoft.Json.Linq;
 using EastFive;
 using EastFive.Extensions;
 using EastFive.Collections.Generic;
+using System.Linq.Expressions;
+using System.Diagnostics;
 
 namespace EastFive.Serialization.Json
 {
-	public static class JsonExtensions
-	{
+    public static class JsonExtensions
+    {
+        public static TResult JsonParseObject<TResult>(this string jsonData, Type type,
+            Func<object, TResult> onSuccess,
+            Func<string, TResult> onFailureToParse = default,
+            Func<Exception, TResult> onException = default,
+                JsonConverter[] converters = default)
+        {
+            var resource = type.GetDefault();
+            try
+            {
+                if (type == typeof(string))
+                    return onSuccess(jsonData);
+
+                if (jsonData.IsNull())
+                    return onFailureToParse("Null data");
+
+                resource = JsonConvert.DeserializeObject(jsonData, type, converters: converters);
+            }
+            catch (JsonReaderException jsonEx)
+            {
+                if (onFailureToParse.IsNotDefaultOrNull())
+                    return onFailureToParse(jsonEx.Message);
+
+                throw;
+            }
+            catch (JsonSerializationException jsonEx)
+            {
+                if (onFailureToParse.IsNotDefaultOrNull())
+                    return onFailureToParse(jsonEx.Message);
+
+                throw;
+            }
+            catch (Exception ex)
+            {
+                if (onException.IsNotDefaultOrNull())
+                    return onException(ex);
+
+                if (onFailureToParse.IsNotDefaultOrNull())
+                    return onFailureToParse(ex.Message);
+
+                throw;
+            }
+            return onSuccess(resource);
+        }
+
         public static TResult JsonParse<TResource, TResult>(this string jsonData,
             Func<TResource, TResult> onSuccess,
             Func<string, TResult> onFailureToParse = default,
