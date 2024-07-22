@@ -21,7 +21,6 @@ namespace EastFive.Serialization.Json
             Func<Exception, TResult> onException = default,
                 JsonConverter[] converters = default)
         {
-            var resource = type.GetDefault();
             try
             {
                 if (type == typeof(string))
@@ -30,7 +29,8 @@ namespace EastFive.Serialization.Json
                 if (jsonData.IsNull())
                     return onFailureToParse("Null data");
 
-                resource = JsonConvert.DeserializeObject(jsonData, type, converters: converters);
+                var resource = JsonConvert.DeserializeObject(jsonData, type, converters: converters);
+                return onSuccess(resource);
             }
             catch (JsonReaderException jsonEx)
             {
@@ -56,7 +56,6 @@ namespace EastFive.Serialization.Json
 
                 throw;
             }
-            return onSuccess(resource);
         }
 
         public static TResult JsonParse<TResource, TResult>(this string jsonData,
