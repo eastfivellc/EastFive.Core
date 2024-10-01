@@ -7,6 +7,7 @@ using EastFive.Reflection;
 
 namespace EastFive.Serialization.Parquet
 {
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = true)]
     public class ParquetIdAttribute : ScopedMapParquetPropertyAttribute
     {
         public string Fields { get; set; }
@@ -52,11 +53,5 @@ namespace EastFive.Serialization.Parquet
             return resource;
         }
     }
-
-    public class ParquetId2Attribute : ParquetIdAttribute { }
-    public class ParquetId3Attribute : ParquetIdAttribute { }
-    public class ParquetId4Attribute : ParquetIdAttribute { }
-    public class ParquetId5Attribute : ParquetIdAttribute { }
-    public class ParquetId6Attribute : ParquetIdAttribute { }
 }
 

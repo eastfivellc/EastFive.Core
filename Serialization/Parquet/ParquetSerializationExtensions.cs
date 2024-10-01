@@ -72,7 +72,7 @@ namespace EastFive.Serialization.Parquet
                 writer.Write(table);
             }
         }
-	
-	}
+
+    }
 }
 
