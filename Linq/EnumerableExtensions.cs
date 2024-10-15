@@ -743,6 +743,13 @@ namespace EastFive.Linq
             return !items.AnyNullSafe();
         }
 
+        public static bool None<TItem>(this IEnumerable<TItem> items, Func<TItem, bool> predicate)
+        {
+            return items
+                .Where(item => predicate(item))
+                .None();
+        }
+
         public static bool TryGetValueNullSafe<TKey, TValue>(this IDictionary<TKey, TValue> items, TKey key, out TValue value)
         {
             if (!items.IsDefaultOrNull())
