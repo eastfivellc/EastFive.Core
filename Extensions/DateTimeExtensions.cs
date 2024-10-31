@@ -329,11 +329,26 @@ namespace EastFive
             return false;
         }
 
-        #endregion Misc
+        public static bool GetDisappearingOffset(string timeAndOffset, out TimeSpan duration) // ex: "02:00:00 -05:00", if no offset, .net assumes UTC
+        {
+            duration = TimeSpan.Zero;
+            if (!DateTimeOffset.TryParse(timeAndOffset, out DateTimeOffset parsed))  // .net adds the date part for us when blank
+                return false;
 
-        #region Hash
+            var diff = parsed - DateTime.UtcNow;
 
-        public static int HashToDay(this DateTime date)
+            // represents duration until the next given time
+            duration = diff >= TimeSpan.Zero
+                ? diff
+                : TimeSpan.FromHours(24) + diff;
+            return true;
+        }
+
+    #endregion Misc
+
+    #region Hash
+
+    public static int HashToDay(this DateTime date)
             => (date.Year * 1000) + date.DayOfYear;
 
         #endregion
