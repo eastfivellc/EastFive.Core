@@ -20,6 +20,17 @@ namespace EastFive.Linq.Async
             return enumerator.MoveNextAsync();
         }
 
+        public static async Task<TResult> AnyAsync<T, TResult>(this IEnumerableAsync<T> enumerable,
+            Func<T, TResult> onOneOrMore,
+            Func<TResult> onNone)
+        {
+            var enumerator = enumerable.GetEnumerator();
+            if (!await enumerator.MoveNextAsync())
+                return onNone();
+
+            return onOneOrMore(enumerator.Current);
+        }
+
         public static Task<bool> ContainsAsync<T>(this IEnumerableAsync<T> enumerable, Func<T, bool> isMatchFunc)
         {
             return enumerable.FirstMatchAsync(
