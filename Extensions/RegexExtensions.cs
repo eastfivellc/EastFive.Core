@@ -405,7 +405,6 @@ namespace EastFive
                     });
         }
 
-
         public static bool TryMatchRegex(this string input, string regularExpression,
             out (string name, string value)[] matches,
             RegexOptions? optionsMaybe = default(RegexOptions?))
@@ -422,10 +421,45 @@ namespace EastFive
             }
             try
             {
-                var regex = optionsMaybe.HasValue?
+                var regex = optionsMaybe.HasValue ?
                     new Regex(regularExpression, optionsMaybe.Value)
                     :
                     new Regex(regularExpression);
+                var successfulMatches = regex
+                    .Matches(input)
+                    .AsSuccessfulMatchValues();
+
+                if (successfulMatches.None())
+                {
+                    matches = new (string name, string value)[] { };
+                    return false;
+                }
+
+                matches = successfulMatches.First();
+                return true;
+            }
+            catch (RegexParseException)
+            {
+                matches = default;
+                return false;
+            }
+        }
+
+        public static bool TryMatchRegex(this string input, Regex regex,
+            out (string name, string value)[] matches)
+        {
+            if (input.IsNullOrWhiteSpace())
+            {
+                matches = default;
+                return false;
+            }
+            if (regex.IsDefaultOrNull())
+            {
+                matches = default;
+                return false;
+            }
+            try
+            {
                 var successfulMatches = regex
                     .Matches(input)
                     .AsSuccessfulMatchValues();
