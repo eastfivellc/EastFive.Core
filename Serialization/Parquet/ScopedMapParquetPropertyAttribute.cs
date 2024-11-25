@@ -57,6 +57,8 @@ namespace EastFive.Serialization.Parquet
                     return typeof(decimal?);
                 if (type.IsSubClassOfGeneric(typeof(IReferenceable)))
                     return typeof(string);
+                if (type.IsSubClassOfGeneric(typeof(IReferenceableOptional)))
+                    return typeof(string);
                 if (type == typeof(string))
                     return typeof(string);
                 if (type == typeof(Guid))
@@ -90,6 +92,14 @@ namespace EastFive.Serialization.Parquet
                 var rawType = value.GetType();
                 if (rawType.IsAssignableTo(typeof(IReferenceable)))
                     value = ((IReferenceable)value).id.ToString("N");
+                if (rawType.IsAssignableTo(typeof(IReferenceableOptional)))
+                {
+                    var castValue = (IReferenceableOptional)value;
+                    if (castValue.HasValue)
+                        value = castValue.id.Value.ToString("N");
+                    else
+                        value =string.Empty;
+                }
                 if (rawType.IsAssignableTo(typeof(Guid)))
                     value = ((Guid)value).ToString("N");
                 if (rawType.IsEnum)
