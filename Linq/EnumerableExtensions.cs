@@ -269,6 +269,14 @@ namespace EastFive.Linq
             return items.Append(getItem());
         }
 
+        public static IEnumerable<T> AppendIfHasValue<T>(this IEnumerable<T> items, T? itemMaybe)
+            where T : struct
+        {
+            if (!itemMaybe.HasValue)
+                return items;
+            return items.Append(itemMaybe.Value);
+        }
+
         public static IEnumerable<T> AppendYield<T>(this IEnumerable<T> items, Action<Action<T>> callback)
         {
             //foreach (var item in items)
