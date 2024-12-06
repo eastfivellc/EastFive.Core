@@ -395,7 +395,7 @@ namespace EastFive.Serialization
             if (boolStr.IsDefaultNullOrEmpty())
                 return false;
 
-            var content = boolStr.ToLower();
+            var content = boolStr.ToLower().Trim();
             if ("t" == content)
             {
                 boolValue = true;
@@ -415,6 +415,18 @@ namespace EastFive.Serialization
             }
 
             if ("off" == content) // used in some check boxes
+            {
+                boolValue = false;
+                return true;
+            }
+
+            if ("1" == content)
+            {
+                boolValue = true;
+                return true;
+            }
+
+            if ("0" == content)
             {
                 boolValue = false;
                 return true;
