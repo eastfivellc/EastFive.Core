@@ -124,5 +124,11 @@ namespace EastFive.Serialization
             var id = guid1.ToByteArray().Concat(refId.ToByteArray()).ToArray().MD5HashGuid();
             return id;
         }
+
+        public static Guid NextGuid(this Guid guid1)
+        {
+            var id = guid1.ToByteArray().MD5HashGuid();
+            return id;
+        }
     }
 }
