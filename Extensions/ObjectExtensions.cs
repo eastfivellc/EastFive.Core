@@ -153,12 +153,12 @@ namespace EastFive.Extensions
 
 #nullable enable
 
-        public static bool TryIsNotDefaultOrNull<T>(this T? valueMaybe, out T value)
+        public static bool TryIsNotDefaultOrNull<T>(this T? valueMaybe, [NotNullWhen(true)] out T? value)
            where T : class
         {
-            if(EqualityComparer<T>.Default.Equals(valueMaybe, default(T)))
+            if(EqualityComparer<T>.Default.Equals(valueMaybe, default))
             {
-                value = default(T);
+                value = default;
                 return false;
             }
             value = valueMaybe;

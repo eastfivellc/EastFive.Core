@@ -1243,12 +1243,6 @@ namespace EastFive.Linq
 
 #nullable enable
 
-        public static IEnumerable<T> SelectWhereDenull<T>(this IEnumerable<(bool, T?)> items)
-            where T : class
-        {
-            return SelectWhereDenull(items, default);
-        }
-
         private static IEnumerable<T> SelectWhereDenull<T>(IEnumerable<(bool, T?)> items, T empty)
             where T : class
         {
@@ -1259,7 +1253,7 @@ namespace EastFive.Linq
                         if (!item.Item1)
                             return (false, empty);
 
-                        if (item.Item2.TryIsNotDefaultOrNull(out T nonNullValue))
+                        if (item.Item2.TryIsNotDefaultOrNull(out T? nonNullValue))
                             return (true, nonNullValue);
 
                         return (false, empty);
