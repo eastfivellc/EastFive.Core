@@ -23,6 +23,21 @@ namespace EastFive.Serialization
             return id;
         }
 
+        public static Guid ComposeGuid(this Guid guid1, byte [] data)
+        {
+            if (data.IsDefaultNullOrEmpty())
+            {
+                return guid1;
+            }
+
+            var id = guid1
+                .ToByteArray()
+                .Concat(data)
+                .ToArray()
+                .MD5HashGuid();
+            return id;
+        }
+
         public static Guid ComposeGuid(this Guid guid1, string textKey)
         {
             if (textKey.IsDefaultOrNull())
