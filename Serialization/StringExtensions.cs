@@ -351,10 +351,19 @@ namespace EastFive.Serialization
 
                         string[] DoSplit(char delimiter)
                         {
-                            var values = delimitedContent
-                                .Split(delimiter)
-                                .Select(v => v.Trim())
-                                .ToArray();
+                            var replacedDelimiter = Guid.NewGuid().ToString();
+                            var escapedDelimiter = "\\" + delimiter;
+                            var modifiedDelimitedContent = delimitedContent.Replace(escapedDelimiter, replacedDelimiter);
+                            bool isModified = modifiedDelimitedContent.Length != delimitedContent.Length;
+                            var values = isModified
+                                ? modifiedDelimitedContent
+                                    .Split(delimiter)
+                                    .Select(v => v.Trim().Replace(replacedDelimiter, delimiter.ToString()))
+                                    .ToArray()
+                                : delimitedContent
+                                    .Split(delimiter)
+                                    .Select(v => v.Trim())
+                                    .ToArray();
 
                             return Trim(new char[] { '\'', '"' });
 
