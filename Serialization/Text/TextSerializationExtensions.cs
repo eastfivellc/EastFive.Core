@@ -209,6 +209,19 @@ namespace EastFive.Serialization.Text
                         return assign;
                     }
                 }
+                
+                if (rowValueType.IsNumeric())
+                {
+                    var memberType = member.GetPropertyOrFieldType();
+
+                    if (memberType.IsAssignableFrom(typeof(string)))
+                    {
+                        var strValue = rowValue.ToString();
+                        Func<TResource, TResource> assign = (res) =>
+                            (TResource)member.SetPropertyOrFieldValue(res, strValue);
+                        return assign;
+                    }
+                }
 
                 if (typeof(DateTime).IsAssignableFrom(rowValueType))
                 {
