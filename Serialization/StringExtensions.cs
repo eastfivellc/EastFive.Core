@@ -110,6 +110,12 @@ namespace EastFive.Serialization
                     return onParsed(intValue);
                 return onBindingFailure($"Failed to convert {content} to `{typeof(int).FullName}`.");
             }
+            if (type == typeof(long))
+            {
+                if (long.TryParse(content, out long longValue))
+                    return onParsed(longValue);
+                return onBindingFailure($"Failed to convert {content} to `{typeof(long).FullName}`.");
+            }
             if (type == typeof(double))
             {
                 if (double.TryParse(content, out double doubleValue))
