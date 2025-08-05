@@ -9,6 +9,7 @@ using EastFive;
 using EastFive.Collections.Generic;
 using EastFive.Linq;
 using EastFive.Reflection;
+using System.Reflection;
 
 namespace EastFive.Extensions
 {
@@ -319,6 +320,32 @@ namespace EastFive.Extensions
             
             return null;
         }
+        
+        public static bool IsEqualTObjectPropertiesWithAttributeInterface<T, TAttr>(this T obj, T objectToCompare,
+            Func<MemberInfo, TAttr, object, object, bool> areEqual,
+            bool skipNullAndDefault = false, bool inherit = false)
+        {
+            if (obj == null)
+                return objectToCompare == null;
+
+            if (objectToCompare == null)
+                return false;
+            var attributeInterface = typeof(TAttr);
+            return typeof(T)
+                .GetPropertyAndFieldsWithAttributesInterface<TAttr>(inherit: inherit)
+                .All(
+                    (memberAndAttr) =>
+                    {
+                        var value1 = memberAndAttr.Item1.GetPropertyOrFieldValue(obj);
+                        var value2 = memberAndAttr.Item1.GetPropertyOrFieldValue(objectToCompare);
+                        if (skipNullAndDefault)
+                            if (value1.IsDefaultOrNull() || value2.IsDefaultOrNull())
+                                return true;
+
+                        return areEqual(memberAndAttr.Item1, memberAndAttr.Item2,
+                                value1, value2);
+                    });
+        }
 
         public static T CloneObjectPropertiesWithAttributeInterface<T>(this T obj, T objectToUpdate,
             Type attributeInterface, bool skipNullAndDefault = false, bool inherit = false)
@@ -336,7 +363,7 @@ namespace EastFive.Extensions
                     (objToUpdate, memberInfo) =>
                     {
                         var v = memberInfo.GetPropertyOrFieldValue(obj);
-                        if(skipNullAndDefault)
+                        if (skipNullAndDefault)
                         {
                             if (v.IsDefaultOrNull())
                                 return objectToUpdate;
