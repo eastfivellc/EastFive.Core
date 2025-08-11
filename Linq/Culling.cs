@@ -31,7 +31,7 @@ namespace EastFive.Linq
             bool condition,
             Func<TItem, bool> predicate)
         {
-            return items.If(condition, 
+            return items.If(condition,
                 itemsIfTrue => itemsIfTrue.Where(predicate));
         }
 
@@ -42,6 +42,15 @@ namespace EastFive.Linq
             if (items.Any())
                 return onSome(items);
             return onNone();
+        }
+        
+        public static IQueryable<TItem> If<TItem>(this IQueryable<TItem> items,
+            bool condition,
+            Func<IQueryable<TItem>, IQueryable<TItem>> ifTrue)
+        {
+            if (condition)
+                return ifTrue(items);
+            return items;
         }
     }
 }
