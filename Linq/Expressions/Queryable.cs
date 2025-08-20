@@ -25,8 +25,11 @@ namespace EastFive.Linq
 
             if (expression == null)
                 throw new ArgumentNullException("expression");
-            if (!typeof(IQueryable<T>).IsAssignableFrom(expression.Type))
-                throw new ArgumentOutOfRangeException("expression");
+
+            // This isn't valid for .Where clauses
+            // if (!typeof(IQueryable<T>).IsAssignableFrom(expression.Type))
+            //     throw new ArgumentOutOfRangeException("expression");
+            
             this.Expression = expression;
         }
 
