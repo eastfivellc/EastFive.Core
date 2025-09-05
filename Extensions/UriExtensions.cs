@@ -291,6 +291,13 @@ namespace EastFive
             }
         }
 
+        public static Uri SetSchema(this Uri uri, string schema)
+        {
+            var uriBuilder = new UriBuilder(uri);
+            uriBuilder.Scheme = schema;
+            return uriBuilder.Uri;
+        }
+
         public static Dictionary<Guid, object> ParseQueryParameter<QueryType>(this Uri uri,
             Expression<Func<QueryType, Dictionary<Guid, object>>> parameterExpr)
         {
