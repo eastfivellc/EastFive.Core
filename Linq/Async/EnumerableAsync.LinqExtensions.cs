@@ -281,7 +281,7 @@ namespace EastFive.Linq.Async
 
         public static IEnumerableAsync<T> WhenAsyncUnique<T, TUnique>(this IEnumerableAsync<T> enumerable,
             Func<T, Task> whenUnique,
-            Func<T,TUnique> uniqueKey)
+            Func<T, TUnique> uniqueKey)
             where T : struct
         {
             var hashset = new HashSet<TUnique>();
@@ -299,7 +299,7 @@ namespace EastFive.Linq.Async
                         hashset.Add(key);
                         await whenUnique(current);
                     }
-                    
+
                     return moved(current);
                 });
         }
@@ -509,7 +509,7 @@ namespace EastFive.Linq.Async
                 bool selectCurrent = isStart
                     ||
                     contestedValue.CompareTo(value) < 0;
-                if(selectCurrent)
+                if (selectCurrent)
                 {
                     isStart = false;
                     value = contestedValue;
@@ -551,7 +551,7 @@ namespace EastFive.Linq.Async
             if (!await enumerator.MoveNextAsync())
                 return onNone();
             var selected = enumerator.Current;
-            while(await enumerator.MoveNextAsync())
+            while (await enumerator.MoveNextAsync())
             {
                 var challenger = enumerator.Current;
                 selected = select(selected, challenger);
@@ -562,7 +562,7 @@ namespace EastFive.Linq.Async
         public static IEnumerableAsync<T> Take<T>(this IEnumerableAsync<T> enumerable, int count)
         {
             var enumerator = enumerable.GetEnumerator();
-            var countdown = count+1;
+            var countdown = count + 1;
             return EnumerableAsync.Yield<T>(
                 async (yieldCont, yieldBreak) =>
                 {
@@ -633,7 +633,7 @@ namespace EastFive.Linq.Async
                         if (accumulation.Contains(currentKey))
                             continue;
                         accumulation.Add(currentKey);
-                        
+
                         return yieldAsync(current);
                     }
                 });
@@ -663,7 +663,7 @@ namespace EastFive.Linq.Async
                         }
 
                         var subseg = segment.Take(segmentIndex).ToArray();
-                        if(subseg.None())
+                        if (subseg.None())
                             return yieldBreak;
 
                         enumerator = null; // yieldBreak will be used on the next call so  ensure failed MoveNext is only called once.
@@ -729,11 +729,11 @@ namespace EastFive.Linq.Async
             var segmentTask = enumerable.Prespool(
                 (item) =>
                 {
-                    lock(segmentLock)
+                    lock (segmentLock)
                     {
                         segment.Add(item);
                     }
-                }, 
+                },
                 moved, complete, diagnostics);
             return Yield<T[]>(
                 async (yieldReturn, yieldBreak) =>
@@ -852,7 +852,7 @@ namespace EastFive.Linq.Async
                     async Task<KeyValuePair<bool, Task<T>>> YieldResultAsync()
                     {
                         taskLock.WaitOne(); // taskLock synchronizes yield calls
-                        
+
                         Task<T>[] options;
                         lock (segmentLock) // segmentLock synchronizes with prespool.
                         {
@@ -861,7 +861,7 @@ namespace EastFive.Linq.Async
                                 taskLock.Set();
                                 return default(Task<T>).PairWithKey(false);
                             }
-                            
+
                             if (maintainOrder)
                             {
                                 var taskToWait = segment.First();
@@ -869,14 +869,14 @@ namespace EastFive.Linq.Async
                                 taskLock.Set();
                                 return taskToWait.PairWithKey(true);
                             }
-                            
+
                             options = segment.ToArray();
                         }
-                        
+
                         // It is okay to block inside of the taskLock critical section because
                         // only one task can become available at a time.
                         var finishedTaskNext = await Task.WhenAny(options);
-                        lock(segmentLock)
+                        lock (segmentLock)
                         {
                             segment.Remove(finishedTaskNext);
                         }
@@ -929,7 +929,7 @@ namespace EastFive.Linq.Async
             //        }
             //    });
         }
-        
+
         public static IEnumerableAsync<TItem> Compress<TItem>(this IEnumerableAsync<TItem> enumerables,
             Func<TItem, TItem, IEnumerableAsync<TItem>> compressor)
         {
@@ -1065,7 +1065,7 @@ namespace EastFive.Linq.Async
                         {
                             tasks = allTask.ToArray();
                         }
-                        
+
                         foreach (var task in tasks)
                         {
                             if (task.Status != TaskStatus.RanToCompletion)
@@ -1100,9 +1100,9 @@ namespace EastFive.Linq.Async
             CancellationToken cancellationToken = default)
         {
             return enumerables.SelectMany(x => x,
-                logger:logger, cancellationToken:cancellationToken);
+                logger: logger, cancellationToken: cancellationToken);
         }
-        
+
         public static IEnumerableAsync<TResult> SelectMany<T, TResult>(
             this IEnumerableAsync<T> enumerables, Func<T, IEnumerable<TResult>> selectMany,
             ILogger logger = default,
@@ -1161,7 +1161,7 @@ namespace EastFive.Linq.Async
                     }
                 });
         }
-        
+
         public static IEnumerableAsync<TResult> SelectAsyncMany<T, TResult>(this IEnumerableAsync<T> enumerables, Func<T, IEnumerableAsync<TResult>> selectMany)
         {
             var enumerator = enumerables.GetEnumerator();
@@ -1191,15 +1191,15 @@ namespace EastFive.Linq.Async
                     }
                 });
         }
-        
+
         public static IEnumerableAsync<T> SelectAsyncMany<T>(this IEnumerableAsync<IEnumerableAsync<T>> enumerables)
         {
             return enumerables.SelectAsyncMany(items => items);
         }
-        
+
         public static IEnumerableAsync<T> Concat<T>(this IEnumerableAsync<T> enumerable1, IEnumerableAsync<T> enumerable2)
         {
-            return (new IEnumerableAsync<T> []
+            return (new IEnumerableAsync<T>[]
             {
                 enumerable1,
                 enumerable2,
@@ -1235,7 +1235,7 @@ namespace EastFive.Linq.Async
                     }
                 });
         }
-        
+
         public static IEnumerableAsync<T> Append<T>(this IEnumerableAsync<T> enumerable, T item)
         {
             var enumerator = enumerable.GetEnumerator();
@@ -1381,7 +1381,7 @@ namespace EastFive.Linq.Async
 
 
 
-        public static IEnumerableAsync<TResult> Zip<T1, T2, TResult>(this IEnumerableAsync<T1> items1, 
+        public static IEnumerableAsync<TResult> Zip<T1, T2, TResult>(this IEnumerableAsync<T1> items1,
             IEnumerableAsync<T2> items2, Func<T1, T2, TResult> zipper)
         {
             var enumerator1 = items1.GetEnumerator();
@@ -1392,7 +1392,7 @@ namespace EastFive.Linq.Async
                     var moved1Task = enumerator1.MoveNextAsync();
                     var moved2Task = enumerator2.MoveNextAsync();
                     var moved1 = await moved1Task;
-                    if(!moved1)
+                    if (!moved1)
                         return yieldBreak;
 
                     var moved2 = await moved2Task;
@@ -1412,9 +1412,9 @@ namespace EastFive.Linq.Async
             return Yield<T>(
                 async (yieldReturn, yieldBreak) =>
                 {
-                    if(enumerator.IsDefaultOrNull())
+                    if (enumerator.IsDefaultOrNull())
                         enumerator = (await enumerable).GetEnumerator();
-                    
+
                     if (!await enumerator.MoveNextAsync())
                         return yieldBreak;
 
@@ -1440,7 +1440,7 @@ namespace EastFive.Linq.Async
                 });
         }
 
-        public static IEnumerableAsync<T> Await<T>(this IEnumerableAsync<Task<T>> enumerable, 
+        public static IEnumerableAsync<T> Await<T>(this IEnumerableAsync<Task<T>> enumerable,
             string tag = default(string))
         {
             var enumerator = enumerable.GetEnumerator();
@@ -1460,7 +1460,7 @@ namespace EastFive.Linq.Async
                     if (!tag.IsNullOrWhiteSpace())
                         Console.WriteLine($"Await[{tag}]:Awaiting value next");
                     var next = await enumerator.Current;
-                    
+
                     if (!tag.IsNullOrWhiteSpace())
                         Console.WriteLine($"Await[{tag}]:Yielding value");
                     return yieldReturn(next);
@@ -1527,6 +1527,20 @@ namespace EastFive.Linq.Async
         public static IEnumerableAsync<TItem> AsAsyncEnumerable<TItem>(this TItem item)
         {
             return EnumerableAsyncStart(item);
+        }
+
+        public static IEnumerableAsync<TItem> ToEnumerableAsync<TItem>(this IAsyncEnumerable<TItem> items)
+        {
+            var enumerator = items.GetAsyncEnumerator();
+            return Yield<TItem>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    if (!await enumerator.MoveNextAsync())
+                        return yieldBreak;
+
+                    var next = enumerator.Current;
+                    return yieldReturn(next);
+                });
         }
 
     }
