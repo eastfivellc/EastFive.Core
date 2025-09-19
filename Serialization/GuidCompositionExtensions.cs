@@ -23,7 +23,10 @@ namespace EastFive.Serialization
             return id;
         }
 
-        public static Guid ComposeGuid(this Guid guid1, byte [] data)
+        public static Guid ComposeGuid(this IReferenceable ref1, IReferenceable ref2)
+            => ref1.id.ComposeGuid(ref2);
+
+        public static Guid ComposeGuid(this Guid guid1, byte[] data)
         {
             if (data.IsDefaultNullOrEmpty())
             {
