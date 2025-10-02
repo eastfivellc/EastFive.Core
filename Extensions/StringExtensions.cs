@@ -207,10 +207,14 @@ namespace EastFive
         {
             if(type.IsNullable())
             {
-                var baseTypeClrString = type
-                    .GetNullableUnderlyingType()
-                    .GetClrString();
-                return $"{baseTypeClrString}?";
+                var tryUnderlyingType = type
+                    .GetNullableUnderlyingType();
+                if (tryUnderlyingType != null)
+                {
+                    var baseTypeClrString = tryUnderlyingType
+                        .GetClrString();
+                    return $"{baseTypeClrString}?";
+                }
             }
             if (type == typeof(string))
                 return "string";
