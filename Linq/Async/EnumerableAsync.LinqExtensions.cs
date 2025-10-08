@@ -478,6 +478,23 @@ namespace EastFive.Linq.Async
             return onNone(list.ToArray());
         }
 
+        public static async Task<TResult> FirstMatchAndPriorsAsync<T, TResult>(this IEnumerableAsync<T> enumerable,
+            Func<T, bool> predicate,
+            Func<T, T[], TResult> onMatch,
+            Func<T[], TResult> onNone)
+        {
+            var enumerator = enumerable.GetEnumerator();
+            var list = new List<T>();
+            while (await enumerator.MoveNextAsync())
+            {
+                var item = enumerator.Current;
+                if (predicate(item))
+                    return onMatch(item, list.ToArray());
+                list.Add(item);
+            }
+            return onNone(list.ToArray());
+        }
+
         public static async Task<TResult> LastAsync<T, TResult>(this IEnumerableAsync<T> enumerable,
             Func<T, TResult> onOne,
             Func<TResult> onNone)
