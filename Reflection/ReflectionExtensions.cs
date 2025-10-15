@@ -166,13 +166,22 @@ namespace EastFive.Reflection
 
             foreach (var kvpObj in (dictionary as System.Collections.IEnumerable))
             {
-                var kvpType = kvpObj.GetType();
-                var keyProperty = kvpType.GetProperty("Key");
-                var keyValue = keyProperty.GetValue(kvpObj);
-                var valueProperty = kvpType.GetProperty("Value");
-                var valueValue = valueProperty.GetValue(kvpObj);
-                yield return valueValue.PairWithKey(keyValue);
+                var kvpObjCast = KeyValuePairObject(kvpObj);
+                yield return kvpObjCast;
             }
+        }
+
+        public static KeyValuePair<object, object> KeyValuePairObject(this object keyValuePair)
+        {
+            if (!keyValuePair.GetType().IsSubClassOfGeneric(typeof(KeyValuePair<,>)))
+                throw new ArgumentException($"{keyValuePair.GetType().FullName} is not of type KeyValuePair<>");
+
+            var kvpType = keyValuePair.GetType();
+            var keyProperty = kvpType.GetProperty("Key");
+            var keyValue = keyProperty.GetValue(keyValuePair);
+            var valueProperty = kvpType.GetProperty("Value");
+            var valueValue = valueProperty.GetValue(keyValuePair);
+            return valueValue.PairWithKey(keyValue);
         }
 
         public static object KeyValuePairsToDictionary(this object [] kvps,
