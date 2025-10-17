@@ -474,7 +474,7 @@ namespace EastFive.Serialization
             string alphabet = DEFAULT_ALPHABET,
             string seps = DEFAULT_SEPS)
         {
-            if (salt == null)
+            if (salt is null)
                 throw new ArgumentNullException(nameof(salt));
             if (string.IsNullOrWhiteSpace(alphabet))
                 throw new ArgumentNullException(nameof(alphabet));

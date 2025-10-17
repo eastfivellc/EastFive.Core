@@ -229,7 +229,7 @@ namespace EastFive.Reflection
         public static bool NullableHasValue(this object valueTypeValue)
         {
             // ?
-            if (valueTypeValue == null)
+            if (valueTypeValue is null)
                 return false;
 
             var underlyingOrValueType = valueTypeValue.GetType();

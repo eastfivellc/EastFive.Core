@@ -59,7 +59,7 @@ namespace EastFive
         public static IRefOptional<T> Optional<T>(this IRef<T> baseRef)
             where T : IReferenceable
         {
-            if (baseRef == null)
+            if (baseRef is null)
                 return RefOptional<T>.Empty();
 
             return new RefOptional<T>(baseRef);
@@ -83,7 +83,7 @@ namespace EastFive
         public static IRef<TCast> CastRef<TCast>(this IReferenceable sourceRef)
             where TCast : IReferenceable
         {
-            if (sourceRef == null)
+            if (sourceRef is null)
                 return null;
             return sourceRef.id.AsRef<TCast>();
         }

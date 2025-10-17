@@ -54,7 +54,7 @@ namespace EastFive.Extensions
         {
             MethodCallExpression outermostExpression = expression.Body as MethodCallExpression;
 
-            if (outermostExpression == null)
+            if (outermostExpression is null)
             {
                 throw new ArgumentException("Invalid Expression. Expression should consist of a Method call only.");
             }

@@ -599,7 +599,7 @@ namespace EastFive
             out T result)
         {
             var regex = new Regex(regularExpression);
-            if(input == null)
+            if(input is null)
             {
                 result = default;
                 return false;

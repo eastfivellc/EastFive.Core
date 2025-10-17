@@ -11,7 +11,7 @@ namespace EastFive.Reflection
         public static Type GetElementType(this Type seqType)
         {
             Type ienum = seqType.FindIEnumerable();
-            if (ienum == null) return seqType;
+            if (ienum is null) return seqType;
             return ienum.GetGenericArguments()[0];
         }
 

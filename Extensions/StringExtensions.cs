@@ -320,7 +320,7 @@ namespace EastFive
 
         public static string NullToEmpty(this string value)
         {
-            if (value == null)
+            if (value is null)
                 return string.Empty;
             return value;
         }
@@ -376,14 +376,14 @@ namespace EastFive
 
         public static string ToLowerNullSafe(this string value)
         {
-            if (value == null)
+            if (value is null)
                 return value;
             return value.ToLower();
         }
 
         public static string ToUpperNullSafe(this string value)
         {
-            if (value == null)
+            if (value is null)
                 return value;
             return value.ToUpper();
         }

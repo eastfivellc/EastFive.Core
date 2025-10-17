@@ -23,8 +23,8 @@ namespace EastFive.Linq
         {
             this.provider = provider;
 
-            if (expression == null)
-                throw new ArgumentNullException("expression");
+            if (expression is null)
+                throw new ArgumentNullException(nameof(expression));
 
             // This isn't valid for .Where clauses
             // if (!typeof(IQueryable<T>).IsAssignableFrom(expression.Type))

@@ -769,7 +769,7 @@ namespace EastFive.Linq
 
         public static bool ContainsNullSafe<TItem>(this IEnumerable<TItem> items, TItem item)
         {
-            if (items == null)
+            if (items is null)
                 return false;
             return items.Contains(item);
         }
@@ -1297,7 +1297,7 @@ namespace EastFive.Linq
         public static T Random<T>(this IEnumerable<T> items, int total, Random rand = null)
         {
             #pragma warning disable SCS0005 // Weak random number generator
-            if (rand == null)
+            if (rand is null)
             {
                 rand = new Random();
             }
@@ -1729,7 +1729,7 @@ namespace EastFive.Linq
         public static IEnumerable<T> SelectRandom<T>(this IEnumerable<T> items, int total, Random rand = null)
         {
             #pragma warning disable SCS0005 // Weak random number generator
-            if (rand == null)
+            if (rand is null)
                 rand = new Random();
 
             var totalD = (double)total;

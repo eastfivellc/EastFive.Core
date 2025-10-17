@@ -355,7 +355,7 @@ namespace EastFive.Serialization
                                 .Concat(Encoding.UTF8.GetBytes(str))
                                 .ToArray();
 
-                        if (string.Empty == str)
+                        if (str.Length == 0)
                             return new byte[] { 1 };
 
                         // Should never hit

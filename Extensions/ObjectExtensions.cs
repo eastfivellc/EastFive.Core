@@ -304,7 +304,7 @@ namespace EastFive.Extensions
         /// <returns>New Object reference</returns>
         public static T CloneObject<T>(this T obj) where T : class
         {
-            if (obj == null)
+            if (obj is null)
                 return null;
 
             if (typeof(ICloneable).IsAssignableFrom(typeof(T)))
@@ -325,10 +325,10 @@ namespace EastFive.Extensions
             Func<MemberInfo, TAttr, object, object, bool> areEqual,
             bool skipNullAndDefault = false, bool inherit = false)
         {
-            if (obj == null)
-                return objectToCompare == null;
+            if (obj is null)
+                return objectToCompare is null;
 
-            if (objectToCompare == null)
+            if (objectToCompare is null)
                 return false;
             var attributeInterface = typeof(TAttr);
             return typeof(T)
@@ -350,10 +350,10 @@ namespace EastFive.Extensions
         public static T CloneObjectPropertiesWithAttributeInterface<T>(this T obj, T objectToUpdate,
             Type attributeInterface, bool skipNullAndDefault = false, bool inherit = false)
         {
-            if (obj == null)
+            if (obj is null)
                 return objectToUpdate;
 
-            if (objectToUpdate == null)
+            if (objectToUpdate is null)
                 return objectToUpdate;
 
             return typeof(T)
