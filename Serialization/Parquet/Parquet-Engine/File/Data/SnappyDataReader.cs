@@ -12,7 +12,7 @@ namespace Parquet.File.Data
       public byte[] Read(Stream source, int count)
       {
          byte[] buffer = new byte[count];
-         source.Read(buffer, 0, count);
+         source.ReadExactly(buffer, 0, count);
          byte[] uncompressedBytes = _snappyDecompressor.Decompress(buffer, 0, count);
          return uncompressedBytes;
       }

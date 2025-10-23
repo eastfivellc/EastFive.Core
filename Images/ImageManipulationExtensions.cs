@@ -5,6 +5,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Runtime.Versioning;
 using System.Threading.Tasks;
 using EastFive.Extensions;
 using EastFive.Linq;
@@ -13,6 +14,7 @@ namespace EastFive.Images
 {
     public static class ImageManipulationExtensions
     {
+        [SupportedOSPlatform("windows6.1")]
         public static Image ResizeImage(this Image image,
             int? width = default(int?), int? height = default(int?), bool? fill = default(bool?),
             Brush background = default)
@@ -66,6 +68,7 @@ namespace EastFive.Images
             }
         }
 
+        [SupportedOSPlatform("windows6.1")]
         public static Image SetBackground(this Image image,
             Brush background)
         {
@@ -95,6 +98,7 @@ namespace EastFive.Images
             }
         }
 
+        [SupportedOSPlatform("windows6.1")]
         public static Image Crop(this Image image, int x, int y, int w, int h)
         {
             if (!OperatingSystem.IsWindows())
@@ -126,6 +130,7 @@ namespace EastFive.Images
             return newImage;
         }
 
+        [SupportedOSPlatform("windows6.1")]
         public static Image Crop(this Image image, double x, double y, double w, double h)
         {
             if (!OperatingSystem.IsWindows())
@@ -138,6 +143,7 @@ namespace EastFive.Images
                 (int)(h * image.Height));
         }
 
+        [SupportedOSPlatform("windows6.1")]
         public static Image Scale(this Image image,
             int? width = default(int?), int? height = default(int?), bool? fill = default(bool?))
         {
@@ -193,6 +199,7 @@ namespace EastFive.Images
             return newImage;
         }
 
+        [SupportedOSPlatform("windows6.1")]
         public static Image MaxAspect(this Image image, double viewportAspect)
         {
             if (!image.ComputeMaxAspect(viewportAspect, 
@@ -202,6 +209,7 @@ namespace EastFive.Images
             return image.Crop(x, y, width, height);
         }
 
+        [SupportedOSPlatform("windows6.1")]
         public static bool ComputeMaxAspect(this Image image, double viewportAspect,
             out int xOffset, out int yOffset, out int width, out int height)
         {
@@ -251,6 +259,7 @@ namespace EastFive.Images
             return false;
         }
 
+        [SupportedOSPlatform("windows6.1")]
         public static Image MinAspect(this Image image, double viewportAspect)
         {
             if (!OperatingSystem.IsWindows())
@@ -274,6 +283,7 @@ namespace EastFive.Images
             return image;
         }
 
+        [SupportedOSPlatform("windows6.1")]
         public static Image ScaleAspect(this Image image, double viewportAspect)
         {
             if (!OperatingSystem.IsWindows())
@@ -293,6 +303,7 @@ namespace EastFive.Images
             return image;
         }
 
+        [SupportedOSPlatform("windows6.1")]
         public static double AspectRatio(this Image image)
         {
             if (!OperatingSystem.IsWindows())

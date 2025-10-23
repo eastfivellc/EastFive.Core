@@ -116,7 +116,7 @@ namespace Snappy.Sharp
             readCount = ProcessRemainingInternalBuffer(buffer, offset, count);
             if (readCount != count)
             {
-               stream.Read(internalBuffer, 0, length);
+               stream.ReadExactly(internalBuffer, 0, length);
                Array.Copy(internalBuffer, 0, buffer, offset, count - readCount);
                internalBufferIndex = count - readCount;
                internalBufferLength = length;
@@ -129,7 +129,7 @@ namespace Snappy.Sharp
 
             // we at most have 64kb in the buffer to read
             byte[] tempBuffer = new byte[1 << (BLOCK_LOG + 1)];
-            stream.Read(tempBuffer, 0, tempBuffer.Length);
+            stream.ReadExactly(tempBuffer, 0, tempBuffer.Length);
 
             decompressor.Decompress(tempBuffer, 0, tempBuffer.Length, internalBuffer, 0, length);
 
@@ -262,7 +262,7 @@ namespace Snappy.Sharp
       private void CheckStreamHeader()
       {
          byte[] heading = new byte[StreamHeader.Length];
-         stream.Read(heading, 0, heading.Length);
+         stream.ReadExactly(heading, 0, heading.Length);
          for (int i = 1; i < heading.Length; i++)
          {
             if (heading[i] != StreamHeader[i])

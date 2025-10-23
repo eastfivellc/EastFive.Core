@@ -48,7 +48,7 @@ namespace Parquet.Data.Concrete
          //reading string one by one is extremely slow, read all data
 
          byte[] allBytes = _bytePool.Rent(remLength);
-         reader.BaseStream.Read(allBytes, 0, remLength);
+         reader.BaseStream.ReadExactly(allBytes, 0, remLength);
          int destIdx = offset;
          try
          {

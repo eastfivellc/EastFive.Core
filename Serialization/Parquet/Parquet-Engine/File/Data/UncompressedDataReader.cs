@@ -8,7 +8,7 @@ namespace Parquet.File.Data
       {
          byte[] result = new byte[count];
 
-         source.Read(result, 0, count);
+         source.ReadExactly(result, 0, count);
 
          return result;
       }

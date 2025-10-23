@@ -5,6 +5,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Runtime.Versioning;
 using System.Threading.Tasks;
 using EastFive.Extensions;
 using EastFive.Linq;
@@ -13,6 +14,7 @@ namespace EastFive.Images
 {
     public static partial class ImageExifExtensions
     {
+        [SupportedOSPlatform("windows6.1")]
         public static void FixOrientation(this Image image)
         {
             if (!OperatingSystem.IsWindows())
@@ -28,6 +30,7 @@ namespace EastFive.Images
             image.ExifSetRotateFlip(RotateFlipType.RotateNoneFlipNone);
         }
 
+        [SupportedOSPlatform("windows6.1")]
         public static RotateFlipType Invert(this RotateFlipType xform)
         {
             if (!OperatingSystem.IsWindows())
@@ -61,6 +64,7 @@ namespace EastFive.Images
             throw new ArgumentException($"'{xform}' is not a recognized transform");
         }
 
+        [SupportedOSPlatform("windows6.1")]
         public static RotateFlipType ExifGetRotateFlip(this Image image)
         {
             if (!OperatingSystem.IsWindows())
@@ -98,6 +102,7 @@ namespace EastFive.Images
             return RotateFlipType.RotateNoneFlipNone;
         }
 
+        [SupportedOSPlatform("windows6.1")]
         public static bool ExifSetRotateFlip(this Image image, RotateFlipType rotateFlip)
         {
             if (!OperatingSystem.IsWindows())
@@ -146,6 +151,7 @@ namespace EastFive.Images
 
         #region PropertyItem Value Extensions
 
+        [SupportedOSPlatform("windows6.1")]
         public static void SetValue(this PropertyItem propertyItem, int value)
         {
             if (!OperatingSystem.IsWindows())
@@ -180,12 +186,14 @@ namespace EastFive.Images
             throw new ArgumentException($"Cannot cast int to type `{propertyItem.Type}`");
         }
 
+        [SupportedOSPlatform("windows6.1")]
         public static int GetIntValue(this PropertyItem propertyItem)
         {
             propertyItem.TryGetValue(out int value);
             return value;
         }
 
+        [SupportedOSPlatform("windows6.1")]
         public static bool TryGetValue(this PropertyItem propertyItem, out int value)
         {
             if (!OperatingSystem.IsWindows())
@@ -215,6 +223,7 @@ namespace EastFive.Images
             return false;
         }
 
+        [SupportedOSPlatform("windows6.1")]
         public static bool TryGetValue(this PropertyItem propertyItem, out long value)
         {
             if (!OperatingSystem.IsWindows())
@@ -242,6 +251,7 @@ namespace EastFive.Images
             return false;
         }
 
+        [SupportedOSPlatform("windows6.1")]
         public static bool TryGetValue(this PropertyItem propertyItem, out ulong value)
         {
             if (!OperatingSystem.IsWindows())

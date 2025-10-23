@@ -22,7 +22,8 @@ namespace EastFive.Images
         {
             try
             {
-                var (image, format) = await Image.LoadWithFormatAsync(mediaContents);
+                var image = await Image.LoadAsync(mediaContents);
+                var format = image.Metadata.DecodedImageFormat;
                 return onRead(image, format);
             } catch(ArgumentException)
             {
@@ -41,18 +42,17 @@ namespace EastFive.Images
             }
         }
 
-        public static bool TryReadImage(this Stream mediaContents, out Image image, out IImageFormat format)
+        public static async Task<(bool success, Image image, IImageFormat format)> TryReadImageAsync(this Stream mediaContents)
         {
             try
             {
-                image = Image.Load(mediaContents, out format);
-                return true;
+                var image = await Image.LoadAsync(mediaContents);
+                var format = image.Metadata.DecodedImageFormat;
+                return (true, image, format);
             }
             catch (UnknownImageFormatException)
             {
-                image = default;
-                format = default;
-                return false;
+                return (false, default, default);
             }
         }
 
@@ -60,7 +60,8 @@ namespace EastFive.Images
         {
             try
             {
-                image = Image.Load(mediaContents, out format);
+                image = Image.Load(mediaContents);
+                format = image.Metadata.DecodedImageFormat;
                 return true;
             }catch (UnknownImageFormatException)
             {
@@ -70,7 +71,7 @@ namespace EastFive.Images
             }
         }
 
-        public static async Task<IImageInfo> TryReadImageMetadata(this byte[] mediaContents)
+        public static async Task<ImageInfo> TryReadImageMetadata(this byte[] mediaContents)
         {
             using (var stream = new MemoryStream(mediaContents))
             {
@@ -176,7 +177,8 @@ namespace EastFive.Images
 
             using (var stream = new MemoryStream(data))
             {
-                image = Image.Load(data, out imageFormat);
+                image = Image.Load(data);
+                imageFormat = image.Metadata.DecodedImageFormat;
                 return true;
             }
         }

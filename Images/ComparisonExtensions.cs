@@ -7,6 +7,7 @@ using System.IO;
 using System.Threading.Tasks;
 
 using EastFive.Linq;
+using System.Runtime.Versioning;
 
 namespace EastFive.Images
 {
@@ -48,6 +49,7 @@ namespace EastFive.Images
         }
     }
 
+    [SupportedOSPlatform("windows6.1")]
     public static class ComparisonExtensions
     {
         public static ComparisonSignature GenerateComparisonSignature(this Image image)

@@ -9,7 +9,7 @@ namespace Parquet.File.Data
       public byte[] Read(Stream source, int count)
       {
          byte[] srcBytes = new byte[count];
-         source.Read(srcBytes, 0, srcBytes.Length);
+         source.ReadExactly(srcBytes, 0, srcBytes.Length);
          return Decompress(srcBytes);
       }
 

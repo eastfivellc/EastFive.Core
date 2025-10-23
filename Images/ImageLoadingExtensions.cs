@@ -5,6 +5,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Runtime.Versioning;
 using System.Threading.Tasks;
 using EastFive.Extensions;
 using EastFive.Linq;
@@ -13,6 +14,7 @@ namespace EastFive.Images
 {
     public static partial class ImageLoadingExtensions
     {
+        [SupportedOSPlatform("windows6.1")]
         public static bool TryReadImage(this Stream mediaContents, out Image image)
         {
             if (!OperatingSystem.IsWindows())
@@ -30,12 +32,14 @@ namespace EastFive.Images
             }
         }
 
+        [SupportedOSPlatform("windows6.1")]
         public static bool TryReadImage(this byte [] mediaContents, out Image image)
         {
             using (var stream = new MemoryStream(mediaContents))
                 return stream.TryReadImage(out image);
         }
 
+        [SupportedOSPlatform("windows6.1")]
         public static void Save(this Image image, Stream outputStream,
             ImageCodecInfo imageCodec, long encoderQuality = 80L)
         {
@@ -48,6 +52,7 @@ namespace EastFive.Images
             image.Save(outputStream, imageCodec, encoderParameters);
         }
 
+        [SupportedOSPlatform("windows6.1")]
         public static void Save(this Image image, Stream outputStream,
             out ImageCodecInfo imageCodecUsed,
             string encodingMimeType = "image/jpeg", long encoderQuality = 80L)
@@ -56,6 +61,7 @@ namespace EastFive.Images
             image.Save(outputStream, imageCodecUsed, encoderQuality);
         }
 
+        [SupportedOSPlatform("windows6.1")]
         public static byte [] Save(this Image image,
             out ImageCodecInfo imageCodecUsed,
             string encodingMimeType = "image/jpeg", long encoderQuality = 80L)
@@ -89,6 +95,7 @@ namespace EastFive.Images
 
         }
 
+        [SupportedOSPlatform("windows6.1")]
         public static bool TryParseImage(this string imageDataEncoding, out Image image)
         {
             if (!OperatingSystem.IsWindows())
@@ -140,6 +147,7 @@ namespace EastFive.Images
             return false;
         }
 
+        [SupportedOSPlatform("windows6.1")]
         public static string Base64Encode(this Image image,
             string encodingMimeType = "image/jpeg", long encoderQuality = 80L)
         {
@@ -152,6 +160,7 @@ namespace EastFive.Images
             return $"data:{contentType};base64,{mediaContents.ToBase64String()}";
         }
 
+        [SupportedOSPlatform("windows6.1")]
         public static string GetMimeType(this Image image)
         {
             if (!OperatingSystem.IsWindows())
