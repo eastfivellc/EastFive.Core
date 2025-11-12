@@ -394,6 +394,38 @@ namespace EastFive.Linq.Async
             return onNone();
         }
 
+        public static Task<TResult> NextAsync<T, TResult>(this IEnumerableAsync<T> enumerable,
+            Func<T, Func<Task<TResult>>, Task<TResult>> onOne,
+            Func<TResult> onNone)
+        {
+            var enumerator = enumerable.GetEnumerator();
+            return firstOrNextAsync(enumerator);
+
+            async Task<TResult> firstOrNextAsync(IEnumeratorAsync<T> enumerator)
+            {
+                if (await enumerator.MoveNextAsync())
+                    return await onOne(enumerator.Current,
+                        () => firstOrNextAsync(enumerator));
+                return onNone();
+            }
+        }
+
+        public static Task<TResult> NextAsyncAsync<T, TResult>(this IEnumerableAsync<T> enumerable,
+            Func<T, Func<Task<TResult>>, Task<TResult>> onOne,
+            Func<Task<TResult>> onNone)
+        {
+            var enumerator = enumerable.GetEnumerator();
+            return firstOrNextAsync(enumerator);
+
+            async Task<TResult> firstOrNextAsync(IEnumeratorAsync<T> enumerator)
+            {
+                if (await enumerator.MoveNextAsync())
+                    return await onOne(enumerator.Current,
+                        () => firstOrNextAsync(enumerator));
+                return await onNone();
+            }
+        }
+
         public interface IFirstMatchResult<T>
         {
             bool Matched { get; }

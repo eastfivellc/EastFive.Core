@@ -17,6 +17,11 @@
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="EastFive.Core.Generators\EastFive.Core.Generators.csproj" 
+                      OutputItemType="Analyzer" 
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  <ItemGroup>
     <None Remove="Net\Client\" />
     <None Remove="SixLabors.ImageSharp" />
     <None Remove="Performance\" />
@@ -24,6 +29,11 @@
     <None Remove="Serialization\Parquet\" />
     <None Remove="Parquet.Net" />
     <None Remove="Serialization\DataReader\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="EastFive.Core.Generators\**" />
+    <EmbeddedResource Remove="EastFive.Core.Generators\**" />
+    <None Remove="EastFive.Core.Generators\**" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Net\Client\" />
