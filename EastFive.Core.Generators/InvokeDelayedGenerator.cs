@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
+using System.Linq;
 using System.Text;
 
 namespace EastFive.Core.Generators
@@ -14,11 +15,11 @@ namespace EastFive.Core.Generators
 
         public void Execute(GeneratorExecutionContext context)
         {
-            var source = GenerateInvokeDelayedOverloads();
+            var source = GenerateInvokeDelayedOverloads(maxImmediate: 4, maxDelayed: 12);
             context.AddSource("DiscriminatedFunctions.InvokeDelayed.g.cs", SourceText.From(source, Encoding.UTF8));
         }
 
-        private string GenerateInvokeDelayedOverloads()
+        private string GenerateInvokeDelayedOverloads(int maxImmediate, int maxDelayed)
         {
             var sb = new StringBuilder();
             
@@ -31,19 +32,12 @@ namespace EastFive.Core.Generators
             sb.AppendLine("    {");
 
             // Generate overloads for different combinations
-            // Format: (numPrimes, numDelayed)
-            var combinations = new[]
-            {
-                // Common patterns
-                (0, 1), (0, 2), (0, 3), (0, 4),
-                (1, 1), (1, 2), (1, 3), (1, 4),
-                (2, 1), (2, 2), (2, 3), // (2, 4) already exists
-                (3, 1), (3, 2), (3, 3), (3, 4),
-            };
+            // Format: (numImmediate, numDelayed)
+            var combinations = GenerateCombinations(maxImmediate, maxDelayed);
 
-            foreach (var (numPrimes, numDelayed) in combinations)
+            foreach (var (numImmediate, numDelayed) in combinations)
             {
-                sb.AppendLine(GenerateSingleOverload(numPrimes, numDelayed));
+                sb.AppendLine(GenerateSingleOverload(numImmediate, numDelayed));
                 sb.AppendLine();
             }
 
@@ -53,30 +47,38 @@ namespace EastFive.Core.Generators
             return sb.ToString();
         }
 
-        private string GenerateSingleOverload(int numPrimes, int numDelayed)
+        private (int numImmediate, int numDelayed)[] GenerateCombinations(int maxImmediate, int maxDelayed)
+        {
+            return Enumerable.Range(0, maxImmediate + 1)
+                .SelectMany(immediate => Enumerable.Range(1, maxDelayed)
+                    .Select(delayed => (immediate, delayed)))
+                .ToArray();
+        }
+
+        private string GenerateSingleOverload(int numImmediate, int numDelayed)
         {
             var sb = new StringBuilder();
 
             // Build generic type parameters
             var typeParams = new StringBuilder();
-            for (int i = 1; i <= numPrimes; i++)
-                typeParams.Append($"TPrime{i}, ");
+            for (int i = 1; i <= numImmediate; i++)
+                typeParams.Append($"TImmediate{i}, ");
             for (int i = 1; i <= numDelayed; i++)
                 typeParams.Append($"TDelayed{i}, ");
             typeParams.Append("TResult");
 
             // Build func signature (input parameters)
             var funcParams = new StringBuilder();
-            for (int i = 1; i <= numPrimes; i++)
-                funcParams.Append($"TPrime{i}, ");
+            for (int i = 1; i <= numImmediate; i++)
+                funcParams.Append($"TImmediate{i}, ");
             for (int i = 1; i <= numDelayed; i++)
                 funcParams.Append($"TDelayed{i}, ");
             funcParams.Append("Task<TResult>");
 
             // Build return type parameters
             var returnParams = new StringBuilder();
-            for (int i = 1; i <= numPrimes; i++)
-                returnParams.Append($"TPrime{i}, ");
+            for (int i = 1; i <= numImmediate; i++)
+                returnParams.Append($"TImmediate{i}, ");
             returnParams.Append("Task<TResult>");
 
             // Build method parameters
@@ -88,7 +90,7 @@ namespace EastFive.Core.Generators
             }
 
             // Build lambda parameters
-            var lambdaParams = string.Join(", ", GenerateList("prime", numPrimes));
+            var lambdaParams = string.Join(", ", GenerateList("immediate", numImmediate));
 
             // Generate task completion sources
             var taskSources = new StringBuilder();
@@ -117,8 +119,8 @@ namespace EastFive.Core.Generators
 
             // Generate func call parameters
             var funcCallParams = new StringBuilder();
-            for (int i = 1; i <= numPrimes; i++)
-                funcCallParams.Append($"prime{i}, ");
+            for (int i = 1; i <= numImmediate; i++)
+                funcCallParams.Append($"immediate{i}, ");
             for (int i = 1; i <= numDelayed; i++)
             {
                 funcCallParams.Append($"delayed{i}Result.value");
@@ -139,7 +141,7 @@ namespace EastFive.Core.Generators
             sb.AppendLine(runCallbacks.ToString().TrimEnd());
             sb.AppendLine("                ");
 
-            if (numPrimes == 0)
+            if (numImmediate == 0)
             {
                 sb.AppendLine("            return async () =>");
             }
