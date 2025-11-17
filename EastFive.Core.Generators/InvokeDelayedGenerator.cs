@@ -49,9 +49,12 @@ namespace EastFive.Core.Generators
 
         private (int numImmediate, int numDelayed)[] GenerateCombinations(int maxImmediate, int maxDelayed)
         {
+            const int FuncTypeParameterLimit = 16; // 17 total minus Task<TResult>
+            
             return Enumerable.Range(0, maxImmediate + 1)
                 .SelectMany(immediate => Enumerable.Range(1, maxDelayed)
                     .Select(delayed => (immediate, delayed)))
+                .Where(combo => combo.immediate + combo.delayed <= FuncTypeParameterLimit)
                 .ToArray();
         }
 
