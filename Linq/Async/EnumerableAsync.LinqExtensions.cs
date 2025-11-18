@@ -1,10 +1,12 @@
 ﻿using EastFive.Analytics;
+using EastFive.Async;
 using EastFive.Collections.Generic;
 using EastFive.Extensions;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -65,6 +67,187 @@ namespace EastFive.Linq.Async
                             return yieldReturn(item);
                     }
                     return yieldBreak;
+                });
+        }
+
+        public delegate IEnumerableAsync<T> RejoinCollectionDelegate<T>(IEnumerableAsync<T> items);
+
+        public static IEnumerableAsync<T> Split<T>(
+            this IEnumerableAsync<T> enumerable,
+            Func<T, bool> predicate,
+            out RejoinCollectionDelegate<T> falseItems)
+        {
+            var falseItemsLocal = new List<T>();
+
+            var enumeratorAsync = enumerable.GetEnumerator();
+            falseItems = (items) =>
+            {
+                var enumeratorLocal = items.GetEnumerator();
+                return EnumerableAsync.Yield<T>(
+                    (yieldReturn, yieldBreak) =>
+                    {
+                        return falseItemsLocal.First(
+                            (item, next) =>
+                            {
+                                return yieldReturn(item).AsTask();
+                            },
+                            async () =>
+                            {
+                                if(!await enumeratorLocal.MoveNextAsync())
+                                    return yieldBreak;
+                                
+                                var current = enumeratorLocal.Current;
+                                return yieldReturn(current);
+                            });
+                    });
+            };
+
+            return Yield<T>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    while(await enumeratorAsync.MoveNextAsync())
+                    {
+                           var current = enumeratorAsync.Current;
+                           if (predicate(current))
+                               return yieldReturn(current);
+                           falseItemsLocal.Add(current);
+                    }
+                    return yieldBreak;
+                });
+        }
+
+        public static IEnumerableAsync<T> Rejoin<T>(this IEnumerableAsync<T> enumerable,
+            RejoinCollectionDelegate<T> falseItems)
+        {
+            return falseItems(enumerable);
+        }
+
+        public static (IEnumerableAsync<T>, IEnumerableAsync<T>) Clone<T>(this IEnumerableAsync<T> enumerable)
+        {
+            var buffer1 = new Queue<T>();  // ← Use Queue
+            var buffer2 = new Queue<T>();
+            var enumeratorAsync = enumerable.GetEnumerator();
+            var moveLock = new SemaphoreSlim(1, 1);
+
+            var firstEnumerator = GetBufferedClone(buffer1, buffer2);
+            var secondEnumerator = GetBufferedClone(buffer2, buffer1);
+
+            return (firstEnumerator, secondEnumerator);
+
+            IEnumerableAsync<T> GetBufferedClone(Queue<T> readBuffer, Queue<T> writeBuffer)
+            {
+                return Yield<T>(
+                    async (yieldReturn, yieldBreak) =>
+                    {
+                        while (true)
+                        {
+                            using (await moveLock.LockAsync())
+                            {
+                                if (readBuffer.TryDequeue(out var item))  // ← O(1)
+                                    return yieldReturn(item);
+                                
+                                if (!await enumeratorAsync.MoveNextAsync())
+                                    return yieldBreak;
+                                
+                                var current = enumeratorAsync.Current;
+                                writeBuffer.Enqueue(current);  // ← O(1)
+                                return yieldReturn(current);
+                            }
+                        }
+                    });
+            }
+        }
+
+        /// <summary>
+        /// Mutates a member (field or property) of items in an enumerable and returns items with updated values.
+        /// </summary>
+        /// <param name="isMatch">True if the mutated member corresponds to the correct item (handles out-of-order results)</param>
+        public static IEnumerableAsync<TItem> Property<TItem, TMember>(this IEnumerableAsync<TItem> enumerable,
+            Expression<Func<TItem, TMember>> memberExpr,
+            Func<IEnumerableAsync<TMember>, IEnumerableAsync<TMember>> mutateMember,
+            Func<TItem, TMember, bool> isMatch)
+        {
+            var (rawItems, rawMembers) = enumerable.Clone();
+            var memberExtraction = memberExpr.Compile();
+            var updatedMembers = mutateMember(rawMembers.Select(item => memberExtraction(item)));
+
+            // Extract member info (could be property or field)
+            var memberInfo = memberExpr.Body switch
+            {
+                MemberExpression { Member: System.Reflection.PropertyInfo prop } => (System.Reflection.MemberInfo)prop,
+                MemberExpression { Member: System.Reflection.FieldInfo field } => field,
+                _ => throw new ArgumentException("Expression must reference a property or field", nameof(memberExpr))
+            };
+
+            // Create setter delegate based on member type
+            Action<object, TMember> setter = memberInfo switch
+            {
+                System.Reflection.PropertyInfo prop => (item, value) => prop.SetValue(item, value),
+                System.Reflection.FieldInfo field => (item, value) => field.SetValue(item, value),
+                _ => throw new InvalidOperationException("Unexpected member type")
+            };
+
+            var enumeratorItems = rawItems.GetEnumerator();
+            var enumeratorMembers = updatedMembers.GetEnumerator();
+            var memberBuffer = new Queue<TMember>();
+
+            return Yield<TItem>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    // Get next item
+                    if (!await enumeratorItems.MoveNextAsync())
+                        return yieldBreak;
+
+                    var item = enumeratorItems.Current;
+
+                    // First check buffered members
+                    foreach (var bufferedMember in memberBuffer.ToArray())
+                    {
+                        if (!isMatch(item, bufferedMember))
+                            continue;
+
+                        // Found match in buffer - remove it and update item
+                        memberBuffer = new Queue<TMember>(memberBuffer.Where(m => !EqualityComparer<TMember>.Default.Equals(m, bufferedMember)));
+                        
+                        if (typeof(TItem).IsValueType)
+                        {
+                            // Value types require boxing/unboxing
+                            object boxedItem = item;
+                            setter(boxedItem, bufferedMember);
+                            return yieldReturn((TItem)boxedItem);
+                        }
+
+                        // Reference types can be modified directly
+                        setter(item, bufferedMember);
+                        return yieldReturn(item);
+                    }
+
+                    // Not in buffer, search through new members
+                    while (await enumeratorMembers.MoveNextAsync())
+                    {
+                        var mutatedMember = enumeratorMembers.Current;
+
+                        if (!isMatch(item, mutatedMember))
+                        {
+                            // Doesn't match - add to buffer for future items
+                            memberBuffer.Enqueue(mutatedMember);
+                            continue;
+                        }
+
+                        // Found match - update the member
+                        if (typeof(TItem).IsValueType)
+                        {
+                            object boxedItem = item;
+                            setter(boxedItem, mutatedMember);
+                            return yieldReturn((TItem)boxedItem);
+                        }
+
+                        setter(item, mutatedMember);
+                        return yieldReturn(item);
+                    }
+
+                    return yieldReturn(item);
+
                 });
         }
 
