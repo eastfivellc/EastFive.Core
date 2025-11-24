@@ -146,6 +146,17 @@ namespace EastFive
             return false;
         }
 
+        public static bool TryGetValue<T>(this T? nullableValue, out T value) where T : struct
+        {
+            if (nullableValue.HasValue)
+            {
+                value = nullableValue.Value;
+                return true;
+            }
+            value = default;
+            return false;
+        }
+
         public static bool IsTuple(this Type type)
         {
             if (type.IsNull())
