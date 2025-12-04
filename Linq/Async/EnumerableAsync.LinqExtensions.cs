@@ -906,222 +906,68 @@ namespace EastFive.Linq.Async
                 });
         }
 
-        private static Task Prespool<T>(this IEnumerableAsync<T> enumerable,
-            Action<T> enqueue, EventWaitHandle moved, EventWaitHandle complete,
-            EastFive.Analytics.ILogger diagnosticsTag = default(EastFive.Analytics.ILogger))
-        {
-            var enumerator = enumerable.GetEnumerator();
+        // NOTE: Old Prespool implementation removed. See EnumerableAsync.ChannelExtensions.cs for new Channel-based implementation.
 
-            //var parallelRead = new Thread(new ThreadStart(Cycle));
-            //parallelRead.Name = $"Prespool - {Guid.NewGuid().ToString("N").Substring(0, 8)}";
-            //parallelRead.Priority = ThreadPriority.AboveNormal;
-            //parallelRead.Start();
-            //return parallelRead;
-
-            var parallelRead = Task.Run(Cycle);
-            parallelRead.ConfigureAwait(false);
-            return parallelRead;
-
-            async Task Cycle()
-            {
-                try
-                {
-                    diagnosticsTag.Trace($"Moving");
-                    while (await enumerator.MoveNextAsync())
-                    {
-                        diagnosticsTag.Trace($"Adding Value");
-                        enqueue(enumerator.Current);
-                        moved.Set();
-                        diagnosticsTag.Trace($"Added Value");
-                    }
-                    diagnosticsTag.Trace($"Moved");
-                }
-                catch (Exception ex)
-                {
-                    diagnosticsTag.Trace($"Captured exception:{ex.Message}");
-                    throw;
-                }
-                finally
-                {
-                    complete.Set();
-                    moved.Set();
-                    diagnosticsTag.Trace($"Completed");
-                }
-            }
-        }
-
+        /// <summary>
+        /// Batches items using Channel-based buffering. See EnumerableAsync.ChannelExtensions.cs for implementation.
+        /// This is a compatibility shim that delegates to the new Channel-based implementation.
+        /// </summary>
         public static IEnumerableAsync<T[]> Batch<T>(this IEnumerableAsync<T> enumerable,
             EastFive.Analytics.ILogger diagnostics = default(EastFive.Analytics.ILogger))
         {
-            var segment = new List<T>();
-            var segmentLock = new object();
-            var moved = new AutoResetEvent(false);
-            var complete = new ManualResetEvent(false);
-            var taskComplete = false; // Prevents call to WaitOne if task has already completed
-            var segmentTask = enumerable.Prespool(
-                (item) =>
-                {
-                    lock (segmentLock)
-                    {
-                        segment.Add(item);
-                    }
-                },
-                moved, complete, diagnostics);
-            return Yield<T[]>(
-                async (yieldReturn, yieldBreak) =>
-                {
-                    bool Complete()
-                    {
-                        if (taskComplete)
-                            return true;
-
-                        var taskIsFinished = complete.WaitOne(0);
-                        if (taskIsFinished)
-                        {
-                            taskComplete = true; // prevent hanging on complete.WaitOne
-                            return true;
-                        }
-
-                        return false;
-                    }
-
-                    while (!Complete())
-                    {
-                        moved.WaitOne();
-                        T[] nextSegment;
-                        lock (segmentLock)
-                        {
-                            nextSegment = segment.ToArray();
-                            segment.Clear();
-                        }
-                        if (nextSegment.Any())
-                            return yieldReturn(nextSegment);
-                        continue;
-                    }
-
-                    // segmentTask.Join();
-                    await segmentTask;
-                    T[] lastSegment;
-                    lock (segmentLock)
-                    {
-                        lastSegment = segment.ToArray();
-                        segment.Clear();
-                    }
-                    if (lastSegment.Any())
-                        return yieldReturn(lastSegment);
-                    return yieldBreak;
-                });
+            return enumerable.BatchWithChannels(bufferSize: 1000, diagnostics);
         }
 
+        /// <summary>
+        /// Executes tasks from an async enumerable in parallel, yielding results as they complete.
+        /// Reimplemented using Channel-based buffering for cleaner async/await semantics.
+        /// </summary>
+        /// <param name="maintainOrder">If true, yields results in original order. If false, yields results as they complete.</param>
         public static IEnumerableAsync<T> Parallel<T>(this IEnumerableAsync<Task<T>> enumerable,
             bool maintainOrder = false,
             ILogger diagnostics = default(ILogger))
         {
-            var segment = new List<Task<T>>();
-            var segmentLock = new object();
-            var moved = new AutoResetEvent(false);
-            var complete = new ManualResetEvent(false);
-            var prespoolling = enumerable.Prespool(
-                (item) =>
+            var pendingTasks = new List<Task<T>>();
+
+            return enumerable
+                .BatchWithChannels(bufferSize: 100, diagnostics)
+                .SelectAsyncMany(batch =>
                 {
-                    lock (segmentLock)
+                    pendingTasks.AddRange(batch);
+
+                    return Yield<T>(async (yieldReturn, yieldBreak) =>
                     {
-                        segment.Add(item);
-                    }
-                }, moved, complete, diagnostics);
-            var taskComplete = false; // Prevents call to WaitOne if task has already completed
-            var taskCompleteLock = new object();
-            var taskLock = new ManualResetEvent(true);
-            return Yield<T>(
-                async (yieldReturn, yieldBreak) =>
-                {
-                    async Task<bool> IsComplete()
-                    {
-                        bool shouldAwaitPrespooling = false;
-                        lock (taskCompleteLock)
+                        if (!pendingTasks.Any())
+                            return yieldBreak;
+
+                        Task<T> taskToAwait;
+
+                        if (maintainOrder)
                         {
-                            // If this section is not locked, two parallel threads could see taskComplete==false
-                            // Then both threads would see taskIsFinished = WaitOne(0) == true.
-                            // Both threads would then call Join() on prespolling.
-
-                            if (taskComplete)
-                                return true;
-
-                            taskComplete = complete.WaitOne(0);
-                            if (taskComplete)
-                                shouldAwaitPrespooling = true;
+                            // Maintain order: yield first pending task when complete
+                            taskToAwait = pendingTasks.First();
+                            pendingTasks.RemoveAt(0);
+                        }
+                        else
+                        {
+                            // Yield as completed: yield whichever task completes first
+                            taskToAwait = await Task.WhenAny(pendingTasks);
+                            pendingTasks.Remove(taskToAwait);
                         }
 
-                        if (shouldAwaitPrespooling)
-                        {
-                            await prespoolling;
-                            //prespoolling.Join();
-                            return true;
-                        }
-
-                        return false;
-                    }
-
-                    while (!await IsComplete())
-                    {
-                        moved.WaitOne(TimeSpan.FromSeconds(1));
-
-                        var yieldKvp = await YieldResultAsync();
-                        if (!yieldKvp.Key)
-                            continue;
-                        var result = await yieldKvp.Value;
+                        var result = await taskToAwait;
                         return yieldReturn(result);
-                    }
-
-                    var yieldFinalKvp = await YieldResultAsync();
-                    if (!yieldFinalKvp.Key)
-                    {
-                        return yieldBreak;
-                    }
-                    var resultFromFinalSegment = await yieldFinalKvp.Value;
-                    return yieldReturn(resultFromFinalSegment);
-
-                    async Task<KeyValuePair<bool, Task<T>>> YieldResultAsync()
-                    {
-                        taskLock.WaitOne(); // taskLock synchronizes yield calls
-
-                        Task<T>[] options;
-                        lock (segmentLock) // segmentLock synchronizes with prespool.
-                        {
-                            if (!segment.Any())
-                            {
-                                taskLock.Set();
-                                return default(Task<T>).PairWithKey(false);
-                            }
-
-                            if (maintainOrder)
-                            {
-                                var taskToWait = segment.First();
-                                segment.Remove(taskToWait);
-                                taskLock.Set();
-                                return taskToWait.PairWithKey(true);
-                            }
-
-                            options = segment.ToArray();
-                        }
-
-                        // It is okay to block inside of the taskLock critical section because
-                        // only one task can become available at a time.
-                        var finishedTaskNext = await Task.WhenAny(options);
-                        lock (segmentLock)
-                        {
-                            segment.Remove(finishedTaskNext);
-                        }
-                        taskLock.Set();
-                        return finishedTaskNext.PairWithKey(true);
-                    }
+                    });
                 });
         }
 
+        /// <summary>
+        /// Prespools items using Channel-based buffering. See EnumerableAsync.ChannelExtensions.cs for implementation.
+        /// This is a compatibility shim that delegates to the new Channel-based implementation.
+        /// </summary>
         public static IEnumerableAsync<T> Prespool<T>(this IEnumerableAsync<T> items, ILogger diagnosticsTag = default(ILogger))
         {
-            // TODO: Match batch use this instead of this using Batch.
-            return items.Batch(diagnosticsTag).SelectMany();
+            return items.PrespoolWithChannels(bufferSize: 100, diagnosticsTag);
         }
 
         public static IEnumerableAsync<TResult> Range<TItem, TRange, TResult>(this IEnumerableAsync<TItem> enumerables,
@@ -1699,61 +1545,14 @@ namespace EastFive.Linq.Async
                 });
         }
 
+        /// <summary>
+        /// Awaits tasks with read-ahead buffering. See EnumerableAsync.ChannelExtensions.cs for implementation.
+        /// This is a compatibility shim that delegates to the new Channel-based implementation.
+        /// </summary>
         public static IEnumerableAsync<TItem> Await<TItem>(this IEnumerableAsync<Task<TItem>> enumerable,
             int readAhead)
         {
-            // No arg exception here because some items want to ready ahead 
-            // using a dynamic value which could be 0 and ...
-            if (readAhead < 1)
-                // ... the readAhead >= 1 requirement is based off the implementation of this method.
-                readAhead = 1;
-
-            var enumerator = enumerable.GetEnumerator();
-            var batchQueue = new Queue<Task<TItem>>(readAhead);
-            var batchQueueLock = new AutoResetEvent(true);
-            var moreDataToRead = true;
-
-            return Yield<TItem>(
-                async (yieldReturn, yieldBreak) =>
-                {
-                    bool ShouldQueueMoreItems()
-                    {
-                        if (!moreDataToRead)
-                            return false;
-
-                        if (batchQueue.Count < readAhead)
-                            return true;
-
-                        return false;
-                    }
-
-                    Task<TItem> currentTask;
-                    batchQueueLock.WaitOne();
-                    while (true)
-                    {
-                        while (ShouldQueueMoreItems())
-                        {
-                            moreDataToRead = await enumerator.MoveNextAsync();
-                            if (!moreDataToRead)
-                                break;
-                            batchQueue.Enqueue(enumerator.Current);
-                        }
-
-                        if (batchQueue.Any())
-                        {
-                            currentTask = batchQueue.Dequeue();
-                            batchQueueLock.Set();
-                            var current = await currentTask;
-                            return yieldReturn(current);
-                        }
-
-                        if (!moreDataToRead)
-                        {
-                            batchQueueLock.Set();
-                            return yieldBreak;
-                        }
-                    }
-                });
+            return enumerable.AwaitWithChannels(readAhead);
         }
 
         public static IEnumerableAsync<TItem> AsAsyncEnumerable<TItem>(this TItem item)
