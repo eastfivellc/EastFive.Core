@@ -17,9 +17,7 @@
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="EastFive.Core.Generators\EastFive.Core.Generators.csproj" 
-                      OutputItemType="Analyzer" 
-                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="EastFive.Core.Generators\EastFive.Core.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
   <ItemGroup>
     <None Remove="Net\Client\" />
@@ -38,6 +36,7 @@
   <ItemGroup>
     <Folder Include="Net\Client\" />
     <Folder Include="Diagnostics\" />
+    <Folder Include="Serialization/JSON/" />
     <Folder Include="Serialization\Text\" />
     <Folder Include="Serialization\Parquet\" />
     <Folder Include="Serialization\DataReader\" />
