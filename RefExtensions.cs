@@ -1,12 +1,9 @@
 ﻿using EastFive.Extensions;
 using EastFive.Linq;
 using EastFive.Linq.Async;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection.PortableExecutable;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace EastFive
@@ -19,10 +16,10 @@ namespace EastFive
             return new Ref<T>(id);
         }
 
-        public static IRef<TType> AsRef<TType>(this TType type)
-            where TType : IReferenceable
+        public static IRefs<T> AsRefs<T>(this IRef<T> first)
+            where T : IReferenceable
         {
-            return new EastFive.Ref<TType>(type.id);
+            return new Refs<T>([first.id]);
         }
 
         public static IRefs<T> AsRefs<T>(this IEnumerable<Guid> ids)
