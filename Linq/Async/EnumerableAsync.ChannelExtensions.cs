@@ -3,6 +3,7 @@ using EastFive.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
@@ -103,6 +104,138 @@ namespace EastFive.Linq.Async
             var producerTask = ProduceTasksAsync(enumerable, channel.Writer, diagnostics);
 
             return ConsumeAndAwaitTasks(channel.Reader, producerTask, diagnostics);
+        }
+
+        /// <summary>
+        /// Awaits tasks from an async enumerable with adaptive read-ahead that scales based on consumption rate.
+        /// Starts with minimal buffering and increases when the consumer is waiting for items.
+        /// </summary>
+        /// <param name="maxReadAhead">Maximum number of tasks to buffer ahead</param>
+        /// <param name="diagnostics">Optional logger for debugging</param>
+        public static IEnumerableAsync<TItem> AwaitAdaptive<TItem>(
+            this IEnumerableAsync<Task<TItem>> enumerable,
+            int initialConcurrency = 2,
+            int maxReadAhead = 10,
+            ILogger diagnostics = default)
+        {
+            if (maxReadAhead < 1)
+                maxReadAhead = 1;
+
+            // Use unbounded channel so producer never blocks
+            var channel = Channel.CreateUnbounded<Task<TItem>>(new UnboundedChannelOptions
+            {
+                SingleReader = true,
+                SingleWriter = true
+            });
+
+            // Semaphore controls how many items can be in-flight
+            // Start with 1 (sequential) and adapt based on demand
+            var state = new AdaptiveState { CurrentConcurrency = initialConcurrency, MaxReadAhead = maxReadAhead };
+            var inflightSemaphore = new SemaphoreSlim(initialConcurrency, maxReadAhead);
+            
+            var producerTask = ProduceAdaptiveAsync(enumerable, channel.Writer, inflightSemaphore, diagnostics);
+
+            return ConsumeAdaptive(channel.Reader, producerTask, inflightSemaphore, state, diagnostics: diagnostics);
+        }
+
+        private class AdaptiveState
+        {
+            public int CurrentConcurrency;
+            public int MaxReadAhead;
+            public readonly object Lock = new object();
+        }
+
+        private static async Task ProduceAdaptiveAsync<T>(
+            IEnumerableAsync<Task<T>> source,
+            ChannelWriter<Task<T>> writer,
+            SemaphoreSlim inflightSemaphore,
+            ILogger diagnostics)
+        {
+            try
+            {
+                diagnostics?.Trace("Adaptive producer starting");
+                var enumerator = source.GetEnumerator();
+                
+                while (await enumerator.MoveNextAsync())
+                {
+                    // Wait for permission to add another in-flight task
+                    await inflightSemaphore.WaitAsync();
+                    diagnostics?.Trace($"Writing task to channel (inflight slots: {inflightSemaphore.CurrentCount})");
+                    await writer.WriteAsync(enumerator.Current);
+                }
+                
+                diagnostics?.Trace("Adaptive producer completed");
+                writer.Complete();
+            }
+            catch (Exception ex)
+            {
+                diagnostics?.Trace($"Adaptive producer exception: {ex.Message}");
+                writer.Complete(ex);
+                throw;
+            }
+        }
+
+        private static IEnumerableAsync<T> ConsumeAdaptive<T>(
+            ChannelReader<Task<T>> reader,
+            Task producerTask,
+            SemaphoreSlim inflightSemaphore,
+            AdaptiveState state,
+            int fastReadThresholdMs = 10, // If read takes < 10ms, consumer is waiting
+            int readsBeforeScaleUp = 3,   // Scale up after 3 consecutive fast reads
+            ILogger diagnostics = null)
+        {
+            var lastReadTime = DateTime.UtcNow;
+            var consecutiveFastReads = 0;
+            
+            return EnumerableAsync.Yield<T>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    if (await reader.WaitToReadAsync())
+                    {
+                        if (reader.TryRead(out var task))
+                        {
+                            var waitTime = (DateTime.UtcNow - lastReadTime).TotalMilliseconds;
+                            
+                            // Check if we should scale up concurrency
+                            if (waitTime < fastReadThresholdMs)
+                            {
+                                consecutiveFastReads++;
+                                if (consecutiveFastReads >= readsBeforeScaleUp)
+                                {
+                                    lock (state.Lock)
+                                    {
+                                        if (state.CurrentConcurrency < state.MaxReadAhead)
+                                        {
+                                            state.CurrentConcurrency++;
+                                            inflightSemaphore.Release(); // Allow one more in-flight
+                                            diagnostics?.Trace($"Scaled up concurrency to {state.CurrentConcurrency}");
+                                        }
+                                    }
+                                    consecutiveFastReads = 0;
+                                }
+                            }
+                            else
+                            {
+                                consecutiveFastReads = 0;
+                            }
+                            
+                            diagnostics?.Trace("Awaiting task from channel");
+                            var result = await task;
+                            
+                            // Release the semaphore slot so producer can queue the next item
+                            inflightSemaphore.Release();
+                            
+                            lastReadTime = DateTime.UtcNow;
+                            diagnostics?.Trace("Task completed, yielding result");
+                            return yieldReturn(result);
+                        }
+                    }
+
+                    // Channel is complete
+                    await producerTask;
+                    diagnostics?.Trace("Adaptive consumer completed");
+                    return yieldBreak;
+                });
         }
 
         #region Private Implementation
