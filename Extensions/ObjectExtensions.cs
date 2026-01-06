@@ -10,6 +10,7 @@ using EastFive.Collections.Generic;
 using EastFive.Linq;
 using EastFive.Reflection;
 using System.Reflection;
+using EastFive.Linq.Async;
 
 namespace EastFive.Extensions
 {
@@ -251,6 +252,15 @@ namespace EastFive.Extensions
             if (ifCondition)
                 return thenOperation(value);
             return value;
+        }
+
+        public static TResult IfThenElse<T, TResult>(this T value, bool ifCondition,
+            Func<T, TResult> thenOperation,
+            Func<T, TResult> elseOperation)
+        {
+            if (ifCondition)
+                return thenOperation(value);
+            return elseOperation(value);
         }
 
         public static bool TryGetType(this object value, out Type type)
