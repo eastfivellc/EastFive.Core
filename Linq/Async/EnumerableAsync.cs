@@ -201,7 +201,10 @@ namespace EastFive.Linq.Async
                 async (yieldReturn, yieldBreak) =>
                 {
                     if (!enumerator.MoveNext())
+                    {
+                        enumerator.Dispose();
                         return yieldBreak;
+                    }
 
                     var current = await enumerator.Current;
                     return yieldReturn(current);
@@ -261,7 +264,10 @@ namespace EastFive.Linq.Async
                                 break;
 
                             if (!moreDataToRead)
+                            {
+                                enumerator.Dispose();
                                 return yieldBreak;
+                            }
                         }
                         //currentTask = batchQueue.Dequeue();
                     }
@@ -295,7 +301,10 @@ namespace EastFive.Linq.Async
                 async (yieldReturn, yieldBreak) =>
                 {
                     if (!enumerator.MoveNext())
+                    {
+                        enumerator.Dispose();
                         return await yieldBreak.AsTask();
+                    }
 
                     var current = enumerator.Current;
                     return yieldReturn(current);
@@ -314,7 +323,10 @@ namespace EastFive.Linq.Async
                         enumerator = items.GetEnumerator();
                     }
                     if (!enumerator.MoveNext())
+                    {
+                        enumerator?.Dispose();
                         return yieldBreak;
+                    }
 
                     var current = enumerator.Current;
                     return yieldReturn(current);
@@ -929,6 +941,25 @@ namespace EastFive.Linq.Async
 
                         return elseOperation(item);
                     });
+        }
+
+        public static IEnumerableAsync<T> IfThenSelect<T>(this IEnumerableAsync<T> values,
+                bool ifCondition,
+            Func<T, T> thenOperation)
+        {
+            if (ifCondition)
+                return values.Select(thenOperation);
+            return values;
+        }
+
+        public static IEnumerableAsync<TResult> IfThenElseSelect<T, TResult>(this IEnumerableAsync<T> values,
+                bool ifCondition,
+            Func<T, TResult> thenOperation,
+            Func<T, TResult> elseOperation)
+        {
+            if (ifCondition)
+                return values.Select(thenOperation);
+            return values.Select(elseOperation);
         }
 
         public interface ISelected<T>

@@ -1182,61 +1182,63 @@ namespace EastFive.Linq.Async
         }
 
         public static IEnumerableAsync<TResult> SelectMany<T, TResult>(
-            this IEnumerableAsync<T> enumerables, Func<T, IEnumerable<TResult>> selectMany,
+            this IEnumerableAsync<T> enumerables,
+            Func<T, IEnumerable<TResult>> selectMany,
             ILogger logger = default,
             System.Threading.CancellationToken cancellationToken = default)
         {
             var enumerator = enumerables.GetEnumerator();
-            var enumeratorInnerPreserved = default(IEnumerator<TResult>);
+            var enumeratorInner = default(IEnumerator<TResult>);
             var scopedLogger = logger.CreateScope($"SelectMany:{enumerables.GetHashCode()}");
+            
             return Yield<TResult>(
                 async (yieldReturn, yieldBreak) =>
                 {
-                    if (!cancellationToken.IsDefault())
-                        if (cancellationToken.IsCancellationRequested)
-                            return yieldBreak;
-
-                    (var didMove, enumeratorInnerPreserved) = await MoveNextAsync(enumeratorInnerPreserved);
-                    if (!didMove)
-                        return yieldBreak;
-
-                    scopedLogger.Trace("Yielding value");
-                    return yieldReturn(enumeratorInnerPreserved.Current);
-
-                    async Task<(bool, IEnumerator<TResult>)> MoveNextAsync(IEnumerator<TResult> enumeratorInner)
+                    // Check cancellation
+                    if (!cancellationToken.IsDefault() && cancellationToken.IsCancellationRequested)
                     {
-                        if (DidMove())
-                            return (true, enumeratorInner);
-
-                        while (await enumerator.MoveNextAsync())
-                        {
-                            scopedLogger.Trace("Moved Outer");
-
-                            var current = enumerator.Current;
-                            var many = selectMany(current);
-                            if (many.IsDefaultOrNull())
-                            {
-                                scopedLogger.Trace("FAILURE:selectMany returned null IEnumerable");
-                                continue;
-                            }
-                            var newEnumeratorInner = many.GetEnumerator();
-                            if (newEnumeratorInner.MoveNext())
-                            {
-                                return (true, newEnumeratorInner);
-                            }
-                        }
-
-                        scopedLogger.Trace("Complete");
-                        return (false, default(IEnumerator<TResult>));
-
-                        bool DidMove()
-                        {
-                            if (enumeratorInner.IsDefaultOrNull())
-                                return false;
-
-                            return enumeratorInner.MoveNext();
-                        }
+                        enumeratorInner?.Dispose();
+                        return yieldBreak;
                     }
+
+                    // Try to advance current inner enumerator
+                    if (enumeratorInner != null && enumeratorInner.MoveNext())
+                    {
+                        scopedLogger.Trace("Yielding value");
+                        return yieldReturn(enumeratorInner.Current);
+                    }
+
+                    // Inner exhausted or null - dispose and find next non-empty inner
+                    enumeratorInner?.Dispose();
+                    enumeratorInner = null;
+
+                    while (await enumerator.MoveNextAsync())
+                    {
+                        scopedLogger.Trace("Moved Outer");
+
+                        var current = enumerator.Current;
+                        var many = selectMany(current);
+                        if (many.IsDefaultOrNull())
+                        {
+                            scopedLogger.Trace("FAILURE:selectMany returned null IEnumerable");
+                            continue;
+                        }
+
+                        enumeratorInner = many.GetEnumerator();
+                        if (enumeratorInner.MoveNext())
+                        {
+                            scopedLogger.Trace("Yielding value");
+                            return yieldReturn(enumeratorInner.Current);
+                        }
+                        
+                        // Dispose immediately if empty
+                        enumeratorInner.Dispose();
+                        enumeratorInner = null;
+                    }
+
+                    // Outer exhausted
+                    scopedLogger.Trace("Complete");
+                    return yieldBreak;
                 });
         }
 
@@ -1303,7 +1305,10 @@ namespace EastFive.Linq.Async
                         if (enumeratorInner.IsDefaultOrNull() || (!await enumeratorInner.MoveNextAsync()))
                         {
                             if (!enumerator.MoveNext())
+                            {
+                                enumerator.Dispose();
                                 return yieldBreak;
+                            }
 
                             enumeratorInner = enumerator.Current.GetEnumerator();
                             if (!await enumeratorInner.MoveNextAsync())
@@ -1547,17 +1552,51 @@ namespace EastFive.Linq.Async
 
         /// <summary>
         /// Awaits tasks with read-ahead buffering. See EnumerableAsync.ChannelExtensions.cs for implementation.
-        /// This is a compatibility shim that delegates to the new Channel-based implementation.
+        /// For readAhead &lt;= 1, uses simple sequential awaiting to avoid Channel complexity.
         /// </summary>
         public static IEnumerableAsync<TItem> Await<TItem>(this IEnumerableAsync<Task<TItem>> enumerable,
             int readAhead)
         {
+            // For sequential processing (readAhead <= 1), use simple implementation
+            // This avoids Channel-based complexity that can cause debugger issues
+            if (readAhead <= 1)
+                return enumerable.Await();
+            
             return enumerable.AwaitWithChannels(readAhead);
         }
 
-        public static IEnumerableAsync<TItem> AsAsyncEnumerable<TItem>(this TItem item)
+        /// <summary>
+        /// Awaits tasks with adaptive read-ahead that automatically scales based on consumption rate.
+        /// Starts with sequential processing and scales up when the consumer is waiting for items.
+        /// This is ideal when the optimal concurrency level is unknown.
+        /// </summary>
+        /// <param name="maxReadAhead">Maximum concurrency level (default 10)</param>
+        public static IEnumerableAsync<TItem> AwaitAdaptive<TItem>(this IEnumerableAsync<Task<TItem>> enumerable,
+            int maxReadAhead = 10)
+        {
+            return enumerable.AwaitAdaptive(maxReadAhead, diagnostics: default);
+        }
+
+        public static IEnumerableAsync<TItem> AsSingleItemEnumerableAsync<TItem>(this TItem item)
         {
             return EnumerableAsyncStart(item);
+        }
+
+        public static IEnumerableAsync<TItem> AsEnumerableAsync<TItem>(this IEnumerable<TItem> items)
+        {
+            var enumerator = items.GetEnumerator();
+            return Yield<TItem>(
+                async (yieldReturn, yieldBreak) =>
+                {
+                    if(!enumerator.MoveNext())
+                    {
+                        enumerator.Dispose();
+                        return yieldBreak;
+                    }
+
+                    var next = enumerator.Current;
+                    return yieldReturn(next);
+                });
         }
 
         public static IEnumerableAsync<TItem> ToEnumerableAsync<TItem>(this IAsyncEnumerable<TItem> items)
@@ -1567,7 +1606,10 @@ namespace EastFive.Linq.Async
                 async (yieldReturn, yieldBreak) =>
                 {
                     if (!await enumerator.MoveNextAsync())
+                    {
+                        await enumerator.DisposeAsync();
                         return yieldBreak;
+                    }
 
                     var next = enumerator.Current;
                     return yieldReturn(next);
