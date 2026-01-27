@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -303,17 +304,17 @@ namespace EastFive
             return stream;
         }
 
-        public static bool IsNullOrEmpty(this string value)
+        public static bool IsNullOrEmpty([NotNullWhen(false)] this string? value)
         {
             return String.IsNullOrEmpty(value);
         }
 
-        public static bool IsNullOrWhiteSpace(this string value)
+        public static bool IsNullOrWhiteSpace([NotNullWhen(false)] this string? value)
         {
             return String.IsNullOrWhiteSpace(value);
         }
 
-        public static bool HasBlackSpace(this string value)
+        public static bool HasBlackSpace([NotNullWhen(true)] this string? value)
         {
             return !String.IsNullOrWhiteSpace(value);
         }
