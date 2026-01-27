@@ -114,29 +114,38 @@ namespace EastFive.Reflection
                     onResolved,
                     onNotResolved);
             }
-            if (expression is BinaryExpression)
+            if (expression is BinaryExpression binaryExpr)
             {
-                var binaryExpr = expression as BinaryExpression;
                 var relationship = binaryExpr.NodeType;
-                if (binaryExpr.Left is MemberExpression)
+                if (TryGetMemberExpression(binaryExpr.Left, out var memberInfoLeft))
                 {
-                    var left = binaryExpr.Left as MemberExpression;
-                    if(left.Expression.NodeType == ExpressionType.Parameter)
-                    {
-                        var memberInfo = left.Member;
-                        var value = binaryExpr.Right.Resolve();
-                        return onResolved(memberInfo, relationship, value);
-                    }
+                    var value = binaryExpr.Right.Resolve();
+                    return onResolved(memberInfoLeft, relationship, value);
                 }
-                if (binaryExpr.Right is MemberExpression)
+                if (TryGetMemberExpression(binaryExpr.Right, out var memberInfoRight))
                 {
-                    var right = binaryExpr.Right as MemberExpression;
-                    if (right.Expression.NodeType == ExpressionType.Parameter)
+                    var value = binaryExpr.Left.Resolve();
+                    return onResolved(memberInfoRight, relationship, value);
+                }
+
+                bool TryGetMemberExpression(Expression expr, out MemberInfo memberInfo)
+                {
+                    if (expr is MemberExpression)
                     {
-                        var memberInfo = right.Member;
-                        var value = binaryExpr.Left.Resolve();
-                        return onResolved(memberInfo, relationship, value);
+                        var memberExpr = expr as MemberExpression;
+                        if (memberExpr.Expression.NodeType == ExpressionType.Parameter)
+                        {
+                            memberInfo = memberExpr.Member;
+                            return true;
+                        }
                     }
+                    if (expr.NodeType == ExpressionType.Convert)
+                    {
+                        var unaryExpr = expr as UnaryExpression;
+                        return TryGetMemberExpression(unaryExpr.Operand, out memberInfo);
+                    }
+                    memberInfo = default;
+                    return false;
                 }
             }
             if(expression is LambdaExpression)
@@ -157,6 +166,7 @@ namespace EastFive.Reflection
                     }
                 }
             }
+
             return onNotResolved();
         }
 
