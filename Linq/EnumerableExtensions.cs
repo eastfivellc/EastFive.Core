@@ -1056,6 +1056,42 @@ namespace EastFive.Linq
             return items.IndexOf(item, (item1, item2) => item1 == item2, success, notFound);
         }
 
+        public static IEnumerable<TItem> UpdateWhere<TItem>(this IEnumerable<TItem> items,
+            Func<TItem, bool> predicate,
+            Func<TItem, TItem> update)
+        {
+            return items
+                .Select(
+                    item =>
+                    {
+                        if (!predicate(item))
+                            return item;
+                        var updatedItem = update(item);
+                        return updatedItem;
+                    });
+        }
+
+        public static TItem[] UpdateWhere<TItem>(this IEnumerable<TItem> items,
+            Func<TItem, bool> predicate,
+            Func<TItem, TItem> update,
+            out TItem[] updatedItems)
+        {
+            var updatedItemsList = new List<TItem>();
+            var resultItems = items
+                .Select(
+                    item =>
+                    {
+                        if (!predicate(item))
+                            return item;
+                        var updatedItem = update(item);
+                        updatedItemsList.Add(updatedItem);
+                        return updatedItem;
+                    })
+                .ToArray();
+            updatedItems = updatedItemsList.ToArray();
+            return resultItems;
+        }
+
         public static IEnumerable<T> ToEndlessLoop<T>(this IEnumerable<T> items)
         {
             bool operated = false;
