@@ -577,6 +577,25 @@ namespace EastFive.Linq.Async
             return onNone();
         }
 
+        public static async Task<TResult> SingleAsync<T, TResult>(this IEnumerableAsync<T> enumerable,
+            Func<T, TResult> onOne,
+            Func<T[], TResult> onMany,
+            Func<TResult> onNone)
+        {
+            var enumerator = enumerable.GetEnumerator();
+            if (!await enumerator.MoveNextAsync())
+                return onNone();
+            var first = enumerator.Current;
+            if (!await enumerator.MoveNextAsync())
+                return onOne(first);
+            var rest = new List<T> { first };
+            do  
+            {
+                rest.Add(enumerator.Current);
+            } while (await enumerator.MoveNextAsync());
+            return onMany(rest.ToArray());
+        }
+
         public static Task<TResult> NextAsync<T, TResult>(this IEnumerableAsync<T> enumerable,
             Func<T, Func<Task<TResult>>, Task<TResult>> onOne,
             Func<TResult> onNone)
