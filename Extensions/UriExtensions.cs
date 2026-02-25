@@ -257,6 +257,7 @@ namespace EastFive
             var uriBuilder = new UriBuilder(uri);
             var pathComponents = uriBuilder.Path
                     .Split('/'.AsArray())
+                    .Where(pathComponent => pathComponent.HasBlackSpace())
                     .ToArray();
             return pathComponents;
         }
