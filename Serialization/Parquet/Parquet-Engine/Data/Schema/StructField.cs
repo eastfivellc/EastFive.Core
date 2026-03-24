@@ -40,9 +40,9 @@ namespace Parquet.Data
          {
             Path = value.AddPath(Name);
 
-            foreach(Field field in _fields)
+            foreach(Field f in _fields)
             {
-               field.PathPrefix = Path;
+               f.PathPrefix = Path;
             }
          }
       }
