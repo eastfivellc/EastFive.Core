@@ -305,7 +305,7 @@ namespace EastFive
             return uri.ParseQueryParameter(parameterExpr,
                     guidKey => Guid.Parse(guidKey),
                     objValue => (object)objValue,
-                (webId) => webId,
+                (dict) => dict,
                 () => default(Dictionary<Guid, object>));
         }
 
