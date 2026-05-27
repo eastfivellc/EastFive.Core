@@ -3,10 +3,10 @@ using System.Threading.Tasks;
 
 namespace EastFive.Serialization.Binding.Binders
 {
-    /// <summary>Binds any <see cref="Enum"/> from a string (name) in the source.</summary>
+    /// <summary>Binds any <c>enum</c>. Accepts native string (parse) or native int (cast).</summary>
     public sealed class EnumBinder : ITypeBinder
     {
-        public bool CanBind(Type targetType) => targetType is { IsEnum: true };
+        public bool CanBind(Type targetType) => targetType.IsEnum;
 
         public ValueTask<TResult> Read<TResult>(
             Type targetType,
@@ -16,19 +16,21 @@ namespace EastFive.Serialization.Binding.Binders
             Func<BindFailure, TResult> onFailure,
             Func<TResult> onNull = null)
         {
-            return source.GetString(
-                s =>
+            var path = context?.KeyPath;
+            return source.GetValue<TResult>(
+                path: path,
+                onNull: onNull,
+                onString: s =>
                 {
-                    if (Enum.TryParse(targetType, s, ignoreCase: true, out var value))
-                        return onBound(value);
-
-                    var valid = string.Join(", ", Enum.GetNames(targetType));
-                    return onFailure(new BindFailure(
-                        new ParseError($"'{s}' is not a valid value for `{targetType.FullName}`. Valid values: [{valid}]."),
-                        targetType, context.KeyPath));
+                    try { return onBound(Enum.Parse(targetType, s, ignoreCase: true)); }
+                    catch (ArgumentException) { return onFailure(new BindFailure(new ParseError($"'{s}' is not a {targetType.Name}"), targetType, path)); }
                 },
-                onFailure,
-                onNull);
+                onInt64: i =>
+                {
+                    try { return onBound(Enum.ToObject(targetType, i)); }
+                    catch (Exception) { return onFailure(new BindFailure(new ParseError($"{i} is not a {targetType.Name}"), targetType, path)); }
+                },
+                onFailure: onFailure);
         }
 
         public void Write(Type sourceType, object value, IBindingSink sink, IBindingContext context)

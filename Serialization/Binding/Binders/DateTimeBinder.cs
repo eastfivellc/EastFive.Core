@@ -1,9 +1,10 @@
 using System;
+using System.Globalization;
 using System.Threading.Tasks;
 
 namespace EastFive.Serialization.Binding.Binders
 {
-    /// <summary>Binds <see cref="DateTime"/> via <see cref="IBindingSource.GetDateTime"/>.</summary>
+    /// <summary>Binds <see cref="DateTime"/>. Accepts native datetime, string (parse), or int64 (ticks).</summary>
     public sealed class DateTimeBinder : ITypeBinder
     {
         public bool CanBind(Type targetType) => targetType == typeof(DateTime);
@@ -16,7 +17,19 @@ namespace EastFive.Serialization.Binding.Binders
             Func<BindFailure, TResult> onFailure,
             Func<TResult> onNull = null)
         {
-            return source.GetDateTime(v => onBound((object)v), onFailure, onNull);
+            var path = context?.KeyPath;
+            return source.GetValue<TResult>(
+                path: path,
+                onNull: onNull,
+                onDateTime: dt => onBound(dt),
+                onString: s =>
+                {
+                    if (DateTime.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dt))
+                        return onBound(dt);
+                    return onFailure(new BindFailure(new ParseError($"'{s}' is not a DateTime"), typeof(DateTime), path));
+                },
+                onInt64: ticks => onBound(new DateTime(ticks)),
+                onFailure: onFailure);
         }
 
         public void Write(Type sourceType, object value, IBindingSink sink, IBindingContext context)
@@ -26,7 +39,7 @@ namespace EastFive.Serialization.Binding.Binders
         }
     }
 
-    /// <summary>Binds <see cref="DateTimeOffset"/> from the source's DateTime accessor.</summary>
+    /// <summary>Binds <see cref="DateTimeOffset"/>. Accepts native datetime, string (parse), or int64 (ticks).</summary>
     public sealed class DateTimeOffsetBinder : ITypeBinder
     {
         public bool CanBind(Type targetType) => targetType == typeof(DateTimeOffset);
@@ -39,13 +52,19 @@ namespace EastFive.Serialization.Binding.Binders
             Func<BindFailure, TResult> onFailure,
             Func<TResult> onNull = null)
         {
-            return source.GetDateTime(v =>
-            {
-                var dt = v.Kind == DateTimeKind.Unspecified
-                    ? DateTime.SpecifyKind(v, DateTimeKind.Utc)
-                    : v;
-                return onBound((object)new DateTimeOffset(dt));
-            }, onFailure, onNull);
+            var path = context?.KeyPath;
+            return source.GetValue<TResult>(
+                path: path,
+                onNull: onNull,
+                onDateTime: dt => onBound(new DateTimeOffset(dt, TimeSpan.Zero)),
+                onString: s =>
+                {
+                    if (DateTimeOffset.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dto))
+                        return onBound(dto);
+                    return onFailure(new BindFailure(new ParseError($"'{s}' is not a DateTimeOffset"), typeof(DateTimeOffset), path));
+                },
+                onInt64: ticks => onBound(new DateTimeOffset(new DateTime(ticks), TimeSpan.Zero)),
+                onFailure: onFailure);
         }
 
         public void Write(Type sourceType, object value, IBindingSink sink, IBindingContext context)

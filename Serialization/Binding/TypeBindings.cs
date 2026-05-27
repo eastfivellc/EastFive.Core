@@ -39,6 +39,9 @@ namespace EastFive.Serialization.Binding
             yield return new BytesBinder();
             yield return new PrimitiveBinder();
             yield return new ArrayBinder();
+            // Catch-all: any class/struct with bindable members. Registered last so
+            // every specific binder gets first crack.
+            yield return new PocoBinder();
         }
 
         public ValueTask<TResult> Bind<TResult>(

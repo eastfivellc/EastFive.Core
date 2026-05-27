@@ -21,10 +21,20 @@ namespace EastFive.Serialization.Binding
 
         CultureInfo Culture { get; }
 
+        /// <summary>
+        /// Scope-specific member selector consulted by <c>PocoBinder</c>. Determines
+        /// <em>which</em> members of a complex type are bindable and under what
+        /// wire-names. Orthogonal to <see cref="ITypeBindings"/>, which determines
+        /// <em>how</em> a single value is bound.
+        /// </summary>
+        IMemberPlanProvider MemberPlanProvider { get; }
+
         IBindingContext WithSlot(IBindingSlot slot);
 
         IBindingContext WithKeyPath(string keyPath);
 
         IBindingContext WithTypeBindings(ITypeBindings typeBindings);
+
+        IBindingContext WithMemberPlanProvider(IMemberPlanProvider memberPlanProvider);
     }
 }

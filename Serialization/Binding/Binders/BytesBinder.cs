@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace EastFive.Serialization.Binding.Binders
 {
-    /// <summary>Binds <see cref="byte"/> arrays via <see cref="IBindingSource.GetBytes"/>.</summary>
+    /// <summary>Binds <c>byte[]</c>. Accepts native bytes or base64 string.</summary>
     public sealed class BytesBinder : ITypeBinder
     {
         public bool CanBind(Type targetType) => targetType == typeof(byte[]);
@@ -16,7 +16,17 @@ namespace EastFive.Serialization.Binding.Binders
             Func<BindFailure, TResult> onFailure,
             Func<TResult> onNull = null)
         {
-            return source.GetBytes(v => onBound((object)v), onFailure, onNull);
+            var path = context?.KeyPath;
+            return source.GetValue<TResult>(
+                path: path,
+                onNull: onNull,
+                onBytes: b => onBound(b),
+                onString: s =>
+                {
+                    try { return onBound(Convert.FromBase64String(s)); }
+                    catch (FormatException) { return onFailure(new BindFailure(new ParseError("invalid base64"), typeof(byte[]), path)); }
+                },
+                onFailure: onFailure);
         }
 
         public void Write(Type sourceType, object value, IBindingSink sink, IBindingContext context)

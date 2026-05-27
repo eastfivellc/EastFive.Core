@@ -21,6 +21,10 @@ namespace EastFive.Serialization.Binding
         void WriteString(string value);
         void WriteGuid(Guid value);
         void WriteBool(bool value);
+        /// <summary>Write a 32-bit signed integer. Adapters with a narrow native
+        /// wire type (e.g. EDM <c>Int32</c>) should preserve it; otherwise widen
+        /// to the long path. <see cref="WriteInt64"/> remains the wide-integer write.</summary>
+        void WriteInt32(int value);
         void WriteInt64(long value);
         void WriteDouble(double value);
         void WriteDateTime(DateTime value);

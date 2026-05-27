@@ -4,16 +4,12 @@ using System.Threading.Tasks;
 namespace EastFive.Serialization.Binding.Binders
 {
     /// <summary>
-    /// Binds <see cref="Nullable{T}"/>. Opts into null-handling by passing an
-    /// <c>onNull</c> down to the underlying binder; a source-level null is then
-    /// materialized as a boxed <c>null</c>. Otherwise delegates to the registered
-    /// binder for the underlying value type.
+    /// Binds <c>Nullable&lt;T&gt;</c>. Supplies <c>onNull → onBound(null)</c> and
+    /// otherwise delegates to the inner binder for <c>T</c> against the SAME source.
     /// </summary>
     public sealed class NullableBinder : ITypeBinder
     {
-        public bool CanBind(Type targetType) =>
-            targetType is { IsGenericType: true } &&
-            targetType.GetGenericTypeDefinition() == typeof(Nullable<>);
+        public bool CanBind(Type targetType) => Nullable.GetUnderlyingType(targetType) is not null;
 
         public ValueTask<TResult> Read<TResult>(
             Type targetType,
@@ -23,8 +19,11 @@ namespace EastFive.Serialization.Binding.Binders
             Func<BindFailure, TResult> onFailure,
             Func<TResult> onNull = null)
         {
-            var underlying = Nullable.GetUnderlyingType(targetType);
-            return context.TypeBindings.Bind(underlying, source, context,
+            var inner = Nullable.GetUnderlyingType(targetType);
+            return context.TypeBindings.Bind(
+                inner,
+                source,
+                context,
                 onBound,
                 onFailure,
                 onNull: () => onBound(null));
@@ -33,8 +32,8 @@ namespace EastFive.Serialization.Binding.Binders
         public void Write(Type sourceType, object value, IBindingSink sink, IBindingContext context)
         {
             if (value is null) { sink.WriteNull(); return; }
-            var underlying = Nullable.GetUnderlyingType(sourceType);
-            context.TypeBindings.Emit(underlying, value, sink, context);
+            var inner = Nullable.GetUnderlyingType(sourceType);
+            context.TypeBindings.Emit(inner, value, sink, context);
         }
     }
 }

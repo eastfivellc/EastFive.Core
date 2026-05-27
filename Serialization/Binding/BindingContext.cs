@@ -9,12 +9,14 @@ namespace EastFive.Serialization.Binding
             ITypeBindings typeBindings,
             IBindingSlot slot = null,
             string keyPath = "",
-            CultureInfo culture = null)
+            CultureInfo culture = null,
+            IMemberPlanProvider memberPlanProvider = null)
         {
             TypeBindings = typeBindings;
             Slot = slot;
             KeyPath = keyPath ?? string.Empty;
             Culture = culture ?? CultureInfo.InvariantCulture;
+            MemberPlanProvider = memberPlanProvider ?? ConventionalMemberPlanProvider.Instance;
         }
 
         public ITypeBindings TypeBindings { get; }
@@ -25,13 +27,18 @@ namespace EastFive.Serialization.Binding
 
         public CultureInfo Culture { get; }
 
+        public IMemberPlanProvider MemberPlanProvider { get; }
+
         public IBindingContext WithSlot(IBindingSlot slot) =>
-            new BindingContext(TypeBindings, slot, KeyPath, Culture);
+            new BindingContext(TypeBindings, slot, KeyPath, Culture, MemberPlanProvider);
 
         public IBindingContext WithKeyPath(string keyPath) =>
-            new BindingContext(TypeBindings, Slot, keyPath, Culture);
+            new BindingContext(TypeBindings, Slot, keyPath, Culture, MemberPlanProvider);
 
         public IBindingContext WithTypeBindings(ITypeBindings typeBindings) =>
-            new BindingContext(typeBindings, Slot, KeyPath, Culture);
+            new BindingContext(typeBindings, Slot, KeyPath, Culture, MemberPlanProvider);
+
+        public IBindingContext WithMemberPlanProvider(IMemberPlanProvider memberPlanProvider) =>
+            new BindingContext(TypeBindings, Slot, KeyPath, Culture, memberPlanProvider);
     }
 }
