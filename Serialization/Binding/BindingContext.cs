@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 
 namespace EastFive.Serialization.Binding
@@ -10,13 +11,15 @@ namespace EastFive.Serialization.Binding
             IBindingSlot slot = null,
             string keyPath = "",
             CultureInfo culture = null,
-            IMemberPlanProvider memberPlanProvider = null)
+            IMemberPlanProvider memberPlanProvider = null,
+            Type memberScope = null)
         {
             TypeBindings = typeBindings;
             Slot = slot;
             KeyPath = keyPath ?? string.Empty;
             Culture = culture ?? CultureInfo.InvariantCulture;
-            MemberPlanProvider = memberPlanProvider ?? ConventionalMemberPlanProvider.Instance;
+            MemberPlanProvider = memberPlanProvider ?? ScopedMemberPlanProvider.Instance;
+            MemberScope = memberScope;
         }
 
         public ITypeBindings TypeBindings { get; }
@@ -29,16 +32,21 @@ namespace EastFive.Serialization.Binding
 
         public IMemberPlanProvider MemberPlanProvider { get; }
 
+        public Type MemberScope { get; }
+
         public IBindingContext WithSlot(IBindingSlot slot) =>
-            new BindingContext(TypeBindings, slot, KeyPath, Culture, MemberPlanProvider);
+            new BindingContext(TypeBindings, slot, KeyPath, Culture, MemberPlanProvider, MemberScope);
 
         public IBindingContext WithKeyPath(string keyPath) =>
-            new BindingContext(TypeBindings, Slot, keyPath, Culture, MemberPlanProvider);
+            new BindingContext(TypeBindings, Slot, keyPath, Culture, MemberPlanProvider, MemberScope);
 
         public IBindingContext WithTypeBindings(ITypeBindings typeBindings) =>
-            new BindingContext(typeBindings, Slot, KeyPath, Culture, MemberPlanProvider);
+            new BindingContext(typeBindings, Slot, KeyPath, Culture, MemberPlanProvider, MemberScope);
 
         public IBindingContext WithMemberPlanProvider(IMemberPlanProvider memberPlanProvider) =>
-            new BindingContext(TypeBindings, Slot, KeyPath, Culture, memberPlanProvider);
+            new BindingContext(TypeBindings, Slot, KeyPath, Culture, memberPlanProvider, MemberScope);
+
+        public IBindingContext WithMemberScope(Type memberScope) =>
+            new BindingContext(TypeBindings, Slot, KeyPath, Culture, MemberPlanProvider, memberScope);
     }
 }

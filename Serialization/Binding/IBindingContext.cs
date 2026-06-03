@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 
 namespace EastFive.Serialization.Binding
@@ -29,6 +30,17 @@ namespace EastFive.Serialization.Binding
         /// </summary>
         IMemberPlanProvider MemberPlanProvider { get; }
 
+        /// <summary>
+        /// Active member-scope marker passed to
+        /// <see cref="IMemberPlanProvider.GetPlan(System.Type, System.Type)"/>.
+        /// Identifies the binding purpose (e.g. request body, PATCH body,
+        /// storage row) so the provider can decide which members of a complex
+        /// type participate. Must be set by the binding driver (the API
+        /// dispatcher, a storage column reader, etc.) before any complex-type
+        /// bind that walks members; <c>PocoBinder</c> rejects null.
+        /// </summary>
+        Type MemberScope { get; }
+
         IBindingContext WithSlot(IBindingSlot slot);
 
         IBindingContext WithKeyPath(string keyPath);
@@ -36,5 +48,7 @@ namespace EastFive.Serialization.Binding
         IBindingContext WithTypeBindings(ITypeBindings typeBindings);
 
         IBindingContext WithMemberPlanProvider(IMemberPlanProvider memberPlanProvider);
+
+        IBindingContext WithMemberScope(Type memberScope);
     }
 }

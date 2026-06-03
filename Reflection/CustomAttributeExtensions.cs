@@ -234,6 +234,17 @@ namespace EastFive
             return attributes.ToArray();
         }
 
+        public static T[] GetAttributesInterface<T>(this System.Reflection.Assembly assembly)
+        {
+            if (!typeof(T).IsInterface)
+                throw new ArgumentException($"{typeof(T).FullName} is not an interface.");
+            var attributes = assembly.GetCustomAttributes(inherit: false)
+                .Where(attr => typeof(T).IsAssignableFrom(attr.GetType()))
+                .Select(attr => (T)attr)
+                .ToArray();
+            return attributes;
+        }
+
         public static bool TryGetAttributeInterface<T>(this System.Reflection.ParameterInfo type,
             out T attributeInterface,
             bool inherit = false)

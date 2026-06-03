@@ -962,6 +962,30 @@ namespace EastFive.Linq.Async
             return values.Select(elseOperation);
         }
 
+        public static async Task<T[]> RandomSubsetAsync<T>(this IEnumerableAsync<T> items, int total, Random rand = null)
+        {
+            if (rand == null)
+                rand = new Random();
+            
+            var index = 0;
+            var results = new T[total];
+            var enumerator = items.GetEnumerator();
+            while (await enumerator.MoveNextAsync() && index < total)
+            {
+                results[index] = enumerator.Current;
+                index++;
+            }
+
+            while(await enumerator.MoveNextAsync())
+            {
+                var j = rand.Next(0, index+1);
+                if (j < total)
+                    results[j] = enumerator.Current;
+                index++;
+            }
+            return results;
+        }
+
         public interface ISelected<T>
         {
             bool HasValue { get; }
