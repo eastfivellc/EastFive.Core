@@ -36,6 +36,7 @@ namespace EastFive.Serialization.Binding
             yield return new EnumBinder();
             yield return new DateTimeBinder();
             yield return new DateTimeOffsetBinder();
+            yield return new TimeSpanBinder();
             yield return new BytesBinder();
             yield return new PrimitiveBinder();
             yield return new ArrayBinder();
