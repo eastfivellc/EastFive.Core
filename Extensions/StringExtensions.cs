@@ -304,6 +304,8 @@ namespace EastFive
             return stream;
         }
 
+#nullable enable
+
         public static bool IsNullOrEmpty([NotNullWhen(false)] this string? value)
         {
             return String.IsNullOrEmpty(value);
@@ -318,6 +320,8 @@ namespace EastFive
         {
             return !String.IsNullOrWhiteSpace(value);
         }
+
+#nullable restore
 
         public static string NullToEmpty(this string value)
         {
