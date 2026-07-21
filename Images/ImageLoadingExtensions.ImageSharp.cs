@@ -117,7 +117,7 @@ namespace EastFive.Images
 
         public static IImageFormat ParseImageEncoder(this string encodingMimeType)
         {
-            return Configuration.Default.ImageFormats
+            return SixLabors.ImageSharp.Configuration.Default.ImageFormats
                 .Where(format => format.MimeTypes.Any(mt => mt.Equals(encodingMimeType, StringComparison.OrdinalIgnoreCase)))
                 .Max(
                     format =>
@@ -142,7 +142,7 @@ namespace EastFive.Images
                     },
                     () =>
                     {
-                        return Configuration.Default.ImageFormats
+                        return SixLabors.ImageSharp.Configuration.Default.ImageFormats
                             .Min(
                                 format =>
                                 {
