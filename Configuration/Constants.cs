@@ -28,6 +28,11 @@ namespace EastFive.Web
                 DeploymentSecurityConcern = true)]
             public const string ClientId = "KeyVault.ClientId";
 
+            [ConfigKeyAttribute("Entra tenant that issued the KeyVault service principal",
+                DeploymentOverrides.Suggested,
+                DeploymentSecurityConcern = true)]
+            public const string TenantId = "KeyVault.TenantId";
+
             [ConfigKeyAttribute("Used by the application to authenticate to the KeyVault",
                 DeploymentOverrides.Suggested,
                 DeploymentSecurityConcern = true)]
