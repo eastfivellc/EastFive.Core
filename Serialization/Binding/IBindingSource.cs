@@ -76,6 +76,24 @@ namespace EastFive.Serialization.Binding
     }
 
     /// <summary>
+    /// Optional capability surfaced by a source's <c>onObject</c> child when that
+    /// child natively models a key/value bag (a JSON object, a form-collection
+    /// group, etc.). <see cref="Keys"/> lists the child keys present at that
+    /// source; each key is then a valid <c>path</c> for a subsequent
+    /// <see cref="IBindingSource.GetValue{TResult}"/> call on the SAME source
+    /// instance. Lets <c>DictionaryBinder</c> materialize
+    /// <c>IDictionary&lt;string, TValue&gt;</c> targets without any binder
+    /// inspecting the underlying wire format — sources that don't model an
+    /// enumerable key set simply don't implement this interface, and
+    /// <c>DictionaryBinder</c> reports <see cref="UnsupportedTargetType"/> for
+    /// that shape.
+    /// </summary>
+    public interface IKeyedBindingSource : IBindingSource
+    {
+        IEnumerable<string> Keys { get; }
+    }
+
+    /// <summary>
     /// Thrown by <see cref="IBindingSource.GetValue{TResult}"/> when the caller did
     /// not supply an <c>onFailure</c> callback and a failure occurs. The
     /// <see cref="Failure"/> property carries the structured reason so a catch site

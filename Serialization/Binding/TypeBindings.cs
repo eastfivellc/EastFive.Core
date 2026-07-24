@@ -40,6 +40,7 @@ namespace EastFive.Serialization.Binding
             yield return new BytesBinder();
             yield return new PrimitiveBinder();
             yield return new ArrayBinder();
+            yield return new DictionaryBinder();
             // Catch-all: any class/struct with bindable members. Registered last so
             // every specific binder gets first crack.
             yield return new PocoBinder();
